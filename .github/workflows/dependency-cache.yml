@@ -33,11 +33,21 @@ jobs:
       - run: node scripts/cache-lock.mjs
         env:
           NPM_CACHE_OUTPUT: ${{ runner.temp }}/drasi-npm-cache
-      - run: npm ci --offline --ignore-scripts --cache "$RUNNER_TEMP/drasi-npm-cache" --registry=https://registry.npmjs.org
+          NPM_CACHE_PLATFORM: darwin
+          NPM_CACHE_ARCH: arm64
+      - run: npm ci --offline --ignore-scripts --os=darwin --cpu=arm64 --cache "$RUNNER_TEMP/drasi-npm-cache" --registry=https://registry.npmjs.org
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: official-npm-lock
+          path: |
+            .artifacts/dependencies/package-lock.json
+            .artifacts/dependencies/provenance.json
+          if-no-files-found: error
+          retention-days: 7
       - run: tar -czf .artifacts/dependencies/npm-cache.tgz -C "$RUNNER_TEMP/drasi-npm-cache" _cacache
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: official-npm-dependencies
-          path: .artifacts/dependencies/
+          name: official-npm-darwin-arm64
+          path: .artifacts/dependencies/npm-cache.tgz
           if-no-files-found: error
           retention-days: 7
