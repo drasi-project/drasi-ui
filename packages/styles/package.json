@@ -8,7 +8,16 @@
   "homepage": "https://github.com/drasi-project/drasi-ui#readme",
   "repository": {"type": "git", "url": "git+https://github.com/drasi-project/drasi-ui.git", "directory": "packages/styles"},
   "bugs": {"url": "https://github.com/drasi-project/drasi-ui/issues"},
-  "exports": {".": "./dist/styles.css", "./styles.css": "./dist/styles.css"},
+  "exports": {
+    ".": {
+      "import": {"types": "./dist/styles.d.ts", "default": "./dist/styles.css"},
+      "require": {"types": "./dist/styles.d.cts", "default": "./dist/styles.css"}
+    },
+    "./styles.css": {
+      "import": {"types": "./dist/styles.d.ts", "default": "./dist/styles.css"},
+      "require": {"types": "./dist/styles.d.cts", "default": "./dist/styles.css"}
+    }
+  },
   "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"],
   "sideEffects": ["**/*.css"],
   "scripts": {"build": "node ../../scripts/build-styles.mjs"},

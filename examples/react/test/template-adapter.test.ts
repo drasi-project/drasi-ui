@@ -1,7 +1,7 @@
 // Copyright 2026 The Drasi Authors. Licensed under the Apache License, Version 2.0.
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { after, before, test } from 'node:test';
@@ -14,7 +14,8 @@ let directory: string;
 let template: string;
 const context = { receivedAt: 123, instanceId: 'cold-chain' };
 before(async () => {
-  const document = await readFile(new URL('../../docs/reference.md', import.meta.url), 'utf8');
+  const packageRoot = dirname(dirname(fileURLToPath(import.meta.resolve('@drasi/react'))));
+  const document = await readFile(join(packageRoot, 'docs/reference.md'), 'utf8');
   const recipe = /```tsx\n(\/\/ @drasi-docs: templated-reaction\.tsx\n[\s\S]*?)\n```/.exec(document);
   assert(recipe, 'The literal documented template adapter must exist');
   const yaml = /```yaml\n# @drasi-docs: templated-reaction\.yaml\n([\s\S]*?)\n```/.exec(document);

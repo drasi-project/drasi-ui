@@ -24,3 +24,6 @@ for (const file of await readdir(dist, { recursive: true })) {
   await writeFile(`${path}.map`, JSON.stringify(map));
 }
 await copyFile(new URL('../packages/styles/dist/styles.css', import.meta.url), join(directory, 'styles.css'));
+for (const extension of ['d.ts', 'd.cts']) {
+  await copyFile(new URL(`../packages/styles/dist/styles.${extension}`, import.meta.url), join(directory, `styles.${extension}`));
+}

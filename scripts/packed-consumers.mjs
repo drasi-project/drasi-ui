@@ -8,6 +8,8 @@ import { join } from 'node:path';
 import { candidateDirectory, json, root } from './packages.mjs';
 import { copyConsumer, installConsumer, run } from './consumer-install.mjs';
 import { assertFrameworkIsolation, checkPackedPublicContract } from '../tests/consumers/public-contract/packed-contracts.mjs';
+import { installedDependencyAccounting } from './dependency-accounting.mjs';
+import { measureEmittedAssets } from './metrics-policy.mjs';
 
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert(await readFile(join(candidateDirectory, 'package-proof.json')), 'Validate candidates before installing consumers');
@@ -41,12 +43,20 @@ for (const major of [18, 19]) {
   const report = await checkPackedPublicContract({
     coreOnly, app, output: join(output, `react-${major}`), includeCore: major === 18,
   });
+  const pinnedLock = await readFile(join(app, 'package-lock.json'));
   run('npm', ['run', 'build'], app);
   run(join(app, 'node_modules/.bin/vite'), ['build', '--config', 'component-fixture/vite.config.mjs'], app);
   if (major === 19) run('npm', ['run', 'build:next'], app);
+  assert.deepEqual(await readFile(join(app, 'package-lock.json')), pinnedLock, 'A framework build changed the pinned dependency graph');
   const graph = JSON.parse(run('npm', ['ls', '--all', '--omit=dev', '--json'], app));
   await writeFile(join(output, `react-${major}-installed-dependencies.json`), JSON.stringify(graph, null, 2) + '\n');
-  proof.consumers[`react${major}`] = { directory: app, version: report.react, scriptsEnabled: major === 18 };
+  const dependencies = await installedDependencyAccounting(app, ['@drasi/ui-core', '@drasi/ui-styles', '@drasi/react']);
+  await writeFile(join(output, `react-${major}-dependency-bytes.json`), JSON.stringify(dependencies, null, 2) + '\n');
+  proof.consumers[`react${major}`] = {
+    directory: app, version: report.react, scriptsEnabled: major === 18,
+    assets: await measureEmittedAssets(join(app, 'dist')),
+    ...(major === 19 ? { nextAssets: await measureEmittedAssets(join(app, '.next/static')) } : {}),
+  };
 }
 const vue = join(directory, 'vue');
 await installConsumer({ directory: vue, source: 'examples/vue-canary', set });
@@ -58,6 +68,7 @@ const vueRequire = createRequire(join(vue, 'package.json'));
 proof.consumers.vue = {
   directory: vue, version: vueRequire('vue/package.json').version,
   sharedFixtureSha256: createHash('sha256').update(host).digest('hex'),
+  assets: await measureEmittedAssets(join(vue, 'dist')),
 };
 const example = join(directory, 'examples-react');
 await installConsumer({ directory: example, source: 'examples/react', set });

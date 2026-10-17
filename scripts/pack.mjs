@@ -9,10 +9,13 @@ const relativeDirectory = relative(root, candidateDirectory);
 assert(relativeDirectory.startsWith('.artifacts/'), 'Candidate output must be an explicit directory under .artifacts/');
 await mkdir(join(root, '.artifacts'), { recursive: true });
 await mkdir(candidateDirectory);
-const head = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
-const status = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
-assert.equal(head.status, 0);
-assert.equal(status.status, 0);
+const git = ['-c', `safe.directory=${root}`];
+const head = spawnSync('git', [...git, 'rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+const status = spawnSync('git', [...git, 'status', '--porcelain'], { cwd: root, encoding: 'utf8' });
+if (head.error) throw head.error;
+if (status.error) throw status.error;
+assert.equal(head.status, 0, head.stderr);
+assert.equal(status.status, 0, status.stderr);
 const packages = [];
 for (const item of releasePackages) {
   const manifest = await json(join(root, item.directory, 'package.json'));

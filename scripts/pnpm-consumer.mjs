@@ -8,18 +8,21 @@ import { copyConsumer, run, verifyInstalled } from './consumer-install.mjs';
 const consumers = await json('.artifacts/consumers.json');
 const source = consumers.consumers.react18.directory;
 const directory = await realpath(await mkdtemp(join(tmpdir(), 'drasi-pnpm-consumer-')));
-const cli = join(root, 'node_modules/.bin/pnpm');
+const cli = join(root, 'node_modules/pnpm/bin/pnpm.mjs');
+const pnpm = args => run(process.execPath, [cli, ...args], directory, {
+  env: { COREPACK_ENABLE_NETWORK: '0' },
+});
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert.deepEqual(consumers.artifacts, set.packages.map(({ name, sha256 }) => ({ name, sha256 })));
 try {
   await copyConsumer(source, directory);
   await copyFile(join(source, 'package-lock.json'), join(directory, 'package-lock.json'));
-  assert.equal(run(cli, ['--version'], directory).trim(), '12.14.0');
-  run(cli, ['import', '--registry=https://registry.npmjs.org'], directory);
-  run(cli, ['install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org',
-    '--store-dir', join(directory, '.store')], directory);
+  assert.equal(pnpm(['--version']).trim(), '12.14.0');
+  pnpm(['import', '--registry=https://registry.npmjs.org']);
+  pnpm(['install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org',
+    '--store-dir', join(directory, '.store')]);
   await verifyInstalled(directory, set, true);
-  run(cli, ['exec', 'vite', 'build'], directory);
+  pnpm(['exec', 'vite', 'build']);
   await copyFile(join(root, 'tests/consumers/public-contract/install-render.cjs'), join(directory, 'render.cjs'));
   const renders = [];
   for (const format of ['esm', 'cjs']) renders.push(JSON.parse(run(process.execPath, [

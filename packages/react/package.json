@@ -32,9 +32,12 @@
       "import": {"types": "./dist/adapters/drasi-server/index.d.ts", "default": "./dist/adapters/drasi-server/index.js"},
       "require": {"types": "./dist/adapters/drasi-server/index.d.cts", "default": "./dist/adapters/drasi-server/index.cjs"}
     },
-    "./styles.css": "./styles.css"
+    "./styles.css": {
+      "import": {"types": "./styles.d.ts", "default": "./styles.css"},
+      "require": {"types": "./styles.d.cts", "default": "./styles.css"}
+    }
   },
-  "files": ["dist", "styles.css", "README.md", "docs", "CHANGELOG.md", "LICENSE", "NOTICE"],
+  "files": ["dist", "styles.css", "styles.d.ts", "styles.d.cts", "README.md", "docs", "CHANGELOG.md", "LICENSE", "NOTICE"],
   "sideEffects": ["**/*.css"],
   "scripts": {"build": "node ../../scripts/build-react.mjs", "typecheck": "tsc --noEmit"},
   "dependencies": {

@@ -58,7 +58,7 @@ async function compile({ directory, output, label, files, mode, boundary }) {
   const ts = createRequire(join(directory, 'package.json'))('typescript');
   const packages = await installedPackages(directory);
   const options = {
-    noEmit: true, strict: true, skipLibCheck: false, types: [],
+    noEmit: true, strict: true, skipLibCheck: false, noUncheckedSideEffectImports: true, types: [],
     target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
     lib: ['lib.es2022.d.ts', 'lib.dom.d.ts', 'lib.dom.iterable.d.ts'],
     module: mode === 'bundler' ? ts.ModuleKind.ESNext : ts.ModuleKind.NodeNext,

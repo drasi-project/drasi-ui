@@ -59,6 +59,15 @@ both JavaScript/declaration formats, shared/lazy chunks, source maps, duplicate
 compatibility CSS bytes and installed dependencies. The 2% unexplained-growth
 policy is not replaced by comparing only the smaller React archive.
 
+The [package baseline](../tests/contracts/artifact-baseline.json) retains the
+untouched import and adds fixed, explained multi-package wrapper/declaration/CSS
+costs. The canonical example additionally uses an
+[untouched paired control](../examples/react/test/extraction-metrics.json) built
+with the same official lock. Its net live-binding delta is 930 raw JS bytes /
+1,199 gzip bytes in total; headless code adds 1,337 / 1,363 bytes. The
+provider-free showcase becomes smaller. Original P7 limits remain, with only
+these fixed positive extraction deltas; no CSS allowance or blanket refresh is used.
+
 Human review must cover actual keyboard/screen-reader usage, announcements,
 table sorting, modal nesting/focus/return/dismissal, zoom, themes, reduced motion,
 host styling and RTL. Automated DOM ARIA, browser-native AX and axe outputs do

@@ -6,6 +6,7 @@ import { basename, join, relative, resolve } from 'node:path';
 import { candidateDirectory, json, root } from './packages.mjs';
 
 export function run(command, args, cwd, options = {}) {
+  const { env: extraEnvironment, ...processOptions } = options;
   const result = spawnSync(command, args, {
     cwd, encoding: 'utf8', timeout: 600_000, maxBuffer: 32 * 1024 * 1024,
     env: {
@@ -14,8 +15,9 @@ export function run(command, args, cwd, options = {}) {
       ...(process.env.DRASI_OFFLINE === '1' ? {
         npm_config_offline: 'true', npm_config_cache: resolve(root, '.artifacts/npm-cache'),
       } : {}),
+      ...extraEnvironment,
     },
-    ...options,
+    ...processOptions,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {

@@ -8,10 +8,14 @@ export function moduleIdentity(raw, root) {
   const query = clean.indexOf('?');
   const file = query < 0 ? clean : clean.slice(0, query);
   const suffix = query < 0 ? '' : clean.slice(query);
-  const packageFile = /(?:node_modules\/@drasi\/react|dev-tools\/react)\/(dist\/.+)/.exec(file);
-  const name = packageFile ? `@drasi/react/${packageFile[1]}` :
+  const packageFile = /(?:node_modules\/@drasi\/(react|ui-core|ui-styles)|packages\/(react|core|styles))\/(dist\/.+)/.exec(file);
+  const workspaceNames = { react: 'react', core: 'ui-core', styles: 'ui-styles' };
+  const packageName = packageFile ? packageFile[1] ?? workspaceNames[packageFile[2]] : null;
+  const installed = file.lastIndexOf('/node_modules/');
+  const name = packageFile ? `@drasi/${packageName}/${packageFile[3]}` :
+    installed >= 0 ? file.slice(installed + 1) :
     isAbsolute(file) ? relative(root, file).replaceAll('\\', '/') : `virtual:${file}`;
-  return { id: name + suffix, sourceMap: packageFile ? `${file}.map` : null };
+  return { id: name + suffix, sourceMap: packageFile && /\.[cm]?js$/.test(file) ? `${file}.map` : null };
 }
 
 export function assertExampleModule(id) {
@@ -21,8 +25,8 @@ export function assertExampleModule(id) {
     'virtual:vite/modulepreload-polyfill.js',
     'virtual:vite/preload-helper.js',
   ].includes(file);
-  const owned = /^(?:src\/|node_modules\/|@drasi\/react\/dist\/)/.test(file);
+  const owned = /^(?:src\/|node_modules\/|@drasi\/(?:react|ui-core|ui-styles)\/dist\/)/.test(file);
   assert((helper || owned) && !file.split('/').includes('..') && !file.includes('\0') &&
-    !/@drasi\/react\/src(?:\/|$)/.test(file),
+    !/@drasi\/(?:react|ui-core|ui-styles)\/src(?:\/|$)/.test(file),
   `Example imports outside its source/installed artifacts: ${id}`);
 }

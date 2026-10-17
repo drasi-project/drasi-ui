@@ -53,11 +53,13 @@ jobs:
       - run: npm run pack:candidates && npm run check:packages
       - run: npm run test:contracts
       - run: npm run test:pnpm
+      - run: npm run audit:dependencies
       - run: npm run test:browser
       - run: node scripts/seal-candidates.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-candidates
+          include-hidden-files: true
           path: |
             .artifacts/candidates/*.tgz
             .artifacts/candidates/*.json
@@ -109,6 +111,7 @@ jobs:
         if: always()
         with:
           name: release-progress-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
           path: .artifacts/release-progress/
           if-no-files-found: warn
           retention-days: 90

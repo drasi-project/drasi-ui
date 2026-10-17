@@ -13,8 +13,17 @@ const graph = () => ({
   'hooks.js': { entry: 'hooks.html', imports: ['shared.js'], dynamicImports: [], css: [], modules: [] },
   'shared.js': { entry: null, imports: [], dynamicImports: [], css: [], modules: [{ id: '@drasi/react/dist/react/index.js', sources: [] }] },
 });
+test('the paired extraction allowance stays scoped and preserves the exact 2% bound', async () => {
+  const baseline = JSON.parse(await readFile(new URL('baseline-metrics.json', import.meta.url), 'utf8'));
+  const extraction = JSON.parse(await readFile(new URL('extraction-metrics.json', import.meta.url), 'utf8'));
+  const evidence = { total: { ...baseline.total }, entries: structuredClone(baseline.entries) };
+  assertExampleBudget(evidence, baseline, extraction);
+  evidence.total.jsGzip = Math.floor(baseline.total.jsGzip * 1.02 + extraction.allowance.total.jsGzip) + 1;
+  assert.throws(() => assertExampleBudget(evidence, baseline, extraction), /2% growth budget/);
+  assert.throws(() => assertExampleBudget(evidence, baseline, { allowance: {} }));
+});
 test('built dependency proof normalizes actual virtual IDs and walks static, shared and lazy chunks', () => {
-  const root = '/__w/_temp/trading-consumer/dev-tools/react/examples';
+  const root = '/__w/_temp/drasi-consumer/examples-react';
   const virtual = moduleIdentity(`\0${root}/node_modules/react/jsx-runtime.js?commonjs-module`, root);
   assert.deepEqual(virtual, { id: 'node_modules/react/jsx-runtime.js?commonjs-module', sourceMap: null });
   assertExampleModule(virtual.id);
@@ -25,11 +34,21 @@ test('built dependency proof normalizes actual virtual IDs and walks static, sha
     sourceMap: `${root}/node_modules/@drasi/react/dist/chunk-client.js.map`,
   });
   assertExampleModule(library.id);
+  assert.deepEqual(moduleIdentity('/repo/node_modules/clsx/dist/clsx.mjs', '/repo/examples/react'), {
+    id: 'node_modules/clsx/dist/clsx.mjs', sourceMap: null,
+  });
+  assert.deepEqual(moduleIdentity(`${root}/node_modules/@drasi/ui-core/dist/index.js`, root), {
+    id: '@drasi/ui-core/dist/index.js', sourceMap: `${root}/node_modules/@drasi/ui-core/dist/index.js.map`,
+  });
+  assert.deepEqual(moduleIdentity('/repo/packages/styles/dist/styles.css', root), {
+    id: '@drasi/ui-styles/dist/styles.css', sourceMap: null,
+  });
   for (const raw of [
     `${root}/../../../examples/trading/app/src/App.tsx`,
     `\0${root}/../../../examples/trading/app/src/App.tsx?commonjs-module`,
     `${root}/../src/react/index.ts`,
     `${root}/node_modules/@drasi/react/src/react/index.ts`,
+    `${root}/node_modules/@drasi/ui-core/src/index.ts`,
     '\0unknown-helper.js',
   ]) {
     assert.throws(() => assertExampleModule(moduleIdentity(raw, root).id), /outside its source\/installed artifacts/);

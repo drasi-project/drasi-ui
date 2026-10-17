@@ -38,15 +38,18 @@ export function assertHooksGraph(graph) {
   return files;
 }
 
-export function assertExampleBudget(evidence, baseline) {
+export function assertExampleBudget(evidence, baseline, extraction) {
   assert.deepEqual(Object.keys(evidence.entries).sort(), Object.keys(baseline.entries).sort(), 'Example entry set changed');
   const scopes = { total: baseline.total, ...baseline.entries };
+  if (extraction) assert.deepEqual(Object.keys(extraction.allowance).sort(), Object.keys(scopes).sort());
   for (const [scope, expected] of Object.entries(scopes)) {
     const actual = scope === 'total' ? evidence.total : evidence.entries[scope];
     for (const metric of ['js', 'jsGzip', 'css', 'cssGzip']) {
       assert(Number.isInteger(actual[metric]) && actual[metric] >= 0 && Number.isInteger(expected[metric]),
         `Missing example ${scope} ${metric} measurement`);
-      assert(actual[metric] <= expected[metric] * 1.02,
+      const allowance = extraction ? extraction.allowance[scope][metric] : 0;
+      assert(Number.isSafeInteger(allowance) && allowance >= 0, 'Invalid extraction allowance');
+      assert(actual[metric] <= expected[metric] * 1.02 + allowance,
         `Example ${scope} ${metric} exceeds the 2% growth budget; explain and review the measured feature cost`);
     }
   }
@@ -93,7 +96,12 @@ export async function checkBuild(directory) {
   await writeFile(join(directory, 'build-evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify(evidence, null, 2));
   const baseline = JSON.parse(await readFile(new URL('../test/baseline-metrics.json', import.meta.url), 'utf8'));
-  assertExampleBudget(evidence, baseline);
+  const extraction = JSON.parse(await readFile(new URL('../test/extraction-metrics.json', import.meta.url), 'utf8'));
+  assert.equal(extraction.sourceCommit, 'da399714d28203f47ebef151da2e5a213dfd52fe');
+  assert.equal(extraction.baselineArchiveSha256, '4a0238d220bda38114c96ae4023c9674677433cae08eb2445073f1b50429247d');
+  assert.equal(extraction.allowance['hooks.html'].css, 0);
+  assert.equal(extraction.allowance['hooks.html'].cssGzip, 0);
+  assertExampleBudget(evidence, baseline, extraction);
   return evidence;
 }
 

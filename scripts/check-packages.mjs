@@ -7,6 +7,7 @@ import ts from 'typescript';
 import { publint } from 'publint';
 import { checkArtifact } from '../tests/consumers/public-contract/artifact-graphs.mjs';
 import { candidateDirectory, json, releasePackages, root } from './packages.mjs';
+import { assertArtifactBudget } from './metrics-policy.mjs';
 
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert.equal(set.repository, 'drasi-project/drasi-ui');
@@ -88,15 +89,24 @@ for (const item of set.packages) {
     await writeFile(reportFile, report.stdout);
     assert.equal(report.status, 0, `ATWT exports-aware NodeNext/bundler check failed; full report: ${reportFile}\n${report.stderr}`);
   } else {
-    assert.equal(metrics.esm + metrics.cjs + metrics.declarations, 0, 'Styles is a CSS-only package');
+    assert.equal(metrics.esm + metrics.cjs, 0, 'Styles must not ship a JavaScript runtime');
   }
-  if (item.name !== '@drasi/ui-core') styles.push(await readFile(join(packageRoot, manifest.exports['./styles.css'])));
+  if (item.name !== '@drasi/ui-core') {
+    const style = manifest.exports['./styles.css'];
+    assert.equal(style.import.default, style.require.default);
+    for (const condition of ['import', 'require']) {
+      const declarations = await readFile(join(packageRoot, style[condition].types), 'utf8');
+      assert.match(declarations, /export \{\};/);
+    }
+    styles.push(await readFile(join(packageRoot, style.import.default)));
+  }
   proof.packages[item.name] = { version: item.version, sha256: item.sha256, metrics, graph, publint: messages };
   for (const metric of Object.keys(metrics)) proof.totals[metric] += metrics[metric];
 }
 assert.equal(styles.length, 2);
 assert.deepEqual(styles[0], styles[1], 'React compatibility CSS must match the styles tarball exactly');
 assert.deepEqual(styles[0], await readFile(join(root, 'packages/styles/src/styles.css')));
+assertArtifactBudget(proof.totals, await json(join(root, 'tests/contracts/artifact-baseline.json')));
 await writeFile(join(candidateDirectory, 'package-proof.json'), JSON.stringify(proof, null, 2) + '\n');
 console.log(JSON.stringify(proof.totals));
 console.log('Exact candidate exports, declarations, maps, directives, notices, CSS and package linters passed.');
