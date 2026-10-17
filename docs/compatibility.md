@@ -10,7 +10,7 @@ separate gates.
 | Package combination | Core, styles and React `0.1.0-beta.1`, installed as one exact candidate set |
 | React / React DOM | 18.3.1 and 19.3.1; one runtime identity |
 | Vue proof | Native Vue 3.5.44 with packed core/styles and no React/Radix/runtime/types |
-| Frameworks | Vite 7.3.5 and Next 16.4.2 App Router, actual builds and SSR/hydration |
+| Frameworks | Vite 7.3.7 and Next 16.4.2 App Router, actual builds and SSR/hydration |
 | Declarations | TypeScript 5.9.3 for core/React 18 and 6.0.3 for the React 19/Next consumer; strict NodeNext ESM/CJS and bundler, `skipLibCheck: false` |
 | Maintainer toolchain | Node 24.19.0, npm 11.17.0; release operations use npm 11.21.0 |
 | Browser automation | Playwright 1.56.1 Chromium, Firefox and WebKit; pinned Linux image in CI |
@@ -60,11 +60,13 @@ maintainer Node version on browser/CSS installations.
 
 The inherited Vite 5.4.19 development graph had reported file-serving/path
 advisories and a vulnerable esbuild development-server version. The four private
-consumer/example workspaces now use the already locked Vite 7.3.5 toolchain
+consumer/example workspaces now use Vite 7.3.7 with its supported esbuild 0.28.1
 instead; public package dependencies and React peer ranges are unchanged.
 Runtime dependency licenses are Apache-2.0, MIT and tslib's permissive 0BSD;
 their installed license files are retained. Both production and development
-advisory reports are blocking qualification checks, not hidden exceptions.
+advisory reports for the isolated consumers are blocking qualification checks,
+not hidden exceptions. The explicit esbuild pin prevents npm from retaining an
+older, still-range-compatible development-server dependency.
 
 Each query observer owns its raw rows, projection and snapshot work. Hoist one
 hook to share a query across presentations; providers do not cache queries.
@@ -79,12 +81,15 @@ policy is not replaced by comparing only the smaller React archive.
 
 The [package baseline](../tests/contracts/artifact-baseline.json) retains the
 untouched import and adds fixed, explained multi-package wrapper/declaration/CSS
-costs. The canonical example additionally uses an
-[untouched paired control](../examples/react/test/extraction-metrics.json) built
-with the same official lock. Its net live-binding delta is 930 raw JS bytes /
-1,199 gzip bytes in total; headless code adds 1,337 / 1,363 bytes. The
-provider-free showcase becomes smaller. Original P7 limits remain, with only
-these fixed positive extraction deltas; no CSS allowance or blanket refresh is used.
+costs. The canonical example's
+[untouched paired control](../examples/react/test/extraction-metrics.json) was
+calibrated with the same official lock and original Vite 5.4.19 on both sides:
+the extraction added 930 raw JS bytes / 1,199 gzip bytes in total and
+1,337 / 1,363 bytes to headless use, while removing Server code from the
+provider-free showcase. The initial Vite 7.3.5 security update remained below
+those existing caps (236,518 total JS bytes / 79,592 gzip bytes); it does not
+increase them. Original P7 limits and fixed extraction deltas remain, with no
+CSS allowance or blanket baseline refresh.
 
 Human review must cover actual keyboard/screen-reader usage, announcements,
 table sorting, modal nesting/focus/return/dismissal, zoom, themes, reduced motion,
