@@ -6,7 +6,7 @@ export default function Page() {
     <header>
       <h1>App Router server page</h1>
       <p data-testid="server-rendered">Server-rendered route with a package client boundary.</p>
-      <span aria-label="Package client export"><CodeIcon /></span>
+      <span><CodeIcon />Package client export</span>
     </header>
     <ReactContractApp />
   </>;

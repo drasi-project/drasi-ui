@@ -38,6 +38,9 @@ Next 16.4.2 references the modern `URLPatternInput`/`URLPatternOptions` web
 declarations introduced in TypeScript 6. Its private consumer therefore pins
 TypeScript 6.0.3 and Node 24 declarations, includes `next-env.d.ts`, and remains
 fully strict. No ambient `any` shim or framework `ignoreBuildErrors` setting is used.
+Those Next fixture pins are not minimum requirements for every library consumer:
+core and React 18 continue to be checked with TypeScript 5.9.3, and the browser
+packages do not inherit the fixture's Node declaration version as an engine constraint.
 
 Are the Types Wrong uses its exports-aware `node16` profile, which covers
 NodeNext CJS/ESM and bundler resolution. Legacy TypeScript `node10` resolution is

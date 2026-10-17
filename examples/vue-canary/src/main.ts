@@ -4,7 +4,7 @@ import {
   initialQueryState, nextTableSort, observeQuery, projectQueryRows, queryView, sortTableRows, trackRowChanges,
   type AcceptedQueryView, type AnimationDirection, type QueryObservation, type SortConfig,
 } from '@drasi/ui-core';
-import { ContractClient, readingOptions, type Reading } from '../.generated/host';
+import { ContractClient, darkTheme, readingOptions, type Reading } from '../.generated/host';
 import '@drasi/ui-styles/styles.css';
 
 const Canary = defineComponent({
@@ -73,7 +73,9 @@ const Canary = defineComponent({
       }],
       ['Dispose', dispose],
     ];
-    return () => h('main', { 'data-drasi-theme': dark.value ? 'dark' : 'light' }, [
+    return () => h('main', { style: dark.value ? {
+      ...darkTheme, color: darkTheme['--drasi-color-text'], background: darkTheme['--drasi-color-surface'],
+    } : undefined }, [
       h('h1', 'Native Vue contract canary'),
       h('p', 'Simulated non-Server data. This is not the forthcoming public Vue control library.'),
       h('div', actions.map(([label, action]) => h('button', { type: 'button', onClick: action, disabled: disposed.value }, label))),

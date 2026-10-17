@@ -29,7 +29,7 @@ test('shared non-Server snapshot/update/delete/projection/stale/retry/scope/disp
   await expect(card).toHaveCSS('direction', 'rtl');
   await audit(page, info, 'native-framework-dark-rtl');
   await page.getByRole('button', { name: 'Dispose', exact: true }).click();
-  await expect(page.getByRole('status', { name: '' })).toContainText('Disposed');
+  await expect(page.getByRole('status').filter({ hasText: /^Disposed$/ })).toBeVisible();
   await expect(page.getByTestId('subscriptions')).toHaveText('0');
   expect(diagnostics).toEqual([]);
   info.annotations.push({

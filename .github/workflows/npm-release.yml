@@ -79,7 +79,6 @@ jobs:
       id-token: write
     env:
       DRASI_RELEASE_ENVIRONMENT: npm-release
-      NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/drasi-oidc.npmrc
       NPM_CONFIG_LOGLEVEL: notice
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -90,6 +89,8 @@ jobs:
           node-version: 24.19.0
           package-manager-cache: false
       - run: |
+          export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/drasi-oidc.npmrc"
+          printf 'NPM_CONFIG_USERCONFIG=%s\n' "$NPM_CONFIG_USERCONFIG" >> "$GITHUB_ENV"
           printf 'registry=https://registry.npmjs.org/\n' > "$NPM_CONFIG_USERCONFIG"
           npm install --global npm@11.21.0 --registry=https://registry.npmjs.org
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5

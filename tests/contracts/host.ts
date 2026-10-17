@@ -8,6 +8,22 @@ import {
 
 export interface Reading { label: string; value: number }
 
+export const darkTheme = {
+  '--drasi-color-surface': '#111827',
+  '--drasi-color-dialog': '#111827',
+  '--drasi-color-text': '#f9fafb',
+  '--drasi-color-border': '#6b7280',
+  '--drasi-color-primary': '#93c5fd',
+  '--drasi-color-success': '#6ee7b7',
+  '--drasi-color-danger': '#fca5a5',
+  '--drasi-color-muted': '#d1d5db',
+  '--drasi-color-subtle': '#e5e7eb',
+  '--drasi-color-row-border': '#4b5563',
+  '--drasi-color-row-hover': '#374151',
+  '--drasi-color-action-hover': '#374151',
+  '--drasi-color-focus': '#fbbf24',
+};
+
 export const readingOptions: QueryProjectionOptions<Reading> = {
   getKey: row => {
     if (typeof row.station !== 'string' || !row.station) throw new TypeError('Missing station identity');

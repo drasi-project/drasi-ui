@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { candidateDirectory, json, releasePackages, root } from './packages.mjs';
 
@@ -9,7 +9,7 @@ const relativeDirectory = relative(root, candidateDirectory);
 assert(relativeDirectory.startsWith('.artifacts/'), 'Candidate output must be an explicit directory under .artifacts/');
 await mkdir(join(root, '.artifacts'), { recursive: true });
 await mkdir(candidateDirectory);
-const git = ['-c', `safe.directory=${root}`];
+const git = ['-c', `safe.directory=${await realpath(root)}`];
 const head = spawnSync('git', [...git, 'rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
 const status = spawnSync('git', [...git, 'status', '--porcelain'], { cwd: root, encoding: 'utf8' });
 if (head.error) throw head.error;

@@ -14,8 +14,10 @@ may keep `@drasi/react/styles.css`; its generated contents must be byte-for-byte
 identical to this package's stylesheet. Do not import both unless your bundler
 deduplicates identical CSS.
 
-Apply `data-drasi-theme="light"` or `data-drasi-theme="dark"` to a containing
-element, or override scoped `--drasi-*` tokens. The library does not install a
+Light defaults are built into the scoped rules. For a dark or custom theme,
+override `--drasi-*` tokens on a containing element, including surface, text,
+border, focus and state colors together. A data attribute alone does not select
+a palette. The library does not install a
 global reset, font, Tailwind dependency or source-scanning configuration.
 React portals copy resolved scoped theme values through their own binding.
 Other renderers own their native portal/focus behavior.

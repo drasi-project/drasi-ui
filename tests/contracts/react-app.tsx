@@ -3,7 +3,7 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { DrasiClientProvider, useDrasiQuery } from '@drasi/react/react';
 import { DataTable, Modal } from '@drasi/react/components';
-import { ContractClient, readingOptions } from './host';
+import { ContractClient, darkTheme, readingOptions } from './host';
 
 function Query({ queryId, reject, setRetry }: {
   queryId: string; reject: boolean; setRetry: (retry: () => void) => void;
@@ -54,7 +54,9 @@ function App() {
     ['Replace connection', () => setClient(new ContractClient(99))],
     ['Dispose', () => { setDisposed(true); client.dispose(); }],
   ];
-  return <main data-drasi-theme={dark ? 'dark' : 'light'}>
+  return <main style={dark ? {
+    ...darkTheme, color: darkTheme['--drasi-color-text'], background: darkTheme['--drasi-color-surface'],
+  } : undefined}>
     <h1>React contract consumer</h1>
     <p>Simulated non-Server data. One hoisted query drives the table and summary.</p>
     <div>{actions.map(([label, action]) =>
