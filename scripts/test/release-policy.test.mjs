@@ -17,6 +17,7 @@ const set = {
 const environment = {
   GITHUB_ACTIONS: 'true', RUNNER_ENVIRONMENT: 'github-hosted', GITHUB_REPOSITORY: set.repository,
   GITHUB_REF: 'refs/heads/main', GITHUB_SHA: set.source, DRASI_RELEASE_ENVIRONMENT: 'npm-release',
+  GITHUB_REF_PROTECTED: 'true',
   ACTIONS_ID_TOKEN_REQUEST_URL: 'https://example.invalid/oidc', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'test-only-placeholder',
 };
 test('allowlist, immutable identities and dependency order are mandatory', () => {
@@ -33,6 +34,7 @@ test('staging requires protected main, the exact candidate source and OIDC witho
   for (const override of [
     { GITHUB_REF: 'refs/heads/review' }, { GITHUB_REF: 'refs/tags/v1' },
     { GITHUB_SHA: 'c'.repeat(40) }, { RUNNER_ENVIRONMENT: 'self-hosted' },
+    { GITHUB_REF_PROTECTED: 'false' },
     { DRASI_RELEASE_ENVIRONMENT: '' }, { NODE_AUTH_TOKEN: 'test-only-placeholder' },
     { ACTIONS_ID_TOKEN_REQUEST_TOKEN: '' },
   ]) assert.throws(() => assertProtectedContext({ ...environment, ...override }, set, 'stage'));

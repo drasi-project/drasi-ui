@@ -33,6 +33,7 @@ export function assertProtectedContext(env, set, operation) {
   assert.equal(env.RUNNER_ENVIRONMENT, 'github-hosted', 'Use a GitHub-hosted OIDC runner');
   assert.equal(env.GITHUB_REPOSITORY, repository);
   assert.equal(env.GITHUB_REF, 'refs/heads/main', 'Release from protected main, never a branch or arbitrary tag');
+  assert.equal(env.GITHUB_REF_PROTECTED, 'true', 'The release ref must retain branch protection');
   assert.equal(env.DRASI_RELEASE_ENVIRONMENT, 'npm-release');
   if (operation === 'stage') {
     assert.equal(env.GITHUB_SHA, set.source,

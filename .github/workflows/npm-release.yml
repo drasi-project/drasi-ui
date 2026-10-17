@@ -28,6 +28,7 @@ jobs:
         run: |
           test "$GITHUB_REPOSITORY" = drasi-project/drasi-ui
           test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REF_PROTECTED" = true
 
   prepare:
     name: Qualify exact npm candidates

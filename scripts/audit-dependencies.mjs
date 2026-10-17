@@ -20,19 +20,19 @@ for (const key of ['react18', 'react19', 'vue']) {
     const report = JSON.parse(result.stdout);
     assert(!report.error, `Advisory service failed: ${JSON.stringify(report.error)}`);
     reports[scope] = report.metadata.vulnerabilities;
-    if (scope === 'production') assert.equal(result.status, 0, `${key} has production advisories; see the retained report`);
-    else console.log(`${key} full development advisory counts: ${JSON.stringify(reports[scope])}`);
+    assert.equal(result.status, 0, `${key} has ${scope} advisories; see the retained report`);
+    console.log(`${key} ${scope} advisory counts: ${JSON.stringify(reports[scope])}`);
   }
   summary[key] = reports;
 }
 for (const major of [18, 19]) {
   const report = await json(`.artifacts/consumer-proofs/react-${major}-dependency-bytes.json`);
   for (const dependency of report.packages) {
-    assert(['MIT', 'Apache-2.0', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause'].includes(dependency.license),
+    assert(['MIT', 'Apache-2.0', 'ISC', '0BSD', 'BSD-2-Clause', 'BSD-3-Clause'].includes(dependency.license),
       `Review the runtime dependency license for ${dependency.name}: ${dependency.license}`);
   }
 }
 await writeFile('.artifacts/dependency-audit/summary.json', JSON.stringify({
   artifacts: consumers.artifacts, productionAdvisories: 0,
-  developmentReportsRequireReview: true, summary,
+  developmentAdvisories: 0, summary,
 }, null, 2) + '\n');

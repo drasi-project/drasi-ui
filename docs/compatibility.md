@@ -10,7 +10,7 @@ separate gates.
 | Package combination | Core, styles and React `0.1.0-beta.1`, installed as one exact candidate set |
 | React / React DOM | 18.3.1 and 19.3.1; one runtime identity |
 | Vue proof | Native Vue 3.5.44 with packed core/styles and no React/Radix/runtime/types |
-| Frameworks | Vite 5.4.19 and Next 16.4.2 App Router, actual builds and SSR/hydration |
+| Frameworks | Vite 7.3.5 and Next 16.4.2 App Router, actual builds and SSR/hydration |
 | Declarations | TypeScript 5.9.3 for core/React 18 and 6.0.3 for the React 19/Next consumer; strict NodeNext ESM/CJS and bundler, `skipLibCheck: false` |
 | Maintainer toolchain | Node 24.19.0, npm 11.17.0; release operations use npm 11.21.0 |
 | Browser automation | Playwright 1.56.1 Chromium, Firefox and WebKit; pinned Linux image in CI |
@@ -57,6 +57,14 @@ entrypoint. Publint warnings/errors remain blocking; its specific informational
 maintainer Node version on browser/CSS installations.
 
 ## Performance and ownership limits
+
+The inherited Vite 5.4.19 development graph had reported file-serving/path
+advisories and a vulnerable esbuild development-server version. The four private
+consumer/example workspaces now use the already locked Vite 7.3.5 toolchain
+instead; public package dependencies and React peer ranges are unchanged.
+Runtime dependency licenses are Apache-2.0, MIT and tslib's permissive 0BSD;
+their installed license files are retained. Both production and development
+advisory reports are blocking qualification checks, not hidden exceptions.
 
 Each query observer owns its raw rows, projection and snapshot work. Hoist one
 hook to share a query across presentations; providers do not cache queries.
