@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiSSEClient } from '../src/client/DrasiSSEClient';
-import { DrasiError } from '../src/client/errors';
+import { DrasiSSEClient } from '../../packages/core/src/adapters/drasi-server/DrasiSSEClient';
+import { DrasiError } from '@drasi/ui-core';
 import { fakeEventSourceFactory } from './FakeEventSource';
 
 afterEach(() => {

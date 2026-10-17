@@ -7,7 +7,7 @@ import { StrictMode, useState } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
-import { Modal } from '../src/components/Modal';
+import { Modal } from '../../packages/react/src/components/Modal';
 
 const loading = vi.hoisted(() => {
   let release!: () => void;
@@ -16,9 +16,9 @@ const loading = vi.hoisted(() => {
 });
 
 // Delay the real primitive module, not its focus or ownership implementation.
-vi.mock('../src/components/ModalLayer', async importOriginal => {
+vi.mock('../../packages/react/src/components/ModalLayer', async importOriginal => {
   await loading.pending;
-  const module = await importOriginal<typeof import('../src/components/ModalLayer')>();
+  const module = await importOriginal<typeof import('../../packages/react/src/components/ModalLayer')>();
   loading.loaded = true;
   return module;
 });

@@ -4,12 +4,8 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { useCallback, useState } from 'react';
-
-/** A row property name, including computed or non-visible fields. */
-export interface SortConfig {
-  column: string;
-  direction: 'asc' | 'desc';
-}
+import { nextTableSort, type SortConfig } from '@drasi/ui-core';
+export type { SortConfig } from '@drasi/ui-core';
 
 export interface UseTableSortOptions {
   /** Defined (including null) means controlled. Null explicitly clears sorting. */
@@ -42,10 +38,7 @@ export function useTableSort({
     onSortChange?.(next);
   }, [controlled, onSortChange]);
   const toggleSort = useCallback((column: string) => {
-    setSort({
-      column,
-      direction: sort?.column === column && sort.direction === 'asc' ? 'desc' : 'asc',
-    });
+    setSort(nextTableSort(sort, column));
   }, [sort, setSort]);
   return { sort, setSort, toggleSort };
 }

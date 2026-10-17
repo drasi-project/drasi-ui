@@ -2,7 +2,7 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { Modal } from '../src/components/Modal';
+import { Modal } from '../../packages/react/src/components/Modal';
 
 const loading = vi.hoisted(() => {
   const error = new Error('Modal client chunk unavailable');
@@ -11,7 +11,7 @@ const loading = vi.hoisted(() => {
   return { error, pending, release: () => release() };
 });
 
-vi.mock('../src/components/ModalLayer', async () => {
+vi.mock('../../packages/react/src/components/ModalLayer', async () => {
   await loading.pending;
   // Reject Modal's actual lazy-loader promise, not Vitest's separately wrapped factory promise.
   return { get ModalLayer(): never { throw loading.error; } };

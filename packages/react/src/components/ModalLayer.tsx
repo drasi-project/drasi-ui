@@ -28,7 +28,7 @@ export function ModalLayer({
   initialFocusRef, returnFocusRef, fallbackFocusRef, themeRef,
   className, style, overlayClassName, overlayStyle,
   closeOnEscape = true, closeOnOutsideClick = true,
-}: ModalProps & { themeRef: RefObject<HTMLElement> }): ReactNode {
+}: ModalProps & { themeRef: RefObject<HTMLElement | null> }): ReactNode {
   const content = useRef<HTMLDivElement | null>(null);
   const overlay = useRef<HTMLDivElement>(null);
   const openedFrom = useRef<HTMLElement | null>(null);

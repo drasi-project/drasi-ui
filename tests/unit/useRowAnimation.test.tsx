@@ -19,7 +19,7 @@ import {
   type AnimationDirection,
   type UseRowAnimationOptions,
   type UseRowAnimationResult,
-} from '../src/react/useRowAnimation';
+} from '../../packages/react/src/react/useRowAnimation';
 
 interface Row {
   id: string;

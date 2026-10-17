@@ -16,3 +16,5 @@ playwright-report/
 packages/react/styles.css
 packages/*/LICENSE
 packages/*/NOTICE
+.generated/
+.next/

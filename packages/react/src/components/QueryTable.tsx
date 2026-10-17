@@ -6,8 +6,7 @@
 import React from 'react';
 import { useDrasiQuery, useDrasiClient } from '../react/DrasiContext';
 import type { UseDrasiQueryOptions, UseDrasiQueryResult } from '../react/types';
-import type { DrasiError } from '../client/errors';
-import type { ResultRow } from '../client/types';
+import type { DrasiError, ResultRow } from '@drasi/ui-core';
 import {
   DataTable,
   type DataTableProps,

@@ -4,8 +4,8 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { vi } from 'vitest';
-import type { DrasiClientOptions } from '../src/client/DrasiClient';
-import type { Component, ComponentStatus, QueryConfig } from '../src/client/types';
+import type { DrasiClientOptions } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import type { Component, ComponentStatus, QueryConfig } from '@drasi/ui-core/adapters/drasi-server';
 
 export const refs: DrasiClientOptions = {
   serverUrl: 'https://drasi.invalid',

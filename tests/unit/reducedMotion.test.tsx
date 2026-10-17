@@ -7,8 +7,8 @@ import { StrictMode } from 'react';
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DataTable } from '../src/components';
-import { useReducedMotion, useRowAnimation } from '../src/react';
+import { DataTable } from '../../packages/react/src/components';
+import { useReducedMotion, useRowAnimation } from '../../packages/react/src/react/index';
 
 function motionPreference(initial: boolean) {
   let matches = initial;

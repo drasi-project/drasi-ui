@@ -48,11 +48,6 @@ export type ResultAdapter = (
   context: ResultAdapterContext,
 ) => readonly QueryDelta[];
 
-export interface LegacyResultAdapterOptions {
-  /** Only consulted for payloads without either query ID spelling. Never overrides an envelope ID. */
-  routeUnidentified?: RouteUnidentified;
-}
-
 /** Raw identity must also work on sparse deletes. No default, transform, or serialization fallback. */
 export type RowKey = (row: Readonly<ResultRow>) => string;
 
@@ -90,100 +85,39 @@ export interface ConnectionStatus {
   lastConnected?: Date;
 }
 
-/** Source subscription as serialized by the v1 full-view query endpoint. */
-export interface QuerySource {
-  readonly sourceId: string;
-  readonly pipeline: readonly string[];
-  readonly nodes: readonly string[];
-  readonly relations: readonly string[];
+/** Connection observation does not imply a synchronized query snapshot. */
+export interface QueryConnection {
+  getConnectionStatus(): ConnectionStatus;
+  /** Emit current status on registration; the returned function removes only this listener. */
+  onConnectionStatusChange(callback: (status: ConnectionStatus) => void): () => void;
 }
 
-export interface QueryJoinKey {
-  readonly label: string;
-  readonly property: string;
+/** Data-only binding contract. The application owns connection creation, retry and disposal. */
+export interface QueryClient extends QueryConnection {
+  /** Optional diagnostic scope, not an administrative resource requirement. */
+  readonly instanceId?: string;
+  /**
+   * Independent normalized subscription state, with query-local retry and cancellation.
+   * Publish current state through onStateChange, including scoped errors. A connection
+   * owner must stop subscriptions on disposal; a binding only stops its own handle.
+   */
+  subscribe(
+    queryId: string,
+    callback: (result: QueryResult) => void,
+    onError?: (error: DrasiError) => void,
+    onStateChange?: (state: QuerySubscriptionState) => void,
+  ): QuerySubscription;
 }
 
-export interface QueryJoin {
-  readonly id: string;
-  readonly keys: readonly QueryJoinKey[];
+/** Minimal live transport used by bounded snapshot reconciliation. */
+export interface QueryStream extends QueryConnection {
+  isConnected(): boolean;
+  subscribe(
+    queryId: string,
+    callback: (result: QueryDelta) => void,
+    onError?: (error: DrasiError) => void,
+  ): () => void;
 }
-
-/** Middleware configuration is owned by its server plugin, not executed here. */
-export interface QueryMiddleware {
-  readonly kind: string;
-  readonly name: string;
-  readonly config: Readonly<Record<string, JsonValue>>;
-}
-
-export type QueryLanguage = 'Cypher' | 'GQL';
-
-/** Complete v1 query definition READ, not a query creation request. No defaults are selected. */
-export interface QueryConfig {
-  readonly id: string;
-  readonly autoStart: boolean;
-  readonly query: string;
-  readonly queryLanguage: QueryLanguage;
-  readonly middleware: readonly QueryMiddleware[];
-  readonly sources: readonly QuerySource[];
-  readonly enableBootstrap: boolean;
-  readonly bootstrapBufferSize: number;
-  readonly joins?: readonly QueryJoin[];
-  readonly priorityQueueCapacity?: number;
-  readonly dispatchBufferCapacity?: number;
-  readonly dispatchMode?: 'Channel';
-  /** Opaque serde JSON configuration; the client does not interpret storage backends. */
-  readonly storageBackend?: JsonValue;
-  readonly outboxCapacity: number;
-  readonly bootstrapTimeoutSecs: number;
-}
-
-/** Read-only full-view reaction. Plugin properties are flattened by the server. */
-export interface ReactionConfig {
-  readonly id: string;
-  readonly kind: string;
-  readonly queries: readonly string[];
-  readonly [property: string]: JsonValue | undefined;
-}
-
-/** Observed configuration of the supported SSE plugin; never used to derive the browser URL. */
-export interface SseReactionConfig extends ReactionConfig {
-  readonly kind: 'sse';
-  readonly host: string;
-  readonly port: number;
-  readonly ssePath: string;
-  readonly heartbeatIntervalMs: number;
-}
-
-export type ComponentStatus =
-  | 'Starting' | 'Running' | 'Stopping' | 'Stopped'
-  | 'Error' | 'Reconfiguring' | 'Added' | 'Removed';
-
-export interface ComponentLinks {
-  readonly self: string;
-  readonly full: string;
-}
-
-/** Full-view v1 component DTO. Links are validated against the requested instance/resource. */
-export interface Component<T> {
-  readonly id: string;
-  readonly status: ComponentStatus;
-  readonly error_message?: string;
-  readonly links: ComponentLinks;
-  readonly config: T;
-}
-
-/** Existing SSE reaction reference, not a deployment definition. */
-export interface ReactionReference {
-  readonly id: string;
-  /** Absolute browser-reachable HTTP(S) URL. Path/query trailing slashes are significant and preserved. */
-  readonly endpoint: string;
-}
-
-/** Explicit legacy adapter for unidentified rows; routing remains application-owned. */
-export type RouteUnidentified = (
-  rows: ResultRow[],
-  deliver: (queryId: string, rows: ResultRow[]) => void,
-) => void;
 
 /** Context for fresh per-request authentication, including each stream opening. */
 export interface DrasiRequestContext {

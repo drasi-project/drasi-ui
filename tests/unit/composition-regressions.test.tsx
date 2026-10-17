@@ -7,8 +7,8 @@ import { StrictMode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
-import * as components from '../src/components';
-import { DrasiProvider } from '../src/react';
+import * as components from '../../packages/react/src/components';
+import { DrasiProvider } from '../../packages/react/src/adapters/drasi-server/index';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, json, refs } from './server';
 

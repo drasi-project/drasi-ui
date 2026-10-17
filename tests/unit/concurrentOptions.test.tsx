@@ -6,9 +6,9 @@
 import React, { Suspense, startTransition, useLayoutEffect, useState } from 'react';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiProvider, useDrasiQuery } from '../src/react/DrasiContext';
-import type { ResultRow } from '../src/client/types';
-import type { UseDrasiQueryOptions, UseDrasiQueryResult } from '../src/react/types';
+import { DrasiProvider, useDrasiQuery } from '../../packages/react/src/adapters/drasi-server/index';
+import type { ResultRow } from '@drasi/ui-core';
+import type { UseDrasiQueryOptions, UseDrasiQueryResult } from '../../packages/react/src/react/types';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, deferred, json, refs } from './server';
 

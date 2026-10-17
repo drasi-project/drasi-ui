@@ -4,6 +4,6 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Compatibility barrel for the deliberate root API. Client code must not import it.
-export type * from './client/types';
+export type * from '@drasi/ui-core';
 export type * from './react/types';
 export type * from './components/types';

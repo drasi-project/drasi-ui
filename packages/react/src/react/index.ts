@@ -18,15 +18,11 @@
  */
 
 export {
-  DrasiProvider,
   DrasiClientProvider,
   useDrasiClient,
   useDrasiQuery,
   useDrasiConnectionStatus,
-  useDrasiServerUiUrl,
-  useDrasiQueryDefinition,
 } from './DrasiContext';
-export type { DrasiProviderProps } from './DrasiContext';
 export type { DrasiContextValue } from './DrasiContext';
 export type * from './types';
 export { useRowAnimation } from './useRowAnimation';

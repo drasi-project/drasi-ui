@@ -7,11 +7,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { DrasiSSEClient } from '../src/client/DrasiSSEClient';
-import { accumulateResult } from '../src/client/accumulation';
-import { createLegacyResultAdapter } from '../src/client/results';
+import { DrasiSSEClient } from '../../packages/core/src/adapters/drasi-server/DrasiSSEClient';
+import { accumulateResult } from '@drasi/ui-core';
+import { createLegacyResultAdapter } from '../../packages/core/src/adapters/drasi-server/results';
 import { fakeEventSourceFactory } from './FakeEventSource';
-import { DrasiProvider, useDrasiQuery } from '../src/react/DrasiContext';
+import { DrasiProvider, useDrasiQuery } from '../../packages/react/src/adapters/drasi-server/index';
 import { ReadServer, refs } from './server';
 
 const clients = [];

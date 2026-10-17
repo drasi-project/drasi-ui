@@ -3,15 +3,14 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-import { DrasiError, asDrasiError, isAbortError, type DrasiErrorDetails } from './errors';
-import type { DrasiSSEClient } from './DrasiSSEClient';
+import { DrasiError, asDrasiError, isAbortError, type DrasiErrorDetails } from '../client/errors';
 import type {
-  ConnectionStatus, QueryResult, QuerySubscription, QuerySubscriptionState, ResultRow,
-} from './types';
+  ConnectionStatus, QueryResult, QueryStream, QuerySubscription, QuerySubscriptionState, ResultRow,
+} from '../client/types';
 
-interface SubscriptionOptions {
+export interface SubscriptionOptions {
   queryId: string;
-  source: DrasiSSEClient;
+  source: QueryStream;
   snapshot: (signal: AbortSignal) => Promise<ResultRow[]>;
   details: DrasiErrorDetails;
   maxRetries: number;

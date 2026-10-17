@@ -20,13 +20,13 @@ export interface ModalProps {
   /** Include a visible, keyboard-operable close/cancel control. No domain-specific chrome is added. */
   children: ReactNode;
   /** Initial focus inside the dialog; defaults to the dialog itself. */
-  initialFocusRef?: RefObject<HTMLElement>;
+  initialFocusRef?: RefObject<HTMLElement | null>;
   /** Preferred return target; otherwise the element focused at opening is used. */
-  returnFocusRef?: RefObject<HTMLElement>;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   /** Focusable fallback if the return target has disappeared or become unavailable. */
-  fallbackFocusRef?: RefObject<HTMLElement>;
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
   /** Theme source; defaults to the modal's inline position in the React tree. */
-  themeRef?: RefObject<HTMLElement>;
+  themeRef?: RefObject<HTMLElement | null>;
   /** Custom content classes instead of the optional default drasi-modal-surface decoration. */
   className?: string;
   style?: CSSProperties;

@@ -5,8 +5,8 @@
 
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { CodeIcon, CollapseIcon, ExpandIcon } from '../src/components';
-import { usePortalTheme } from '../src/components/usePortalTheme';
+import { CodeIcon, CollapseIcon, ExpandIcon } from '../../packages/react/src/components';
+import { usePortalTheme } from '../../packages/react/src/components/usePortalTheme';
 
 afterEach(() => vi.unstubAllGlobals());
 

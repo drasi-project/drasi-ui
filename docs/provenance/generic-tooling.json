@@ -1,0 +1,84 @@
+{
+  "repository": "drasi-project/drasi-server",
+  "commit": "964016ddb7f2b45ad023b314c23ea140ed7703ef",
+  "files": [
+    {
+      "source": "examples/trading/app/test/browser/accessibility.spec.ts",
+      "sourceSha256": "73744a129b85183c56ee74db2f87cdc2fc999de92249bd3cc2baf2baadcd694e",
+      "target": "tests/browser/accessibility.spec.ts",
+      "scope": "Provider-free suite only; Trading suite remains downstream"
+    },
+    {
+      "source": "examples/trading/app/test/browser/axeAudit.ts",
+      "sourceSha256": "cfb3a510d0e6612fd4a6c34034cf7684492933dee88a88b269c01a996914fa0e",
+      "target": "tests/browser/axeAudit.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/clock-replay.spec.ts",
+      "sourceSha256": "7cf993a772f674760ee881944867cb1a8ee59c0f5ab007663cf5944da03f8dc0",
+      "target": "tests/browser/clock-replay.spec.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/clock.ts",
+      "sourceSha256": "1a79ad6e1c6de4e9d63713d6ed8ce60d9f3b3771a3c6cf47a06ecbd0add677a9",
+      "target": "tests/browser/clock.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/row-animation.spec.ts",
+      "sourceSha256": "517b19ac0d7a284dd9c3cb80c1af67c520091f79489b5fde8944e05172790f6d",
+      "target": "tests/browser/row-animation.spec.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/rowAnimationFacts.ts",
+      "sourceSha256": "ac70623bf240133ca6fc65cc632feee7bf172c63ca40809af497c468b6e03de5",
+      "target": "tests/browser/rowAnimationFacts.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/table-contract-client.tsx",
+      "sourceSha256": "776e3eeda11171e34a535973e503be851964c50201370e09137acee1b7a645ad",
+      "target": "tests/browser/table-contract-client.tsx",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/table-contract-ssr.ts",
+      "sourceSha256": "777adaa79b2e30286469b04cba7979dda1702ade32cb185c9d169e1209af116c",
+      "target": "tests/browser/table-contract-ssr.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/table-contract-view.tsx",
+      "sourceSha256": "c043fbc47b00985c32811bbce029d2e0083653dc78fed0eb4415ea6d47b8f2f0",
+      "target": "tests/browser/table-contract-view.tsx",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/table-presentation.spec.ts",
+      "sourceSha256": "2e61e945ef16a69b43c872cdd6e2dbed6b0515a69e7ab146ff77948fb2dbfafa",
+      "target": "tests/browser/table-presentation.spec.ts",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/consumer/main.tsx",
+      "sourceSha256": "85eddb0ef83e53792adfa5b03cdeb29202ad915d533649f77a1a44c02505777e",
+      "target": "tests/consumers/components/main.tsx",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/consumer/index.html",
+      "sourceSha256": "c0ea608feebe36de4e00c0b077b2458c6bbae0926af76ff0c60efa96118749a0",
+      "target": "tests/consumers/components/index.html",
+      "scope": "Generic qualification source"
+    },
+    {
+      "source": "examples/trading/app/test/browser/consumer/host.css",
+      "sourceSha256": "f5b5d9c412415c36b3ca796b52c9f76448336c39c8ff4f4840fdfed0d087b646",
+      "target": "tests/consumers/components/host.css",
+      "scope": "Generic qualification source"
+    }
+  ]
+}

@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { DrasiSSEClient, type EventSourceFactory } from './DrasiSSEClient';
+import { DrasiSSEClient } from './DrasiSSEClient';
+import type { EventSourceFactory } from '../../client/SSEClient';
 import type {
-  Component, ConnectionStatus, DrasiHeaders, QueryConfig, QueryResult, QuerySubscription,
-  QuerySubscriptionState, ReactionConfig, ReactionReference, ReconnectOptions, ResultAdapter,
+  ConnectionStatus, DrasiHeaders, QueryClient, QueryResult, QuerySubscription,
+  QuerySubscriptionState, ReconnectOptions, ResultAdapter,
   ResultReconciliationOptions, ResultRow,
-} from './types';
-import { DrasiError, asDrasiError, type DrasiErrorDetails } from './errors';
-import { instancePath, isIdentifier, normalizeServerUrl, readQuery, readReaction, readResponse, readRows, requireRunning, validateHttpUrl } from './resources';
-import { abortable, requestHeaders, resolveHeaders, validateCredentials } from './transport';
-import { subscribeToQuery } from './subscription';
+} from '../../client/types';
+import type { Component, QueryConfig, ReactionConfig, ReactionReference } from './types';
+import { DrasiError, asDrasiError, type DrasiErrorDetails } from '../../client/errors';
+import { instancePath, normalizeServerUrl, readQuery, readReaction, readResponse, requireRunning, validateHttpUrl } from './resources';
+import { isIdentifier, readRows } from '../../client/validation';
+import { abortable, requestHeaders, resolveHeaders, validateCredentials } from '../../client/transport';
+import { subscribeToQuery } from '../../query/subscription';
 
 /** References to pre-existing resources. No option enables resource management. */
 export interface DrasiClientOptions {
@@ -57,7 +60,7 @@ export interface DrasiInitializeOptions {
  * It never creates, starts, stops, updates or deletes resources. Known overlap
  * triggers a bounded refresh, not guessed replay order or an atomic handoff.
  */
-export class DrasiClient {
+export class DrasiClient implements QueryClient {
   private readonly baseUrl: string;
   private readonly sseClient: DrasiSSEClient;
   private readonly queryIds: Set<string>;

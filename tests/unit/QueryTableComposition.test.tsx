@@ -5,9 +5,9 @@
 
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { expect, expectTypeOf, it, vi } from 'vitest';
-import { DrasiError } from '../src/client';
-import { DrasiProvider, type UseDrasiQueryOptions } from '../src/react';
-import { QueryTable, type QueryTableProps } from '../src/components';
+import { DrasiError } from '@drasi/ui-core';
+import { DrasiProvider, type UseDrasiQueryOptions } from '../../packages/react/src/adapters/drasi-server/index';
+import { QueryTable, type QueryTableProps } from '../../packages/react/src/components';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, deferred, json, refs } from './server';
 

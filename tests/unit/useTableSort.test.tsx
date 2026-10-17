@@ -6,7 +6,7 @@
 import { StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { useTableSort, type UseTableSortOptions } from '../src/react';
+import { useTableSort, type UseTableSortOptions } from '../../packages/react/src/react/index';
 
 it('supports headless default state, toggles and explicit clearing without a callback', () => {
   const hook = renderHook(() => useTableSort(), { wrapper: StrictMode });

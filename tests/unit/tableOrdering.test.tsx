@@ -5,8 +5,8 @@
 
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { DataTable } from '../src/components';
-import { compareTableValues } from '../src/components/DataTable';
+import { DataTable } from '../../packages/react/src/components';
+import { compareTableValues } from '../../packages/react/src/components/DataTable';
 
 interface Row { id: string; value: number | string | null | undefined }
 

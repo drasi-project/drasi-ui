@@ -4,50 +4,14 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import type {
-  Component, ComponentStatus, JsonValue, QueryConfig, QueryJoin, QueryMiddleware,
-  QuerySource, ReactionConfig, ResultRow,
+  Component, ComponentStatus, QueryConfig, QueryJoin, QueryMiddleware,
+  QuerySource, ReactionConfig,
 } from './types';
-import { DrasiError, asDrasiError, type DrasiErrorDetails } from './errors';
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-export function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === 'string');
-}
-
-function isJsonValue(value: unknown): value is JsonValue {
-  return value === null || typeof value === 'string' || typeof value === 'boolean' ||
-    (typeof value === 'number' && Number.isFinite(value)) ||
-    (Array.isArray(value) && value.every(isJsonValue)) ||
-    (isRecord(value) && Object.values(value).every(isJsonValue));
-}
-
-function isJsonObject(value: unknown): value is Record<string, JsonValue> {
-  return isRecord(value) && Object.values(value).every(isJsonValue);
-}
+import { DrasiError, asDrasiError, type DrasiErrorDetails } from '../../client/errors';
+import { isIdentifier, isJsonObject, isJsonValue, isRecord, isStringArray } from '../../client/validation';
 
 function isUnsignedInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
-}
-
-/** The raw row boundary is an object, not an assertion about application fields. */
-export function readRows(value: unknown, details: DrasiErrorDetails): ResultRow[] {
-  if (!Array.isArray(value) || !value.every(isJsonObject)) {
-    throw new DrasiError('INVALID_PAYLOAD', details);
-  }
-  return value;
-}
-
-export function isIdentifier(value: unknown): value is string {
-  if (typeof value !== 'string' || !value.trim() || value === '.' || value === '..') return false;
-  try {
-    encodeURIComponent(value);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Validate and serialize without trimming meaningful path or query content. */

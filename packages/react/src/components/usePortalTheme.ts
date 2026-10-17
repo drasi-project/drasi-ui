@@ -14,7 +14,7 @@ const themeTokens = [
 ];
 
 /** Copy resolved tokens, not var() expressions whose dependencies stay behind. */
-export function usePortalTheme(open: boolean, source: RefObject<HTMLElement>): CSSProperties {
+export function usePortalTheme(open: boolean, source: RefObject<HTMLElement | null>): CSSProperties {
   const [theme, setTheme] = useState<CSSProperties>({});
   useLayoutEffect(() => {
     const element = source.current;

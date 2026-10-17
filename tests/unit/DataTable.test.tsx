@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   DataTable, type ColumnDef, type DataTableProps, type DataTableState, type SortConfig,
-} from '../src/components';
+} from '../../packages/react/src/components';
 
 interface Rack {
   code: string;

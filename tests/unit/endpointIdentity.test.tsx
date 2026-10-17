@@ -5,12 +5,12 @@
 
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiClient } from '../src/client/DrasiClient';
-import type { EventSourceFactory } from '../src/client/DrasiSSEClient';
-import { DrasiError } from '../src/client/errors';
-import type { DrasiHeadersProvider } from '../src/client/types';
-import { DrasiProvider, useDrasiClient, useDrasiQuery, type DrasiContextValue } from '../src/react/DrasiContext';
-import { configurationKey } from '../src/react/configuration';
+import { DrasiClient } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import type { EventSourceFactory } from '@drasi/ui-core';
+import { DrasiError } from '@drasi/ui-core';
+import type { DrasiHeadersProvider } from '@drasi/ui-core';
+import { DrasiProvider, useDrasiClient, useDrasiQuery, type DrasiContextValue } from '../../packages/react/src/adapters/drasi-server/index';
+import { configurationKey } from '../../packages/core/src/adapters/drasi-server/configuration';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, refs } from './server';
 

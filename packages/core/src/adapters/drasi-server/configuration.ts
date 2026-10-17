@@ -3,8 +3,8 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-import type { DrasiClientOptions } from '../client/DrasiClient';
-import { normalizeServerUrl, validateHttpUrl } from '../client/resources';
+import type { DrasiClientOptions } from './DrasiClient';
+import { normalizeServerUrl, validateHttpUrl } from './resources';
 
 /** Compare data by value, callable transports/auth/routing separately by identity. Never log this key. */
 export function configurationKey(options: DrasiClientOptions): string | null {

@@ -3,8 +3,8 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-import { DrasiError, type DrasiErrorDetails } from './errors';
-import type { QueryResult, ResultRow, RowKey } from './types';
+import { DrasiError, type DrasiErrorDetails } from '../client/errors';
+import type { QueryResult, ResultRow, RowKey } from '../client/types';
 
 function keyFor(row: ResultRow, getKey: RowKey, details: DrasiErrorDetails): string {
   try {

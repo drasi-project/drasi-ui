@@ -7,10 +7,10 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  DrasiProvider, DrasiClientProvider, useDrasiClient, useDrasiConnectionStatus,
+  DrasiProvider, DrasiServerClientProvider, useDrasiClient, useDrasiConnectionStatus,
   useDrasiQuery, useDrasiQueryDefinition, useDrasiServerUiUrl,
-} from '../src/react/DrasiContext';
-import { DrasiError } from '../src/client/errors';
+} from '../../packages/react/src/adapters/drasi-server/index';
+import { DrasiError } from '@drasi/ui-core';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, failure, refs } from './server';
 
@@ -135,9 +135,9 @@ describe('typed failures through all React bindings', () => {
   it('binds an app-owned lifecycle without starting another client or converting its error', async () => {
     const error = new DrasiError('FORBIDDEN', { instanceId: refs.instanceId });
     const observe = vi.fn(), retry = vi.fn();
-    render(<DrasiClientProvider value={{ client: null, initialized: false, error, retry }}>
+    render(<DrasiServerClientProvider value={{ client: null, initialized: false, error, retry }}>
       <Probe observe={observe} />
-    </DrasiClientProvider>);
+    </DrasiServerClientProvider>);
     await waitFor(() => expect(observe.mock.calls[observe.mock.calls.length - 1][0]).toEqual([error, error, error, error]));
     fireEvent.click(screen.getByText('Retry'));
     expect(retry).toHaveBeenCalledOnce();

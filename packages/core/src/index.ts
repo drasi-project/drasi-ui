@@ -13,20 +13,28 @@
 // limitations under the License.
 
 /**
- * Framework-agnostic core: validates existing resources and manages the
- * shared, multiplexed SSE connection without any React dependency.
+ * Framework-neutral data contracts, state and explicit transport ownership.
+ * Server resource and wire contracts are available only through the adapter.
  */
 
-export { DrasiClient } from './DrasiClient';
-export type { DrasiClientOptions, DrasiInitializeOptions } from './DrasiClient';
-export { DrasiError } from './errors';
-export type { DrasiErrorCode, DrasiErrorDetails, DrasiResourceKind } from './errors';
-export { DrasiSSEClient } from './DrasiSSEClient';
+export { DrasiError, asDrasiError, isAbortError } from './client/errors';
+export type { DrasiErrorCode, DrasiErrorDetails, DrasiResourceKind } from './client/errors';
+export { SSEClient } from './client/SSEClient';
 export type {
-  DrasiSSEClientOptions,
+  SSEClientOptions,
   EventSourceFactory,
   EventSourceLike,
-} from './DrasiSSEClient';
-export type * from './types';
-export { sse034ResultAdapter, createLegacyResultAdapter } from './results';
-export { accumulateResult } from './accumulation';
+} from './client/SSEClient';
+export type * from './client/types';
+export { readAdaptedResults } from './query/results';
+export { accumulateResult } from './query/accumulation';
+export { subscribeToQuery } from './query/subscription';
+export type { SubscriptionOptions } from './query/subscription';
+export { initialQueryState, retainQueryBaseline, observeQuery, projectQueryRows, queryView } from './query/state';
+export type {
+  RawQueryState, QueryObservation, QueryProjectionOptions, QueryProjection, QueryView, AcceptedQueryView,
+} from './query/state';
+export { compareTableValues, sortTableRows, nextTableSort } from './table/sort';
+export type { SortConfig } from './table/sort';
+export { trackRowChanges, mergeRowAnimations } from './table/animation';
+export type { AnimationDirection, RowAnimationState } from './table/animation';

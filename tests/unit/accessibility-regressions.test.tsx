@@ -7,7 +7,7 @@ import { StrictMode } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
-import { DataTable } from '../src/components/DataTable';
+import { DataTable } from '../../packages/react/src/components/DataTable';
 
 const props = {
   rows: [{ id: 'one', value: 2 }, { id: 'two', value: 1 }],

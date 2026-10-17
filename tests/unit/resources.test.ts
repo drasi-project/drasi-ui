@@ -4,9 +4,10 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { describe, expect, it, vi } from 'vitest';
-import { DrasiClient } from '../src/client/DrasiClient';
-import { DrasiError } from '../src/client/errors';
-import { readQuery, readReaction, readResponse, readRows } from '../src/client/resources';
+import { DrasiClient } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import { DrasiError } from '@drasi/ui-core';
+import { readQuery, readReaction, readResponse } from '../../packages/core/src/adapters/drasi-server/resources';
+import { readRows } from '../../packages/core/src/client/validation';
 import captured from './fixtures/server-v1/contract.json';
 import current from './fixtures/server-v1-0.2.3/contract.json';
 import { component, json, queryConfig, refs } from './server';

@@ -4,10 +4,11 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiClient } from '../src/client/DrasiClient';
-import { DrasiSSEClient, type EventSourceFactory } from '../src/client/DrasiSSEClient';
-import { DrasiError } from '../src/client/errors';
-import type { DrasiHeadersProvider, DrasiRequestContext } from '../src/client/types';
+import { DrasiClient } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import { DrasiSSEClient } from '../../packages/core/src/adapters/drasi-server/DrasiSSEClient';
+import type { EventSourceFactory } from '@drasi/ui-core';
+import { DrasiError } from '@drasi/ui-core';
+import type { DrasiHeadersProvider, DrasiRequestContext } from '@drasi/ui-core';
 import { FakeEventSource, fakeEventSourceFactory } from './FakeEventSource';
 import { component, deferred, failure, json, queryConfig, ReadServer, refs } from './server';
 

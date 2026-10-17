@@ -16,17 +16,17 @@
  * `@drasi/react` — reusable React building blocks for UIs driven by Drasi
  * Continuous Queries.
  *
- * - {@link DrasiProvider}: opens a single shared SSE connection to a Drasi
- *   Server's SSE Reaction and multiplexes every Continuous Query over it.
+ * - {@link DrasiClientProvider}: binds an app-owned data client.
  * - {@link useDrasiQuery} and friends: subscribe to a query's live result set.
  * - {@link DataTable}: provider-free presentation, sorting and animation.
  * - {@link QueryTable}: a small live-query composition of that presentation.
  * - {@link Modal}: client-mounted accessible overlay ownership and portal theming.
  *
  * The public API is organized into three groups:
- * - `client`     — framework-agnostic core (`DrasiClient`, `DrasiSSEClient`).
- * - `react`      — React bindings (`DrasiProvider`, hooks).
+ * - `client`     — framework-neutral core compatibility exports.
+ * - `react`      — data-only React bindings and hooks.
  * - `components` — presentation (`DataTable`, `QueryTable`, `Modal`, icons).
+ * - `adapters/drasi-server` — explicit optional Server provider and inspection.
  */
 
 export * from './client';

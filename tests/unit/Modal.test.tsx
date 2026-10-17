@@ -7,7 +7,7 @@ import { StrictMode, useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
-import { Modal, type ModalProps } from '../src/components';
+import { Modal, type ModalProps } from '../../packages/react/src/components';
 
 afterEach(() => {
   document.body.removeAttribute('style');

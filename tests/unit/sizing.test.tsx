@@ -5,8 +5,8 @@
 
 import { render } from '@testing-library/react';
 import { expect, it } from 'vitest';
-import { DataTable } from '../src/components/DataTable';
-import { tableHeight, type TableHeight } from '../src/components/sizing';
+import { DataTable } from '../../packages/react/src/components/DataTable';
+import { tableHeight, type TableHeight } from '../../packages/react/src/components/sizing';
 
 it.each<[TableHeight, string]>([
   [0, '0px'], [320, '320px'], [12.5, '12.5px'], ['0', '0'], ['320px', '320px'],

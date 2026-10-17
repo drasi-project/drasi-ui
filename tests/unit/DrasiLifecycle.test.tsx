@@ -6,12 +6,12 @@
 import React from 'react';
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiClient, type DrasiClientOptions } from '../src/client/DrasiClient';
-import { createLegacyResultAdapter } from '../src/client/results';
+import { DrasiClient, type DrasiClientOptions } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import { createLegacyResultAdapter } from '../../packages/core/src/adapters/drasi-server/results';
 import {
-  DrasiClientProvider, DrasiProvider, useDrasiClient, useDrasiConnectionStatus,
+  DrasiServerClientProvider, DrasiProvider, useDrasiClient, useDrasiConnectionStatus,
   useDrasiQuery, useDrasiQueryDefinition, type DrasiContextValue,
-} from '../src/react/DrasiContext';
+} from '../../packages/react/src/adapters/drasi-server/index';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { component, deferred, failure, json, queryConfig, refs } from './server';
 
@@ -66,7 +66,7 @@ describe('real provider configuration and ownership', () => {
 
   it('gives an actionable missing-provider error instead of implicit global state', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => renderHook(() => useDrasiClient())).toThrow('useDrasiClient must be used within a <DrasiProvider>');
+    expect(() => renderHook(() => useDrasiClient())).toThrow('useDrasiClient must be used within a <DrasiClientProvider>');
   });
 
   it('preserves a single client/stream for equivalent inline objects, headers and query sets', async () => {
@@ -320,14 +320,14 @@ describe('real provider configuration and ownership', () => {
     const { factory, fetcher } = fixture();
     const client = new DrasiClient({ ...refs, fetch: fetcher, eventSourceFactory: factory.create });
     const value = { client, initialized: false, error: null, retry: vi.fn() };
-    const view = render(<DrasiClientProvider value={value}><Probe /></DrasiClientProvider>);
+    const view = render(<DrasiServerClientProvider value={value}><Probe /></DrasiServerClientProvider>);
     expect(fetcher).not.toHaveBeenCalled();
     expect(factory.instances).toHaveLength(0);
     const connected = client.initialize();
     await waitFor(() => expect(factory.instances).toHaveLength(1));
     act(() => factory.instances[0].open());
     await connected;
-    view.rerender(<DrasiClientProvider value={{ ...value, initialized: true }}><Probe /></DrasiClientProvider>);
+    view.rerender(<DrasiServerClientProvider value={{ ...value, initialized: true }}><Probe /></DrasiServerClientProvider>);
     await waitFor(() => expect(screen.getByTestId('data').textContent).toContain(refs.instanceId));
     view.unmount();
     expect(client.isInitialized()).toBe(true);

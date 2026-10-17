@@ -5,7 +5,7 @@
 
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { DrasiProvider, useDrasiQuery } from '../src/react/DrasiContext';
+import { DrasiProvider, useDrasiQuery } from '../../packages/react/src/adapters/drasi-server/index';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { pressureDelete, readings, temperatureUpdate } from './fixtures/synthetic/telemetry';
 import { component, queryConfig } from './server';

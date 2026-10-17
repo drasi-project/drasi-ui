@@ -4,10 +4,11 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiSSEClient } from '../src/client/DrasiSSEClient';
-import { DrasiError } from '../src/client/errors';
-import { createLegacyResultAdapter } from '../src/client/results';
-import type { QueryDelta, RouteUnidentified } from '../src/client/types';
+import { DrasiSSEClient } from '../../packages/core/src/adapters/drasi-server/DrasiSSEClient';
+import { DrasiError } from '@drasi/ui-core';
+import { createLegacyResultAdapter } from '../../packages/core/src/adapters/drasi-server/results';
+import type { QueryDelta } from '@drasi/ui-core';
+import type { RouteUnidentified } from '@drasi/ui-core/adapters/drasi-server';
 import { fakeEventSourceFactory } from './FakeEventSource';
 
 const clients: DrasiSSEClient[] = [];

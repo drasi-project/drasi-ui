@@ -6,8 +6,8 @@
 import { StrictMode, useState } from 'react';
 import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DataTable, type ColumnDef } from '../src/components';
-import { useRowAnimation } from '../src/react';
+import { DataTable, type ColumnDef } from '../../packages/react/src/components';
+import { useRowAnimation } from '../../packages/react/src/react/index';
 
 interface Item { id: string; value: number | string }
 const rowKey = (row: Item) => row.id;

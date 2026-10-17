@@ -17,9 +17,9 @@ import type {
   ResultAdapter,
 } from './types';
 import { DrasiError, asDrasiError, isAbortError, type DrasiErrorDetails } from './errors';
-import { isIdentifier, isRecord } from './resources';
+import { isIdentifier, isRecord } from './validation';
 import { abortable, requestHeaders, resolveHeaders, validateCredentials } from './transport';
-import { readAdaptedResults, sse034ResultAdapter } from './results';
+import { readAdaptedResults } from '../query/results';
 
 export interface EventSourceLike {
   onopen: ((event: Event) => void) | null;
@@ -32,9 +32,9 @@ export interface EventSourceLike {
 /** Synchronous factory; credentials/headers are resolved afresh before each invocation. */
 export type EventSourceFactory = (url: string, options: EventSourceOptions) => EventSourceLike;
 
-export interface DrasiSSEClientOptions extends ReconnectOptions {
-  /** Defaults to the strict, untemplated SSE 0.3.4 adapter. */
-  resultAdapter?: ResultAdapter;
+export interface SSEClientOptions extends ReconnectOptions {
+  /** Explicit wire contract; generic transport never selects a Server protocol. */
+  resultAdapter: ResultAdapter;
   eventSourceFactory?: EventSourceFactory;
   credentials?: RequestCredentials;
   headers?: DrasiHeaders;
@@ -64,7 +64,7 @@ function abortError(message = 'SSE connection aborted'): Error {
  * Maintains one explicitly managed EventSource connection and multiplexes
  * result batches to query-specific subscribers.
  */
-export class DrasiSSEClient {
+export class SSEClient {
   private eventSource: EventSourceLike | null = null;
   private readonly subscribers = new Map<
     string,
@@ -89,13 +89,13 @@ export class DrasiSSEClient {
   private attemptController: AbortController | null = null;
   private openTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly connectionTimeoutMs: number;
-  private readonly validate?: DrasiSSEClientOptions['validate'];
+  private readonly validate?: SSEClientOptions['validate'];
   private readonly errorDetails: DrasiErrorDetails;
   private readonly credentials: RequestCredentials;
   private readonly headers: Headers | DrasiHeadersProvider;
 
-  constructor(options: DrasiSSEClientOptions = {}) {
-    this.resultAdapter = options.resultAdapter ?? sse034ResultAdapter;
+  constructor(options: SSEClientOptions) {
+    this.resultAdapter = options.resultAdapter;
     this.errorDetails = options.errorDetails ?? {};
     this.credentials = validateCredentials(options.credentials, this.errorDetails);
     this.headers = typeof options.headers === 'function' ? options.headers

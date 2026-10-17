@@ -14,8 +14,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useReducedMotion } from './useReducedMotion';
-
-export type AnimationDirection = 'up' | 'down' | 'change' | null;
+import { trackRowChanges, mergeRowAnimations, type AnimationDirection } from '@drasi/ui-core';
+export type { AnimationDirection } from '@drasi/ui-core';
 
 export interface UseRowAnimationOptions<T> {
   /** Function to extract the unique key for each row. */
@@ -79,11 +79,6 @@ export function useRowAnimation<T>(
 
   const updateData = useCallback(
     (data: readonly T[]) => {
-      const newAnimations = new Map<string, AnimationDirection>();
-      const prevValues = prevValuesRef.current;
-      const nextValues = new Map<string, number | string>();
-      const currentKeys = new Set<string>();
-
       if (!data || data.length === 0) {
         timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
         timeoutsRef.current.clear();
@@ -93,31 +88,10 @@ export function useRowAnimation<T>(
         return;
       }
 
-      data.forEach((row) => {
-        const key = rowKey(row);
-        currentKeys.add(key);
-        const currentValue = getValue(row);
-        const prevValue = prevValues.get(key);
-
-        if (currentValue !== undefined) {
-          nextValues.set(key, currentValue);
-        }
-
-        if (
-          !reducedMotion &&
-          currentValue !== undefined &&
-          prevValue !== undefined &&
-          currentValue !== prevValue
-        ) {
-          let direction: AnimationDirection;
-          if (typeof currentValue === 'number' && typeof prevValue === 'number') {
-            direction = currentValue > prevValue ? 'up' : 'down';
-          } else {
-            direction = 'change';
-          }
-
-          newAnimations.set(key, direction);
-
+      const { values: nextValues, keys: currentKeys, changes: newAnimations } = trackRowChanges(
+        data, prevValuesRef.current, rowKey, getValue, reducedMotion,
+      );
+      newAnimations.forEach((_direction, key) => {
           const existingTimeout = timeoutsRef.current.get(key);
           if (existingTimeout) {
             clearTimeout(existingTimeout);
@@ -136,7 +110,6 @@ export function useRowAnimation<T>(
           }, animationDuration);
 
           timeoutsRef.current.set(key, timeout);
-        }
       });
 
       timeoutsRef.current.forEach((timeout, key) => {
@@ -146,20 +119,7 @@ export function useRowAnimation<T>(
         }
       });
 
-      setState((prev) => {
-        const animations = new Map(
-          Array.from(prev.animations).filter(([key]) => currentKeys.has(key)),
-        );
-        if (newAnimations.size === 0 && animations.size === prev.animations.size) return prev;
-        const revisions = new Map(
-          Array.from(prev.revisions).filter(([key]) => currentKeys.has(key)),
-        );
-        newAnimations.forEach((value, key) => {
-          animations.set(key, value);
-          revisions.set(key, prev.nextRevision);
-        });
-        return { animations, revisions, nextRevision: prev.nextRevision + (newAnimations.size > 0 ? 1 : 0) };
-      });
+      setState(previous => mergeRowAnimations(previous, currentKeys, newAnimations));
 
       prevValuesRef.current = nextValues;
     },

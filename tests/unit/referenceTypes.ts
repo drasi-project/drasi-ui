@@ -3,12 +3,16 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-import { createLegacyResultAdapter, sse034ResultAdapter } from '../src';
+import {
+  createLegacyResultAdapter, sse034ResultAdapter,
+  type DrasiClient, type DrasiClientOptions, type DrasiInitializeOptions, type ReactionReference,
+} from '@drasi/ui-core/adapters/drasi-server';
 import type {
-  DrasiClient, DrasiClientOptions, DrasiError, DrasiInitializeOptions, DrasiProviderProps, ReactionReference,
+  DrasiError,
   QueryDelta, QuerySnapshot, QuerySubscriptionState, ResultAdapter, ResultChange,
-  RowKey, UseDrasiQueryOptions,
-} from '../src';
+  RowKey,
+} from '@drasi/ui-core';
+import type { DrasiProviderProps, UseDrasiQueryOptions } from '../../packages/react/src/adapters/drasi-server/index';
 
 const reaction: ReactionReference = { id: 'events', endpoint: 'https://events.example/changes' };
 const options: DrasiClientOptions = {

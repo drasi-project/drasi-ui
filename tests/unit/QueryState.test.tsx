@@ -6,12 +6,12 @@
 import React from 'react';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DrasiProvider, useDrasiClient, useDrasiQuery } from '../src/react/DrasiContext';
-import type { DrasiContextValue } from '../src/react/DrasiContext';
-import type { DrasiClientOptions } from '../src/client/DrasiClient';
-import { DrasiError } from '../src/client/errors';
-import type { ResultRow } from '../src/client/types';
-import type { UseDrasiQueryOptions, UseDrasiQueryResult } from '../src/react/types';
+import { DrasiProvider, useDrasiClient, useDrasiQuery } from '../../packages/react/src/adapters/drasi-server/index';
+import type { DrasiContextValue } from '../../packages/react/src/adapters/drasi-server/index';
+import type { DrasiClientOptions } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import { DrasiError } from '@drasi/ui-core';
+import type { ResultRow } from '@drasi/ui-core';
+import type { UseDrasiQueryOptions, UseDrasiQueryResult } from '../../packages/react/src/react/types';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, deferred, failure, json, refs } from './server';
 

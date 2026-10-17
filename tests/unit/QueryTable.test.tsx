@@ -28,11 +28,11 @@ import {
   type QueryTableProps,
   type RowAction,
   type SortConfig,
-} from '../src/components';
-import { DrasiProvider } from '../src/react/DrasiContext';
-import type { ResultRow } from '../src/client/types';
-import type { UseDrasiQueryOptions } from '../src/react/types';
-import type { AnimationDirection } from '../src/react/useRowAnimation';
+} from '../../packages/react/src/components';
+import { DrasiProvider } from '../../packages/react/src/adapters/drasi-server/index';
+import type { ResultRow } from '@drasi/ui-core';
+import type { UseDrasiQueryOptions } from '../../packages/react/src/react/types';
+import type { AnimationDirection } from '../../packages/react/src/react/useRowAnimation';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, json, refs } from './server';
 

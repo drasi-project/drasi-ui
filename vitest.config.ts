@@ -13,24 +13,32 @@
 // limitations under the License.
 
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+  resolve: {
+    alias: [
+      { find: '@drasi/ui-core/adapters/drasi-server', replacement: fileURLToPath(new URL('./packages/core/src/adapters/drasi-server/index.ts', import.meta.url)) },
+      { find: /^@drasi\/ui-core$/, replacement: fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url)) },
+    ],
+  },
   test: {
-    include: ['test/**/*.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['tests/unit/**/*.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     environment: 'jsdom',
     clearMocks: true,
     restoreMocks: true,
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: ['./tests/unit/setup.ts'],
     coverage: {
       provider: 'v8',
       // Legacy V8 synthetic branch ranges depend on coverage-file merge order.
       experimentalAstAwareRemapping: true,
-      include: ['src/**/*.{ts,tsx}'],
+      include: ['packages/core/src/**/*.ts', 'packages/react/src/**/*.{ts,tsx}'],
       reporter: ['text', 'json-summary', 'html'],
       thresholds: {
-        'src/client/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
-        'src/react/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
-        'src/components/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
+        'packages/core/src/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
+        'packages/react/src/react/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
+        'packages/react/src/components/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
+        'packages/react/src/adapters/**': { statements: 90, lines: 90, functions: 90, branches: 85 },
       },
     },
   },

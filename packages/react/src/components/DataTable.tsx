@@ -5,28 +5,14 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { sortTableRows } from '@drasi/ui-core';
 import { useTableSort, type UseTableSortOptions, type SortConfig } from '../react/useTableSort';
 import { useRowAnimation, type AnimationDirection } from '../react/useRowAnimation';
 import { useReducedMotion } from '../react/useReducedMotion';
 import type { ColumnDef, RowAction } from './types';
 import { tableHeight, type TableHeight } from './sizing';
 
-const textOrder = new Intl.Collator('en-US', { sensitivity: 'variant', numeric: false });
-
-/** @internal Numbers, then fixed-English text representations, then nullish values. */
-export function compareTableValues(a: unknown, b: unknown): number {
-  if (a == null) return b == null ? 0 : 1;
-  if (b == null) return -1;
-  if (typeof a === 'number') {
-    if (typeof b !== 'number') return -1;
-    if (Number.isNaN(a)) return Number.isNaN(b) ? 0 : 1;
-    if (Number.isNaN(b)) return -1;
-    // Subtraction would produce NaN for equal infinities.
-    return a < b ? -1 : a > b ? 1 : 0;
-  }
-  if (typeof b === 'number') return 1;
-  return textOrder.compare(String(a), String(b));
-}
+export { compareTableValues } from '@drasi/ui-core';
 
 /** Presentation state only: no transport, provider or query identity is required. */
 export interface DataTableState<E extends Error = Error> {
@@ -188,15 +174,7 @@ export function DataTable<T extends object = Record<string, unknown>, E extends 
   const reducedMotion = useReducedMotion();
   const cardStyle = height === undefined ? style : { ...style, height: tableHeight(height) };
   const { sort, setSort, toggleSort } = useTableSort({ sort: controlledSort, defaultSort, onSortChange });
-  const sortedRows = useMemo(() => {
-    if (rows === null || !sort) return rows;
-    return [...rows].sort((a, b) => {
-      const aVal: unknown = Reflect.get(a, sort.column);
-      const bVal: unknown = Reflect.get(b, sort.column);
-      const comparison = compareTableValues(aVal, bVal);
-      return sort.direction === 'asc' ? comparison : -comparison;
-    });
-  }, [rows, sort]);
+  const sortedRows = useMemo(() => sortTableRows(rows, sort), [rows, sort]);
   const getValue = useCallback((row: T) => {
     const value = animateOnChange === undefined ? undefined : row[animateOnChange];
     return typeof value === 'number' || typeof value === 'string' ? value : undefined;

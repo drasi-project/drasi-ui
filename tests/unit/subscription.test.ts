@@ -4,10 +4,10 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DrasiClient, type DrasiClientOptions } from '../src/client/DrasiClient';
-import { accumulateResult } from '../src/client/accumulation';
-import { DrasiError } from '../src/client/errors';
-import type { QueryResult, QuerySubscription, ResultRow } from '../src/client/types';
+import { DrasiClient, type DrasiClientOptions } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import { accumulateResult } from '@drasi/ui-core';
+import { DrasiError } from '@drasi/ui-core';
+import type { QueryResult, QuerySubscription, ResultRow } from '@drasi/ui-core';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, deferred, failure, json, refs } from './server';
 

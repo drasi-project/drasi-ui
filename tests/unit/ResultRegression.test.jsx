@@ -7,7 +7,7 @@
 import React from 'react';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DrasiProvider, useDrasiQuery } from '../src/react/DrasiContext';
+import { DrasiProvider, useDrasiQuery } from '../../packages/react/src/adapters/drasi-server/index';
 import { fakeEventSourceFactory } from './FakeEventSource';
 import { ReadServer, deferred, json, refs } from './server';
 
