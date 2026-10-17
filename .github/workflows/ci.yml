@@ -30,9 +30,76 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:coverage
+      - run: node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: coverage
           path: coverage/
-          if-no-files-found: warn
+          if-no-files-found: error
+
+  node22:
+    name: Node 22 compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.20.0
+          cache: npm
+      - run: npm install --global npm@11.17.0 --registry=https://registry.npmjs.org
+      - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
+      - run: npm run build && npm run typecheck && npm run test:coverage
+
+  consumers:
+    name: Packed consumers
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
+      - run: npm run build && npm run pack:candidates && npm run check:packages
+      - run: npm run test:contracts
+      - run: npm run test:pnpm
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: packed-consumer-evidence
+          path: |
+            .artifacts/candidates/*.json
+            .artifacts/consumer-proofs/
+            .artifacts/consumers.json
+            .artifacts/pnpm-proof.json
+            .artifacts/pnpm-lock.yaml
+            .artifacts/browser-report.json
+            test-results/
+          if-no-files-found: error
+
+  release-policy:
+    name: Release policy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - run: node scripts/check-changesets.mjs
+      - run: node --test scripts/test/*.test.mjs

@@ -11,7 +11,7 @@ separate gates.
 | React / React DOM | 18.3.1 and 19.3.1; one runtime identity |
 | Vue proof | Native Vue 3.5.44 with packed core/styles and no React/Radix/runtime/types |
 | Frameworks | Vite 5.4.19 and Next 16.4.2 App Router, actual builds and SSR/hydration |
-| Declarations | TypeScript 5.9.3, strict NodeNext ESM/CJS and bundler, `skipLibCheck: false` |
+| Declarations | TypeScript 5.9.3 for core/React 18 and 6.0.3 for the React 19/Next consumer; strict NodeNext ESM/CJS and bundler, `skipLibCheck: false` |
 | Maintainer toolchain | Node 24.19.0, npm 11.17.0; release operations use npm 11.21.0 |
 | Browser automation | Playwright 1.56.1 Chromium, Firefox and WebKit; pinned Linux image in CI |
 
@@ -33,6 +33,11 @@ The separate build-tool tsconfig skips third-party declaration checking because
 pinned tsup 8.5.1 references missing internal `types.cts` and optional SWC
 declarations. Its own configuration is still type-checked. This does not weaken
 any shipped declaration or product coverage gate.
+
+Next 16.4.2 references the modern `URLPatternInput`/`URLPatternOptions` web
+declarations introduced in TypeScript 6. Its private consumer therefore pins
+TypeScript 6.0.3 and Node 24 declarations, includes `next-env.d.ts`, and remains
+fully strict. No ambient `any` shim or framework `ignoreBuildErrors` setting is used.
 
 Are the Types Wrong uses its exports-aware `node16` profile, which covers
 NodeNext CJS/ESM and bundler resolution. Legacy TypeScript `node10` resolution is
