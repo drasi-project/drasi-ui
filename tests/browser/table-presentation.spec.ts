@@ -8,13 +8,11 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { test, expect, type Page } from '@playwright/test';
 import { build } from 'vite';
 import type { ContractRow } from './table-contract-view';
 
-const app = fileURLToPath(new URL('../../', import.meta.url));
-const require = createRequire(import.meta.url);
+let app: string;
 let client: string;
 let serverEntry: string;
 let serverDirectory: string | undefined;
@@ -34,9 +32,9 @@ async function fixtureBundle(entry: string, ssr: boolean): Promise<string> {
     build: {
       write: false,
       minify: false,
-      ssr: ssr ? fileURLToPath(new URL(entry, import.meta.url)) : false,
+      ssr: ssr ? join(app, 'table-fixture', entry) : false,
       rollupOptions: {
-        input: fileURLToPath(new URL(entry, import.meta.url)),
+        input: join(app, 'table-fixture', entry),
         output: { format: ssr ? 'es' : 'iife', name: 'TableContract' },
       },
     },
@@ -62,7 +60,10 @@ async function fixtureBundle(entry: string, ssr: boolean): Promise<string> {
   return join(serverDirectory, chunk.fileName);
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({}, info) => {
+  const consumers = JSON.parse(await readFile('.artifacts/consumers.json', 'utf8'));
+  app = consumers.consumers[`react${info.project.metadata.react}`].directory;
+  const require = createRequire(join(app, 'package.json'));
   client = await fixtureBundle('table-contract-client.tsx', false);
   serverEntry = await fixtureBundle('table-contract-ssr.ts', true);
   css = await readFile(require.resolve('@drasi/react/styles.css'), 'utf8');

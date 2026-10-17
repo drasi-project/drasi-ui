@@ -14,6 +14,7 @@
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:contracts": "node scripts/packed-consumers.mjs",
+    "test:pnpm": "node scripts/pnpm-consumer.mjs",
     "test:browser": "playwright test",
     "check:packages": "node scripts/check-packages.mjs",
     "check:changesets": "node scripts/check-changesets.mjs",

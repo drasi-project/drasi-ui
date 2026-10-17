@@ -29,7 +29,6 @@
  * - `adapters/drasi-server` — explicit optional Server provider and inspection.
  */
 
-export * from './client';
+export * from '@drasi/ui-core';
 export * from './react';
 export * from './components';
-export type * from './types';

@@ -12,14 +12,22 @@ assert(platform && architecture, 'Select an explicit cache platform and architec
 const supports = (values, target) => !values ||
   (!values.includes(`!${target}`) && (!values.some(value => !value.startsWith('!')) || values.includes(target)));
 const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
-const specs = [...new Set(Object.values(lock.packages)
-  .filter(entry => !entry.link && entry.resolved &&
-    supports(entry.os, platform) && supports(entry.cpu, architecture))
-  .map(entry => {
+const selected = new Set((process.env.NPM_CACHE_FILTER ?? '').split(',').filter(Boolean));
+const found = new Set();
+const specs = [...new Set(Object.entries(lock.packages)
+  .filter(([path, entry]) => {
+    const name = entry.name ?? path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length);
+    const included = !entry.link && entry.resolved && supports(entry.os, platform) &&
+      supports(entry.cpu, architecture) && (!selected.size || selected.has(name));
+    if (included) found.add(name);
+    return included;
+  })
+  .map(([, entry]) => {
     assert(entry.resolved.startsWith('https://registry.npmjs.org/'), `Non-official registry: ${entry.resolved}`);
     assert(entry.integrity, `Missing integrity for ${entry.resolved}`);
     return entry.resolved;
   }))];
+for (const name of selected) assert(found.has(name), `Requested package is absent from the matching locked graph: ${name}`);
 let next = 0;
 async function worker() {
   while (next < specs.length) {
@@ -44,6 +52,7 @@ await copyFile('package-lock.json', '.artifacts/dependencies/package-lock.json')
 await writeFile('.artifacts/dependencies/provenance.json', JSON.stringify({
   source: process.env.GITHUB_SHA, run: process.env.GITHUB_RUN_ID,
   registry: 'https://registry.npmjs.org/', node: process.version,
-  npm: '11.17.0', platform, architecture, tarballs: specs.length, hashes,
+  npm: '11.17.0', platform, architecture, partial: selected.size > 0,
+  selected: [...selected], tarballs: specs.length, hashes,
 }, null, 2) + '\n');
 console.log(`Cached ${specs.length} official-registry tarballs for ${platform}-${architecture}.`);

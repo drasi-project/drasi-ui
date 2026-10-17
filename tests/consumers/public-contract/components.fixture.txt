@@ -20,35 +20,30 @@ import {
   type QueryTableRenderContext,
   type QueryTableErrorContext,
 } from '@drasi/react/components';
-import type {
-  DrasiClientOptions, DrasiInitializeOptions, ConnectionStatus, DrasiError, DrasiErrorCode, DrasiErrorDetails,
-  ReactionReference, QueryConfig, ReactionConfig, Component, ResultRow, QueryResult,
-  ResultChange, QuerySnapshot, QueryDelta, ResultAdapter, ResultAdapterContext,
-  LegacyResultAdapterOptions, ResultReconciliationOptions, RowKey, QuerySubscription,
-  QuerySubscriptionState, QueryStatus, QueryErrorScope,
-} from '@drasi/react/client';
-import { accumulateResult, createLegacyResultAdapter, sse034ResultAdapter } from '@drasi/react/client';
-import type {
-  UseDrasiQueryOptions, UseDrasiQueryResult, UseDrasiQueryDefinitionResult,
-  DrasiProviderProps, DrasiContextValue, AnimationDirection,
-  SortConfig as HeadlessSortConfig, UseTableSortOptions, UseTableSortResult,
-} from '@drasi/react/react';
+import type { DrasiClientOptions, DrasiInitializeOptions, ReactionReference, QueryConfig, ReactionConfig, Component, LegacyResultAdapterOptions } from '@drasi/ui-core/adapters/drasi-server';
+import type { ConnectionStatus, DrasiError, DrasiErrorCode, DrasiErrorDetails, ResultRow, QueryResult, ResultChange, QuerySnapshot, QueryDelta, ResultAdapter, ResultAdapterContext, ResultReconciliationOptions, RowKey, QuerySubscription, QuerySubscriptionState, QueryStatus, QueryErrorScope } from '@drasi/ui-core';
+import { accumulateResult } from '@drasi/ui-core';
+import { createLegacyResultAdapter, sse034ResultAdapter } from '@drasi/ui-core/adapters/drasi-server';
+import type { UseDrasiQueryOptions, UseDrasiQueryResult, DrasiContextValue, AnimationDirection, SortConfig as HeadlessSortConfig, UseTableSortOptions, UseTableSortResult } from '@drasi/react/react';
+import type { UseDrasiQueryDefinitionResult, DrasiProviderProps } from '@drasi/react/adapters/drasi-server';
 import { useTableSort } from '@drasi/react/react';
 import * as Root from '@drasi/react';
+import * as CoreServer from '@drasi/ui-core/adapters/drasi-server';
+import * as ReactServer from '@drasi/react/adapters/drasi-server';
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type Assert<T extends true> = T;
 
 // Root compatibility must expose the very same contracts, not weaker aliases.
-export type RootOptions = Assert<Equal<Root.DrasiClientOptions, DrasiClientOptions>>;
-export type RootInitializeOptions = Assert<Equal<Root.DrasiInitializeOptions, DrasiInitializeOptions>>;
+export type RootOptions = Assert<Equal<CoreServer.DrasiClientOptions, DrasiClientOptions>>;
+export type RootInitializeOptions = Assert<Equal<CoreServer.DrasiInitializeOptions, DrasiInitializeOptions>>;
 export type RootStatus = Assert<Equal<Root.ConnectionStatus, ConnectionStatus>>;
 export type RootCode = Assert<Equal<Root.DrasiErrorCode, DrasiErrorCode>>;
 export type RootDetails = Assert<Equal<Root.DrasiErrorDetails, DrasiErrorDetails>>;
-export type RootReaction = Assert<Equal<Root.ReactionReference, ReactionReference>>;
-export type RootQueryConfig = Assert<Equal<Root.QueryConfig, QueryConfig>>;
-export type RootReactionConfig = Assert<Equal<Root.ReactionConfig, ReactionConfig>>;
-export type RootComponent = Assert<Equal<Root.Component<QueryConfig>, Component<QueryConfig>>>;
+export type RootReaction = Assert<Equal<CoreServer.ReactionReference, ReactionReference>>;
+export type RootQueryConfig = Assert<Equal<CoreServer.QueryConfig, QueryConfig>>;
+export type RootReactionConfig = Assert<Equal<CoreServer.ReactionConfig, ReactionConfig>>;
+export type RootComponent = Assert<Equal<CoreServer.Component<QueryConfig>, Component<QueryConfig>>>;
 export type RootRow = Assert<Equal<Root.ResultRow, ResultRow>>;
 export type RootResult = Assert<Equal<Root.QueryResult, QueryResult>>;
 export type RootTypedResult = Assert<Equal<Root.QueryResult<Temperature>, QueryResult<Temperature>>>;
@@ -57,7 +52,7 @@ export type RootSnapshot = Assert<Equal<Root.QuerySnapshot<Temperature>, QuerySn
 export type RootDelta = Assert<Equal<Root.QueryDelta<Temperature>, QueryDelta<Temperature>>>;
 export type RootAdapter = Assert<Equal<Root.ResultAdapter, ResultAdapter>>;
 export type RootAdapterContext = Assert<Equal<Root.ResultAdapterContext, ResultAdapterContext>>;
-export type RootLegacyOptions = Assert<Equal<Root.LegacyResultAdapterOptions, LegacyResultAdapterOptions>>;
+export type RootLegacyOptions = Assert<Equal<CoreServer.LegacyResultAdapterOptions, LegacyResultAdapterOptions>>;
 export type RootReconciliation = Assert<Equal<Root.ResultReconciliationOptions, ResultReconciliationOptions>>;
 export type RootRowKey = Assert<Equal<Root.RowKey, RowKey>>;
 export type RootSubscription = Assert<Equal<Root.QuerySubscription, QuerySubscription>>;
@@ -65,12 +60,12 @@ export type RootSubscriptionState = Assert<Equal<Root.QuerySubscriptionState, Qu
 export type RootQueryStatus = Assert<Equal<Root.QueryStatus, QueryStatus>>;
 export type RootQueryScope = Assert<Equal<Root.QueryErrorScope, QueryErrorScope>>;
 export type RootReducer = Assert<Equal<typeof Root.accumulateResult, typeof accumulateResult>>;
-export type RootOfficialAdapter = Assert<Equal<typeof Root.sse034ResultAdapter, typeof sse034ResultAdapter>>;
-export type RootLegacyAdapter = Assert<Equal<typeof Root.createLegacyResultAdapter, typeof createLegacyResultAdapter>>;
+export type RootOfficialAdapter = Assert<Equal<typeof CoreServer.sse034ResultAdapter, typeof sse034ResultAdapter>>;
+export type RootLegacyAdapter = Assert<Equal<typeof CoreServer.createLegacyResultAdapter, typeof createLegacyResultAdapter>>;
 export type RootHookOptions = Assert<Equal<Root.UseDrasiQueryOptions, UseDrasiQueryOptions>>;
 export type RootHookResult = Assert<Equal<Root.UseDrasiQueryResult, UseDrasiQueryResult>>;
-export type RootDefinitionResult = Assert<Equal<Root.UseDrasiQueryDefinitionResult, UseDrasiQueryDefinitionResult>>;
-export type RootProvider = Assert<Equal<Root.DrasiProviderProps, DrasiProviderProps>>;
+export type RootDefinitionResult = Assert<Equal<ReactServer.UseDrasiQueryDefinitionResult, UseDrasiQueryDefinitionResult>>;
+export type RootProvider = Assert<Equal<ReactServer.DrasiProviderProps, DrasiProviderProps>>;
 export type RootContext = Assert<Equal<Root.DrasiContextValue, DrasiContextValue>>;
 export type RootColumn = Assert<Equal<Root.ColumnDef<Temperature>, ColumnDef<Temperature>>>;
 export type RootAction = Assert<Equal<Root.RowAction<Temperature>, RowAction<Temperature>>>;
@@ -478,10 +473,10 @@ export type TableName = Assert<Equal<DataTableProps<Temperature>['ariaLabel'], s
 export type QueryTableName = Assert<Equal<QueryTableProps<Temperature>['ariaLabel'], string | undefined>>;
 export type ModalCloseRequest = Assert<Equal<ModalProps['onClose'], () => void>>;
 export type ModalTitle = Assert<Equal<ModalProps['title'], string>>;
-export type ModalInitialRef = Assert<Equal<ModalProps['initialFocusRef'], RefObject<HTMLElement> | undefined>>;
-export type ModalReturnRef = Assert<Equal<ModalProps['returnFocusRef'], RefObject<HTMLElement> | undefined>>;
-export type ModalFallbackRef = Assert<Equal<ModalProps['fallbackFocusRef'], RefObject<HTMLElement> | undefined>>;
-export type ModalThemeRef = Assert<Equal<ModalProps['themeRef'], RefObject<HTMLElement> | undefined>>;
+export type ModalInitialRef = Assert<Equal<ModalProps['initialFocusRef'], RefObject<HTMLElement | null> | undefined>>;
+export type ModalReturnRef = Assert<Equal<ModalProps['returnFocusRef'], RefObject<HTMLElement | null> | undefined>>;
+export type ModalFallbackRef = Assert<Equal<ModalProps['fallbackFocusRef'], RefObject<HTMLElement | null> | undefined>>;
+export type ModalThemeRef = Assert<Equal<ModalProps['themeRef'], RefObject<HTMLElement | null> | undefined>>;
 
 export const acceptedHeights: readonly TableHeight[] = [
   0, 400, 12.5, '0', 'auto', '400px', '20rem', '2em', '20ch', '20ex', '3lh', '3rlh',
@@ -565,3 +560,8 @@ export const invalidEscapeSetting: ModalProps = { ...modalProps, closeOnEscape: 
 export const invalidOutsideSetting: ModalProps = { ...modalProps, closeOnOutsideClick: 0 };
 // @ts-expect-error The public wrapper does not expose primitive dismissal escape hatches.
 export const primitiveModalEvent: ModalProps = { ...modalProps, onPointerDownOutside() {} };
+
+// @ts-expect-error Server client types are intentionally absent from the generic root.
+export type NoImplicitServer = Root.DrasiClientOptions;
+// @ts-expect-error Server providers require the optional adapter entry.
+export const noImplicitProvider = Root.DrasiProvider;

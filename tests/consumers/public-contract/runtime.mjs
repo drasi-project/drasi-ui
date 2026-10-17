@@ -12,7 +12,7 @@ const [kind, format] = process.argv.slice(2);
 assert(['client', 'react', 'components', 'root'].includes(kind));
 assert(['esm', 'cjs'].includes(format));
 const require = createRequire(import.meta.url);
-const specifier = kind === 'root' ? '@drasi/react' : `@drasi/react/${kind}`;
+const specifier = kind === 'client' ? '@drasi/ui-core' : kind === 'root' ? '@drasi/react' : `@drasi/react/${kind}`;
 const load = name => format === 'esm' ? import(name) : require(name);
 const resolution = format === 'esm' ? fileURLToPath(import.meta.resolve(specifier)) : require.resolve(specifier);
 assert(resolution.endsWith(format === 'esm' ? '.js' : '.cjs'), `Wrong runtime export: ${resolution}`);
@@ -270,7 +270,12 @@ function checkProviderFreeModal(api) {
 }
 
 try {
-  const api = await load(specifier);
+  const generic = await load(specifier);
+  assert.equal(generic.DrasiClient, undefined, 'A generic entrypoint exposed the Server client');
+  assert.equal(generic.DrasiProvider, undefined, 'A generic entrypoint exposed the Server provider');
+  const api = kind === 'client'
+    ? { ...generic, ...await load('@drasi/ui-core/adapters/drasi-server') }
+    : generic;
   assert.deepEqual(accesses, [], `${specifier} import touched browser/network globals`);
   if (kind === 'client') {
     setFetch(noNetwork);
@@ -381,7 +386,8 @@ try {
       checkProviderFreeTables(api);
       checkProviderFreeModal(api);
     }
-    const hooks = kind === 'components' ? await load('@drasi/react/react') : api;
+    const genericHooks = kind === 'components' ? await load('@drasi/react/react') : api;
+    const hooks = { ...genericHooks, ...await load('@drasi/react/adapters/drasi-server') };
     for (const name of [
       'DrasiProvider', 'useDrasiClient', 'useDrasiQuery', 'useDrasiConnectionStatus',
       'useDrasiServerUiUrl', 'useDrasiQueryDefinition', 'useRowAnimation', 'useTableSort',
@@ -482,26 +488,28 @@ try {
       assert(!html.includes('View code') && !html.includes('Expand table'));
     }
     if (kind === 'root') {
-      assert.equal(typeof api.DrasiClient, 'function');
+      assert.equal(api.DrasiClient, undefined);
       assert.equal(typeof api.QueryTable, 'function');
       assert.equal(typeof api.DataTable, 'function');
       assert.equal(typeof api.Modal, 'function');
       assert.equal(typeof api.useTableSort, 'function');
       assert.equal(typeof api.useReducedMotion, 'function');
       assert.equal(typeof api.accumulateResult, 'function');
-      assert.equal(typeof api.sse034ResultAdapter, 'function');
-      assert.equal(typeof api.createLegacyResultAdapter, 'function');
+      assert.equal(api.sse034ResultAdapter, undefined);
+      assert.equal(api.createLegacyResultAdapter, undefined);
     }
   }
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.deepEqual(accesses, [], `${specifier} performed implicit DOM/network work`);
 
   // CSS is an explicit asset export, not JavaScript that Node can execute.
-  const esmStyle = fileURLToPath(import.meta.resolve('@drasi/react/styles.css'));
-  const cjsStyle = require.resolve('@drasi/react/styles.css');
+  const stylesheet = kind === 'client' ? '@drasi/ui-styles/styles.css' : '@drasi/react/styles.css';
+  const esmStyle = fileURLToPath(import.meta.resolve(stylesheet));
+  const cjsStyle = require.resolve(stylesheet);
   assert.equal(esmStyle, cjsStyle);
   assert((await readFile(esmStyle, 'utf8')).includes('.drasi-query-table'));
-  for (const privatePath of ['@drasi/react/src/index.ts', '@drasi/react/dist/index.js']) {
+  const packageName = kind === 'client' ? '@drasi/ui-core' : '@drasi/react';
+  for (const privatePath of [`${packageName}/src/index.ts`, `${packageName}/dist/index.js`]) {
     assert.throws(() => require.resolve(privatePath), error => error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED');
     assert.throws(() => import.meta.resolve(privatePath), error => error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED');
   }

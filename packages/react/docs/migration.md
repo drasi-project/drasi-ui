@@ -2,6 +2,22 @@
 
 [Package overview](../README.md)
 
+## Standalone repository migration
+
+The canonical implementation is now `drasi-project/drasi-ui`.
+Generic bindings accept structural `QueryClient` values from `@drasi/ui-core`.
+Server clients, DTOs and wire adapters move to
+`@drasi/ui-core/adapters/drasi-server`; `DrasiProvider` and inspection helpers move
+to `@drasi/react/adapters/drasi-server`. `DrasiServerClientProvider` explicitly
+binds an app-owned Server client when inspection is needed. The generic root and
+headless entry never import those adapters.
+
+Controls and `@drasi/react/styles.css` retain their names and behavior. CSS is now
+generated from canonical `@drasi/ui-styles` bytes. The
+[complete import map](https://github.com/drasi-project/drasi-ui/blob/main/docs/migration.md)
+distinguishes preserved compatibility from intentional moves.
+The sections below are historical migrations, not current publication status.
+
 ## #119 bootstrap-to-connect-only migration
 
 Consumers migrating from the extracted

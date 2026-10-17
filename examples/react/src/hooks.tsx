@@ -2,7 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 import { createRoot } from 'react-dom/client';
-import { DrasiProvider, useDrasiClient, useDrasiQuery } from '@drasi/react/react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { useDrasiClient, useDrasiQuery } from '@drasi/react/react';
 import { Connection, QueryNotice } from './Connection';
 import { Shell } from './Shell';
 import { connectionOptions, readingOptions, rooms } from './readings';

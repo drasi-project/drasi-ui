@@ -1,0 +1,6 @@
+* @agentofreality
+/.github/workflows/ @agentofreality
+/scripts/release* @agentofreality
+/packages/core/ @agentofreality
+/packages/react/ @agentofreality
+/packages/styles/ @agentofreality

@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 import { createRoot } from 'react-dom/client';
-import { DrasiProvider, useDrasiClient, useDrasiQuery } from '@drasi/react/react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { useDrasiClient, useDrasiQuery } from '@drasi/react/react';
 import { DataTable, queryTableState } from '@drasi/react/components';
-import type { DrasiError } from '@drasi/react/client';
+import type { DrasiError } from '@drasi/ui-core';
 import '@drasi/react/styles.css';
 import './layout.css';
 import { Connection, QueryNotice } from './Connection';

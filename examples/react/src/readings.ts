@@ -1,7 +1,8 @@
 // Copyright 2026 The Drasi Authors.
 // Licensed under the Apache License, Version 2.0.
 
-import type { DrasiClientOptions, RowKey } from '@drasi/react/client';
+import type { DrasiClientOptions } from '@drasi/ui-core/adapters/drasi-server';
+import type { RowKey } from '@drasi/ui-core';
 import type { UseDrasiQueryOptions } from '@drasi/react/react';
 
 export interface Reading {

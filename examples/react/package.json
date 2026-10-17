@@ -7,7 +7,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build && node scripts/check-build.mjs",
-    "start": "node scripts/start.mjs",
+    "start": "node test/preview.mjs",
+    "start:live": "node scripts/start.mjs",
     "feed": "node scripts/feed.mjs",
     "clean:run": "node scripts/clean-run.mjs",
     "test": "node --import tsx --test test/*.test.ts test/*.test.mjs",

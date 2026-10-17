@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { after, before, test } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { accumulateResult, DrasiError, type ResultAdapter, type RowKey } from '@drasi/react/client';
+import { accumulateResult, DrasiError, type ResultAdapter, type RowKey } from '@drasi/ui-core';
 
 let adapter: ResultAdapter;
 let probeKey: RowKey;

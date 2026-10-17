@@ -4,7 +4,7 @@
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { DataTable, Modal, queryTableState, type SortConfig } from '@drasi/react/components';
-import type { DrasiError, QueryStatus } from '@drasi/react/client';
+import type { DrasiError, QueryStatus } from '@drasi/ui-core';
 import '@drasi/react/styles.css';
 import './layout.css';
 import { Shell } from './Shell';

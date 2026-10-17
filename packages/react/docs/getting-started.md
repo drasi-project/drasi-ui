@@ -4,70 +4,53 @@
 
 ## Installation and entrypoints
 
-Use the [portable tarball recipe](../README.md#installation-and-entrypoints) first.
-
-Optional copied-local alternative, **Node 24.19.0 / npm 11.17.0 only**:
+After the first approved release, install into an existing supported React app:
 
 ```sh
-# @drasi-install: copied-local (Node 24.19.0, npm 11.17.0)
-DRASI_PACKAGE_DIR="/absolute/path/to/drasi-server/dev-tools/react"
-npm install --save-exact --ignore-scripts --install-links "$DRASI_PACKAGE_DIR" react@18.3.1 react-dom@18.3.1
+npm install @drasi/react
 ```
 
-The tested Node 22.20.0 / npm 10.9.3 directory-copy path invokes `prepare`
-despite `--ignore-scripts`, even with command-scoped ignore propagation.
-That mode is unsupported: use the tarball, not a lifecycle bypass. This is an
-observation of **npm 10.9.3**, not every npm 10 release.
+For a renderer-free data client, install `@drasi/ui-core` instead. No React
+package, React declarations, Radix, Server checkout, Rust or plugins are needed.
 
-On the supported copied-local setup, `--install-links` installs distributable
-files rather than a development symlink. Retain it for reinstall/CI with
-`npm ci --ignore-scripts --install-links`, or set `install-links=true` in the
-consumer project's `.npmrc`, never global config. Trading's existing local
-dependency/startup and the package's `prepare` behavior are unchanged.
+```sh
+# @drasi-install: core
+npm install @drasi/ui-core @drasi/ui-styles
+```
 
-A client-only application can instead install the same tarball with
-`npm install --save-exact --ignore-scripts --omit=peer /path/to/drasi-server/drasi-react-0.1.0.tgz`
-and use only `/client`. Commit the consumer lockfile. These are **local-file
-installs**, not instructions to fetch an available `@drasi/react` npm release.
-No source aliases, Tailwind source scanning or install-time rebuilding are
-needed by supported recipes. Fresh minimal consumers execute the installed
-README/guide commands and render ESM/CommonJS controls with one React 18.3.1 identity.
-Unsupported directory modes are executed negative controls, not successful
-installs or skipped validation.
-
-Copied installs are snapshots: rebuild, then reinstall. `npm install` may
-treat an unchanged-version file dependency as satisfied. Use the copied-install
-`npm ci` command above, or give a rebuilt tarball a new local path and update
-the lock via its recipe. Restart the bundler after dependency changes; inspect
-`npm ls react react-dom @drasi/react` when resolution is unexpected.
-Do not patch third-party files, add source aliases, weaken type checks or
-clear global caches to hide duplicate React or stale artifacts.
+There is no package `prepare`, `prepack` or `postinstall` rebuild. Keep a single
+React/React DOM identity and commit the application's lockfile.
+The current repository is release preparation, not evidence that registry names
+are already available. Source-free tarball instructions belong to the
+[contribution guide](https://github.com/drasi-project/drasi-ui/blob/main/CONTRIBUTING.md),
+not normal onboarding.
 
 | Import | Contents and dependencies |
 | --- | --- |
-| `@drasi/react/client` | `DrasiClient`, `DrasiSSEClient`, `DrasiError`, result adapters, `accumulateResult` and connection/transport/read/result types. **No React/React DOM runtime or type imports.** |
-| `@drasi/react/react` | Providers, query/status/definition hooks, `useTableSort`, `useRowAnimation`, `useReducedMotion` and named result/options types, including `SortConfig`. React, but no composed components, Radix, React DOM, tutorial code or CSS. |
+| `@drasi/ui-core` | Structural `QueryClient`, normalized results, errors, state, explicit `SSEClient`, reconciliation and pure table algorithms. No React/Vue runtime or declarations. |
+| `@drasi/react/client` | Data-only compatibility re-export of core. Install core directly when React must not be installed. |
+| `@drasi/ui-core/adapters/drasi-server` | `DrasiClient`, Server-default `DrasiSSEClient`, Server DTOs, wire adapters and read-only resource validation. |
+| `@drasi/react/react` | `DrasiClientProvider`, data/status hooks, sort/motion hooks and their named types. No Server, components, Radix, React DOM or CSS. |
+| `@drasi/react/adapters/drasi-server` | Optional `DrasiProvider`, `DrasiServerClientProvider`, Server inspection helpers and re-exported generic hooks. |
 | `@drasi/react/components` | Provider-free `DataTable` and `Modal`, live `QueryTable`, pure `queryTableState`, optional icons and typed column/action/state/slot/props contracts, including `ModalProps` and `TableHeight`. The client-only modal layer uses pinned Radix Dialog **1.1.15** and `scroll-into-view-if-needed` **3.1.0**, including their portal/geometry dependencies. No tutorial/fullscreen implementation or implicit CSS. `SortConfig` is also re-exported here. |
-| `@drasi/react` | Deliberate convenience re-exports of all three groups. This is **not** a React-free import. |
+| `@drasi/react` | Generic core/binding/component convenience exports, never the Server adapters. This is **not** a React-free import. |
 | `@drasi/react/styles.css` | Explicit package-owned stylesheet, never imported by the JS modules. |
 
-All four JS entrypoints ship real ESM/CommonJS exports and conditional `.d.ts`
+All JS entrypoints ship real ESM/CommonJS exports and conditional `.d.ts`
 and `.d.cts` declarations. Import these paths, not `src`, `dist` or hashed
-shared chunks. The framework-agnostic client is a module of this same package.
+shared chunks. Core is independently installable.
 
 Build output compacts whitespace only: syntax/identifiers are not minified,
 debug/component names are preserved, and source maps retain source content.
 Declarations, documentation, CSS and license notices remain in the package.
 
-React and React DOM are **optional installation peers** so client-only
-consumers need not install them. React is required to execute the
-React/component/root entrypoints; browser/SSR applications supply their renderer.
-Install the tested React and React DOM **18.3.1** versions for those applications.
+React and React DOM are required peers of the React package. The matrix targets
+**18.3.1** and **19.3.1**; consult the repository compatibility evidence before
+claiming another configuration.
 The headless `/react` graph does not import React DOM or Radix. The
 `/components` and root graphs include the dialog primitive; use the narrower
 entrypoints for headless consumers. No React copy is bundled or hidden in
-another dependency. The exact peer range
-deliberately makes no React 19 or future-major claim.
+another dependency. Core and styles have no renderer peers.
 
 The exported props/options and hook declarations include JSDoc for editor
 hover/completion. Import named types such as `ModalProps`, `TableHeight`,
@@ -82,16 +65,18 @@ import '@drasi/react/styles.css';
 
 ## Quickstart
 
-Provision resources separately. This example requires instance `analytics`, a
+This is the optional **Drasi Server** quickstart. Generic data clients use
+`DrasiClientProvider` instead. Provision resources separately. This example requires instance `analytics`, a
 running `readings` query and a running `sse` reaction `events` whose query list
 includes `readings`. The SSE endpoint must be browser-reachable, including
 proxy routing and CORS. Server bind addresses/ports are not client options.
 
 ```tsx
 // @drasi-docs: quickstart.tsx
-import { DrasiProvider, useDrasiConnectionStatus } from '@drasi/react/react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { useDrasiConnectionStatus } from '@drasi/react/react';
 import { QueryTable } from '@drasi/react/components';
-import type { ReactionReference } from '@drasi/react/client';
+import type { ReactionReference } from '@drasi/ui-core/adapters/drasi-server';
 import '@drasi/react/styles.css';
 
 const QUERY_IDS = ['readings'];
@@ -150,8 +135,8 @@ are distinct from optional, app-triggered query-definition inspection.
 
 ### Example workspace
 
-The [canonical repository examples](https://github.com/drasi-project/drasi-server/blob/main/dev-tools/react/examples/README.md)
-live at `dev-tools/react/examples`, beside this package. Their source and setup
+The [canonical repository examples](https://github.com/drasi-project/drasi-ui/blob/main/examples/react/README.md)
+live at `examples/react`. Their source and setup
 scripts are repository-only, not included in the installed tarball:
 
 - `/`: a live cold-storage table using existing Drasi resources.

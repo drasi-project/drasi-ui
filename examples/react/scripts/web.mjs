@@ -35,7 +35,7 @@ export async function serveExample({ dist, rest = null, events = null, port = 53
       const target = url.pathname === '/events' ? events : rest;
       if (!target || (url.pathname === '/events' && !streamsAvailable)) {
         response.writeHead(503, { 'Content-Type': 'text/plain' }).end(
-          target ? 'Controlled example transport outage.' : 'Static showcase only. Run npm start for real data.');
+          target ? 'Controlled example transport outage.' : 'Static showcase only. Run npm run start:live for real data.');
         return;
       }
       const upstream = httpRequest(`${target}${url.pathname}${url.search}`, { headers: { Accept: request.headers.accept ?? '*/*' } }, incoming => {

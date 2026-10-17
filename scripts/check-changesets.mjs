@@ -16,14 +16,17 @@ for (const file of await readdir('.changeset')) {
   for (const match of header.matchAll(/^["']?(@drasi\/[\w-]+)["']?:\s*(major|minor|patch)\s*$/gm)) releases.add(match[1]);
 }
 const required = new Set();
-if (files.some(file => /^packages\/core\/(?:src\/|package\.json$)/.test(file))) {
+if (files.some(file => /^packages\/core\/(?:src\/|package\.json$|README\.md$|CHANGELOG\.md$|tsup\.config\.ts$)/.test(file))) {
   required.add('@drasi/ui-core');
   required.add('@drasi/react');
 }
-if (files.some(file => /^packages\/styles\/(?:src\/|package\.json$)/.test(file))) {
+if (files.some(file => /^packages\/styles\/(?:src\/|package\.json$|README\.md$|CHANGELOG\.md$)/.test(file))) {
   required.add('@drasi/ui-styles');
   required.add('@drasi/react');
 }
-if (files.some(file => /^packages\/react\/(?:src\/|package\.json$)/.test(file))) required.add('@drasi/react');
+if (files.some(file => /^packages\/react\/(?:src\/|docs\/|package\.json$|README\.md$|CHANGELOG\.md$|tsup\.config\.ts$)/.test(file))) required.add('@drasi/react');
+if (files.some(file => /^(?:LICENSE|NOTICE|tsconfig\.base\.json|scripts\/build(?:-[\w-]+)?\.mjs)$/.test(file))) {
+  for (const name of ['@drasi/ui-core', '@drasi/ui-styles', '@drasi/react']) required.add(name);
+}
 for (const name of required) assert(releases.has(name), `Changed public bytes require an explicit ${name} changeset, including embedded CSS dependents`);
 console.log(`Changeset dependency gate passed for ${[...required].join(', ') || 'documentation-only changes'}.`);

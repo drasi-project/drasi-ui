@@ -13,18 +13,18 @@ start with the [first table](../README.md#your-first-table) or
 
 ### Public symbol map
 
-This is the complete named export surface; the sections below specify
-the contracts. Root re-exports the same symbols. It is not an additional client
-implementation or a headless dependency shortcut.
+The sections below specify the retained contracts. Server integration now has
+explicit entrypoints and is not re-exported by the generic root.
 
 | Entrypoint / group | Exported symbols |
 | --- | --- |
-| `/client` runtime | `DrasiClient`, `DrasiSSEClient`, `DrasiError`, `sse034ResultAdapter`, `createLegacyResultAdapter`, `accumulateResult` |
-| `/client` connection and transport types | `DrasiClientOptions`, `DrasiInitializeOptions`, `DrasiSSEClientOptions`, `ReactionReference`, `ReconnectOptions`, `ResultReconciliationOptions`, `ConnectionStatus`, `DrasiRequestContext`, `DrasiHeaders`, `DrasiHeadersProvider`, `EventSourceOptions`, `EventSourceFactory`, `EventSourceLike` |
-| `/client` read and error types | `Component`, `ComponentLinks`, `ComponentStatus`, `QueryLanguage`, `QueryConfig`, `QuerySource`, `QueryJoin`, `QueryJoinKey`, `QueryMiddleware`, `ReactionConfig`, `SseReactionConfig`, `JsonValue`, `DrasiErrorCode`, `DrasiErrorDetails`, `DrasiResourceKind` |
-| `/client` result and subscription types | `ResultRow`, `RowKey`, `ResultChange`, `QuerySnapshot`, `QueryDelta`, `QueryResult`, `ResultAdapter`, `ResultAdapterContext`, `LegacyResultAdapterOptions`, `RouteUnidentified`, `QueryStatus`, `QueryErrorScope`, `QuerySubscription`, `QuerySubscriptionState` |
-| `/react` runtime | `DrasiProvider`, `DrasiClientProvider`, `useDrasiClient`, `useDrasiQuery`, `useDrasiConnectionStatus`, `useDrasiQueryDefinition`, `useDrasiServerUiUrl`, `useRowAnimation`, `useTableSort`, `useReducedMotion` |
-| `/react` types | `DrasiProviderProps`, `DrasiContextValue`, `UseDrasiQueryOptions`, `UseDrasiQueryResult`, `UseDrasiQueryDefinitionResult`, `AnimationDirection`, `UseRowAnimationOptions`, `UseRowAnimationResult`, `SortConfig`, `UseTableSortOptions`, `UseTableSortResult` |
+| `@drasi/ui-core` runtime (also `/client`) | `DrasiError`, `asDrasiError`, `isAbortError`, `SSEClient`, `accumulateResult`, `readAdaptedResults`, `subscribeToQuery`, `observeQuery`, `initialQueryState`, `retainQueryBaseline`, `projectQueryRows`, `queryView`, `compareTableValues`, `sortTableRows`, `nextTableSort`, `trackRowChanges`, `mergeRowAnimations` |
+| Core connection/error types | `QueryClient`, `QueryConnection`, `QueryStream`, `SSEClientOptions`, `ReconnectOptions`, `ResultReconciliationOptions`, `ConnectionStatus`, `DrasiRequestContext`, `DrasiHeaders`, `DrasiHeadersProvider`, `EventSourceOptions`, `EventSourceFactory`, `EventSourceLike`, `JsonValue`, `DrasiErrorCode`, `DrasiErrorDetails`, `DrasiResourceKind` |
+| Core result/state types | `ResultRow`, `RowKey`, `ResultChange`, `QuerySnapshot`, `QueryDelta`, `QueryResult`, `ResultAdapter`, `ResultAdapterContext`, `QueryStatus`, `QueryErrorScope`, `QuerySubscription`, `QuerySubscriptionState`, `SubscriptionOptions`, `RawQueryState`, `QueryObservation`, `QueryProjectionOptions`, `QueryProjection`, `QueryView`, `AcceptedQueryView`, `SortConfig`, `AnimationDirection`, `RowAnimationState` |
+| `@drasi/ui-core/adapters/drasi-server` | `DrasiClient`, `DrasiSSEClient`, `sse034ResultAdapter`, `createLegacyResultAdapter`, `serverConfigurationKey`; client/initialize/SSE options, `ReactionReference`, all Server `Component`/query/reaction DTO types, `LegacyResultAdapterOptions`, `RouteUnidentified` |
+| `/react` runtime | `DrasiClientProvider`, `useDrasiClient`, `useDrasiQuery`, `useDrasiConnectionStatus`, `useRowAnimation`, `useTableSort`, `useReducedMotion` |
+| `/react` types | `DrasiContextValue`, `UseDrasiQueryOptions`, `UseDrasiQueryResult`, `AnimationDirection`, `UseRowAnimationOptions`, `UseRowAnimationResult`, `SortConfig`, `UseTableSortOptions`, `UseTableSortResult` |
+| `/adapters/drasi-server` | `DrasiProvider`, `DrasiServerClientProvider`, `useDrasiServerClient`, `useDrasiQueryDefinition`, `useDrasiServerUiUrl`, `DrasiProviderProps`, `DrasiServerContextValue`, `UseDrasiQueryDefinitionResult`, plus generic hooks/types |
 | `/components` runtime | `DataTable`, `QueryTable`, `queryTableState`, `Modal`, `CodeIcon`, `ExpandIcon`, `CollapseIcon` |
 | `/components` types | `DataTableProps`, `DataTableState`, `DataTableRenderContext`, `DataTableErrorContext`, `DataTableHeaderContext`, `QueryTableProps`, `QueryTableRenderContext`, `QueryTableErrorContext`, `ColumnDef`, `RowAction`, `SortConfig`, `ModalProps`, `TableHeight` |
 
@@ -34,6 +34,9 @@ not assumed to be re-exported by `/react`. Private module helpers and icon
 implementation prop aliases are not additional named exports.
 
 ### Connection options
+
+The following options belong to the optional Server adapter, not the generic
+`QueryClient` binding.
 
 `DrasiProviderProps` extends `DrasiClientOptions` with required React `children`.
 `ReactionReference` contains only the existing `id` and absolute HTTP(S)
@@ -228,8 +231,8 @@ to this component; it memoizes the adapter and displays raw query fields:
 ```tsx
 // @drasi-docs: templated-reaction.tsx
 import { useMemo } from 'react';
-import { DrasiError, type ResultAdapter, type ResultChange, type ResultRow, type RowKey } from '@drasi/react/client';
-import { DrasiProvider } from '@drasi/react/react';
+import { DrasiError, type ResultAdapter, type ResultChange, type ResultRow, type RowKey } from '@drasi/ui-core';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
 import { QueryTable } from '@drasi/react/components';
 
 const queryIds = ['north-room', 'south-room'];
@@ -356,7 +359,7 @@ browser-global detection or server-rendering layout effect.
 ```ts
 // @drasi-docs: query-options.ts
 import { useDrasiQuery, type UseDrasiQueryOptions } from '@drasi/react/react';
-import type { RowKey } from '@drasi/react/client';
+import type { RowKey } from '@drasi/ui-core';
 
 interface Reading { device: string; value: number }
 const readingKey: RowKey = raw => {
@@ -398,9 +401,7 @@ requires a value on current rows, not on delete records. For a table, use
 
 ```ts
 // @drasi-docs: raw-identity.ts
-import {
-  accumulateResult, type QueryResult, type ResultRow, type RowKey,
-} from '@drasi/react/client';
+import { accumulateResult, type QueryResult, type ResultRow, type RowKey } from '@drasi/ui-core';
 import type { UseDrasiQueryOptions } from '@drasi/react/react';
 
 interface ReadingView { renderId: string; value: number }
@@ -544,10 +545,8 @@ limit below) from shared connection recovery, and keeps available stale rows.
 
 ```tsx
 // @drasi-docs: hooks-only.tsx
-import {
-  DrasiProvider, useDrasiClient, useDrasiConnectionStatus, useDrasiQuery,
-  type UseDrasiQueryOptions,
-} from '@drasi/react/react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { useDrasiClient, useDrasiConnectionStatus, useDrasiQuery, type UseDrasiQueryOptions } from '@drasi/react/react';
 
 interface Reading { id: string; value: number }
 const options: UseDrasiQueryOptions<Reading> = {
@@ -1025,11 +1024,8 @@ custom `animationDuration` controls state expiry, not the stylesheet duration.
 ```tsx
 // @drasi-docs: composed-table.tsx
 import { DataTable, queryTableState, type ColumnDef } from '@drasi/react/components';
-import {
-  useDrasiClient, useDrasiQuery, useRowAnimation, useTableSort,
-  type UseDrasiQueryOptions,
-} from '@drasi/react/react';
-import type { DrasiError } from '@drasi/react/client';
+import { useDrasiClient, useDrasiQuery, useRowAnimation, useTableSort, type UseDrasiQueryOptions } from '@drasi/react/react';
+import type { DrasiError } from '@drasi/ui-core';
 import '@drasi/react/styles.css';
 
 interface Reading { id: string; value: number }
@@ -1439,10 +1435,8 @@ with the client when that owner finishes:
 
 ```ts
 // @drasi-docs: client.ts
-import {
-  DrasiClient, accumulateResult,
-  type DrasiError, type QuerySubscriptionState, type ResultRow, type RowKey,
-} from '@drasi/react/client';
+import { DrasiClient } from '@drasi/ui-core/adapters/drasi-server';
+import { accumulateResult, type DrasiError, type QuerySubscriptionState, type ResultRow, type RowKey } from '@drasi/ui-core';
 
 const readingKey: RowKey = raw => {
   if (typeof raw.id !== 'string' || !raw.id) throw new Error('Expected a stable reading ID');

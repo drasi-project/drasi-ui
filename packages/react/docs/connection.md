@@ -86,10 +86,8 @@ exception details. `DrasiClient` supplies the explicit instance; a direct
 
 ```ts
 // @drasi-docs: auth.ts
-import {
-  DrasiClient, DrasiError,
-  type DrasiHeadersProvider, type EventSourceFactory,
-} from '@drasi/react/client';
+import { DrasiClient } from '@drasi/ui-core/adapters/drasi-server';
+import { DrasiError, type DrasiHeadersProvider, type EventSourceFactory } from '@drasi/ui-core';
 
 export function authenticatedClient(
   getAccessToken: (signal: AbortSignal) => Promise<string>,
@@ -160,6 +158,12 @@ authorizes provisioning.
 
 ## Ownership and reconfiguration
 
+Generic `DrasiClientProvider` accepts the structural `QueryClient` contract from
+core: normalized subscriptions and connection observation, with no Server DTO,
+inspection, UI-link or administrative mutation requirements. Its owner starts,
+retries and disposes the connection. `instanceId` is optional diagnostic context.
+The following Server lifecycle details apply only when selecting the adapter.
+
 `DrasiProvider` owns a client, shared stream, initialization, retries and
 cleanup. Equivalent inline reference arrays, reaction/reconnect objects and
 headers do **not** bounce the connection. Query IDs compare as a set (duplicates
@@ -205,6 +209,10 @@ Its owner supplies coherent state and scoped retry and disposes old clients on
 reconfiguration. Descendant hooks perform their own read-only
 subscriptions/snapshots once `initialized` is true.
 
+Use `DrasiServerClientProvider` and `DrasiServerContextValue` from the optional
+React adapter when an app-owned Server client also needs query-definition or
+Server UI inspection. Generic providers intentionally do not grant that contract.
+
 ```tsx
 // @drasi-docs: controlled.tsx
 import type { ReactNode } from 'react';
@@ -236,7 +244,7 @@ shared work, cancellation and Web Locks stay outside the package.
 
 - Own provisioning, query definitions/languages, source/reaction deployment,
   domain identity, validating projections and any explicit legacy routing.
-  The package is a **GET-only consumer**, not an authorization or management
+  The Server adapter is a **GET-only consumer**, not an authorization or management
   boundary. Restrict server/proxy access to the intended instances/resources;
   enforce authorization on both REST and SSE. Browser query IDs and disabled
   action buttons do not enforce access control.

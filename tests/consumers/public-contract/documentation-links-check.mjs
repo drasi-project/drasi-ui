@@ -30,16 +30,16 @@ test('validates related repository links without interpreting example code or ex
 test('related README/changelog/example/evidence paths and anchors resolve', async () => {
   const proof = await checkDocumentationLinks();
   assert(proof.checked.length > 0);
-  assert(proof.checked.some(link => link.target.endsWith('#historical-p6-measured-evidence')));
-  assert(proof.checked.some(link => link.target.endsWith('#run-only-the-simulated-showcase')));
+  assert(proof.checked.some(link => link.target.endsWith('docs/provenance.md')));
+  assert(proof.checked.some(link => link.target.endsWith('examples/react/README.md')));
 });
 
 test('missing anchors or files fail instead of blessing stale evidence links', async () => {
   await assert.rejects(checkDocumentationLinks({
-    'dev-tools/react/README.md': '[Missing](../../examples/trading/TESTING.md#missing-evidence)',
+    'packages/react/README.md': '[Missing](docs/reference.md#missing-evidence)',
   }), /Missing documentation anchor/);
   await assert.rejects(checkDocumentationLinks({
-    'dev-tools/react/README.md': '[Missing](missing-guide.md)',
+    'packages/react/README.md': '[Missing](missing-guide.md)',
   }), /ENOENT/);
 });
 
@@ -63,22 +63,22 @@ test('installed guide links cannot rely on missing or escaped repository files',
 
 test('repository-only example links still target a real canonical path and heading', async () => {
   await assert.rejects(checkDocumentationLinks({
-    'dev-tools/react/README.md': `[Wrong example](https://github.com/drasi-project/drasi-server/blob/${repositorySourceRef}/dev-tools/react/examples/README.md#not-a-heading)`,
+    'packages/react/README.md': `[Wrong example](https://github.com/drasi-project/drasi-ui/blob/${repositorySourceRef}/examples/react/README.md#not-a-heading)`,
   }), /Missing documentation anchor/);
 });
 
 test('canonical repository links use main, never a disposable feature branch', async () => {
   assert.equal(repositorySourceRef, 'main');
-  const path = 'dev-tools/react/examples/README.md#run-the-real-example';
+  const path = 'examples/react/README.md#run-the-real-example';
   for (const kind of ['blob', 'tree']) {
-    assert.throws(() => repositoryLinkTarget(`https://github.com/drasi-project/drasi-server/${kind}/agentofreality-react-independent-examples/${path}`),
+    assert.throws(() => repositoryLinkTarget(`https://github.com/drasi-project/drasi-ui/${kind}/agentofreality-react-independent-examples/${path}`),
       /declares ref agentofreality-react-independent-examples/);
-    assert.deepEqual(repositoryLinkTarget(`https://github.com/drasi-project/drasi-server/${kind}/main/${path}`),
+    assert.deepEqual(repositoryLinkTarget(`https://github.com/drasi-project/drasi-ui/${kind}/main/${path}`),
       { kind, ref: 'main', path });
   }
-  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
+  const manifest = JSON.parse(await readFile(new URL('../../../packages/react/package.json', import.meta.url), 'utf8'));
   assert.deepEqual(repositoryLinkTarget(manifest.homepage),
-    { kind: 'tree', ref: 'main', path: 'dev-tools/react#readme' });
+    { kind: 'tree', ref: 'main', path: 'packages/react#readme' });
   const proof = await checkDocumentationLinks();
   assert.equal(proof.networkRequests, 0);
   assert(proof.checked.some(link => link.ref === 'main' &&

@@ -1,7 +1,8 @@
 // Copyright 2026 The Drasi Authors. Licensed under the Apache License, Version 2.0.
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { DrasiProvider, type UseDrasiQueryOptions } from '@drasi/react/react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { type UseDrasiQueryOptions } from '@drasi/react/react';
 import { QueryTable } from '@drasi/react/components';
 import '@drasi/react/styles.css';
 import './layout.css';

@@ -4,39 +4,10 @@
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 import { createElement, type ReactNode } from 'react';
-import {
-  DrasiClient,
-  sse034ResultAdapter,
-  type DrasiClientOptions,
-  type ConnectionStatus,
-  type DrasiError,
-  type QueryConfig,
-  type ResultRow,
-  type QueryStatus,
-  type QueryErrorScope,
-} from '@drasi/react/client';
-import {
-  DrasiProvider,
-  DrasiClientProvider,
-  useDrasiClient,
-  useDrasiQuery,
-  useDrasiQueryDefinition,
-  useDrasiConnectionStatus,
-  useDrasiServerUiUrl,
-  useTableSort,
-  useRowAnimation,
-  type UseDrasiQueryOptions,
-  type UseDrasiQueryResult,
-  type UseDrasiQueryDefinitionResult,
-  type DrasiProviderProps,
-  type DrasiContextValue,
-  type SortConfig,
-  type UseTableSortOptions,
-  type UseTableSortResult,
-  type AnimationDirection,
-  type UseRowAnimationOptions,
-  type UseRowAnimationResult,
-} from '@drasi/react/react';
+import { DrasiClient, sse034ResultAdapter, type DrasiClientOptions, type QueryConfig } from '@drasi/ui-core/adapters/drasi-server';
+import { type ConnectionStatus, type DrasiError, type ResultRow, type QueryStatus, type QueryErrorScope } from '@drasi/ui-core';
+import { DrasiProvider, useDrasiQueryDefinition, useDrasiServerUiUrl, type UseDrasiQueryDefinitionResult, type DrasiProviderProps } from '@drasi/react/adapters/drasi-server';
+import { DrasiClientProvider, useDrasiClient, useDrasiQuery, useDrasiConnectionStatus, useTableSort, useRowAnimation, type UseDrasiQueryOptions, type UseDrasiQueryResult, type DrasiContextValue, type SortConfig, type UseTableSortOptions, type UseTableSortResult, type AnimationDirection, type UseRowAnimationOptions, type UseRowAnimationResult } from '@drasi/react/react';
 
 interface TemperatureWire {
   stationId: string;

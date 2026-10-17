@@ -26,5 +26,5 @@ source commit. Financial transforms, provisioning, Trading-specific images and
 the downstream application's runtime gates remain owned by `drasi-server`.
 
 All applicable copyright headers, the [Apache 2.0 license](../LICENSE), and the
-[NOTICE](../NOTICE) are retained. Proposed npm names, repository creation and
+[NOTICE](../NOTICE) are retained. Selected npm names, repository creation and
 technical checks do not establish npm namespace ownership or authorize publication.

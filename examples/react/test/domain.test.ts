@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import test from 'node:test';
-import { accumulateResult } from '@drasi/react/client';
+import { accumulateResult } from '@drasi/ui-core';
 import { QueryNotice } from '../src/Connection.tsx';
 import { connectionOptions, probeKey, readingOptions } from '../src/readings.ts';
 import { simulatedQuery, simulatedRows, simulatedStates } from '../src/showcaseState.ts';

@@ -5,12 +5,16 @@ import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { documentationFiles, repositorySourceRef } from './documents.mjs';
 
-const root = fileURLToPath(new URL('../../../../', import.meta.url));
+const root = fileURLToPath(new URL('../../../', import.meta.url));
 const documents = [
-  ...documentationFiles.map(file => `dev-tools/react/${file}`),
-  'dev-tools/react/examples/README.md', 'examples/react/README.md', 'examples/trading/TESTING.md',
+  ...documentationFiles.map(file => `packages/react/${file}`),
+  'README.md', 'CONTRIBUTING.md', 'SECURITY.md',
+  'examples/react/README.md', 'examples/vue-canary/README.md',
+  'packages/core/README.md', 'packages/styles/README.md',
+  'docs/architecture/boundaries.md', 'docs/architecture/vue.md', 'docs/architecture/console.md',
+  'docs/compatibility.md', 'docs/migration.md', 'docs/provenance.md', 'docs/releasing.md',
 ];
-const repositoryLink = /^https:\/\/github\.com\/drasi-project\/drasi-server\/(blob|tree)\/([^/]+)\/(.+)$/;
+const repositoryLink = /^https:\/\/github\.com\/drasi-project\/drasi-ui\/(blob|tree)\/([^/]+)\/(.+)$/;
 
 export function repositoryLinkTarget(target) {
   const match = repositoryLink.exec(target);

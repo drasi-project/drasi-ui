@@ -1,7 +1,7 @@
 // Copyright 2026 The Drasi Authors.
 // Licensed under the Apache License, Version 2.0.
 
-import { DrasiError, type QueryStatus } from '@drasi/react/client';
+import { DrasiError, type QueryStatus } from '@drasi/ui-core';
 import type { UseDrasiQueryResult } from '@drasi/react/react';
 import type { Reading } from './readings';
 

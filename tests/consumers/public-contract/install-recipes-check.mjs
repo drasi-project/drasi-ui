@@ -5,36 +5,31 @@ import { fileURLToPath } from 'node:url';
 import { extractInstallRecipes } from './install-recipes.mjs';
 import { loadDocumentation } from './documents.mjs';
 
-const markdown = Object.values(await loadDocumentation(fileURLToPath(new URL('../../', import.meta.url)))).join('\n');
+const markdown = Object.values(await loadDocumentation(fileURLToPath(
+  new URL('../../../packages/react/', import.meta.url),
+))).join('\n');
 
-test('extracts the two literal primary install recipes and measured React peers', () => {
+test('retains ordinary React and framework-neutral public installation recipes', () => {
   const recipes = extractInstallRecipes(markdown);
-  assert.equal(recipes.size, 2);
-  assert(recipes.get('copied-local').args.includes('--install-links'));
-  assert.equal(recipes.get('copied-local').node, '24.19.0');
-  assert.equal(recipes.get('copied-local').npm, '11.17.0');
-  assert(recipes.get('tarball').args.includes('--ignore-scripts'));
+  assert.deepEqual(recipes.get('react').args, ['install', '@drasi/react']);
+  assert.deepEqual(recipes.get('core').args, ['install', '@drasi/ui-core', '@drasi/ui-styles']);
   assert.equal(extractInstallRecipes(markdown.replaceAll('\n', '\r\n')).size, 2);
 });
 
-test('rejects missing, duplicate, symlink-default and lifecycle-enabled install recipes', () => {
-  const recipes = extractInstallRecipes(markdown);
-  const copied = `\`\`\`sh\n# @drasi-install: copied-local (Node 24.19.0, npm 11.17.0)\n${recipes.get('copied-local').code}\n\`\`\``;
+test('rejects missing, duplicate, source-linked and peer-bypassing recipes', () => {
   for (const invalid of [
-    markdown.replace('# @drasi-install: copied-local', '# removed marker'),
-    markdown + '\n' + copied,
-    markdown.replace('--ignore-scripts --install-links "$DRASI_PACKAGE_DIR"', '--ignore-scripts "$DRASI_PACKAGE_DIR"'),
-    markdown.replace('--ignore-scripts --install-links "$DRASI_PACKAGE_DIR"', '--install-links "$DRASI_PACKAGE_DIR"'),
-    markdown.replace('react@18.3.1 react-dom@18.3.1', 'react@19 react-dom@19'),
-    markdown.replace('npm install --save-exact --ignore-scripts --install-links', 'npm link'),
-    markdown.replace('# @drasi-install: copied-local (Node 24.19.0, npm 11.17.0)',
-      '# @drasi-install: copied-local (Node 22.20.0, npm 10.9.3)'),
+    markdown.replace('# @drasi-install: core', '# removed marker'),
+    markdown + '\n```sh\n# @drasi-install: react\nnpm install @drasi/react\n```\n',
+    markdown.replace('npm install @drasi/react', 'npm install --force @drasi/react'),
+    markdown.replace('npm install @drasi/react', 'npm install --legacy-peer-deps @drasi/react'),
+    markdown.replace('npm install @drasi/react', 'npm link @drasi/react'),
+    markdown.replace('npm install @drasi/react', 'npm install file:../packages/react'),
   ]) assert.throws(() => extractInstallRecipes(invalid));
 });
 
-test('rejects unsafe or additional shell operations rather than evaluating documentation', () => {
-  assert.throws(() => extractInstallRecipes(markdown.replace('DRASI_PACKAGE_DIR="/absolute/path/to/drasi-server/dev-tools/react"',
-    'DRASI_PACKAGE_DIR="$(touch unsafe)"')));
-  assert.throws(() => extractInstallRecipes(markdown.replace('react@18.3.1 react-dom@18.3.1',
-    'react@18.3.1 react-dom@18.3.1 && echo unsafe')));
+test('does not evaluate added shell operations or substitutions', () => {
+  assert.throws(() => extractInstallRecipes(markdown.replace('npm install @drasi/react',
+    'npm install @drasi/react && echo unsafe')));
+  assert.throws(() => extractInstallRecipes(markdown.replace('npm install @drasi/react',
+    'npm install "$(touch unsafe)"')));
 });

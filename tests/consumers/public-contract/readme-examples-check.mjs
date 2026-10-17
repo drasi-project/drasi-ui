@@ -82,7 +82,7 @@ test('rejects diagnostic suppression in runnable documentation', () => {
 });
 
 test('checks every original recipe across the intended package-owned guides with source locations', async () => {
-  const documents = await loadDocumentation(fileURLToPath(new URL('../../', import.meta.url)));
+  const documents = await loadDocumentation(fileURLToPath(new URL('../../../packages/react/', import.meta.url)));
   const examples = extractDocumentationExamples(documents);
   assert.deepEqual(examples.map(example => example.name).sort(), [...requiredReadmeExamples].sort());
   assert.equal(examples.find(example => example.name === 'data-table.tsx').source, 'README.md');

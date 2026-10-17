@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -11,5 +11,5 @@
     "noEmit": true,
     "plugins": [{"name": "next"}]
   },
-  "include": ["src", "app", ".generated", ".next/types/**/*.ts"]
+  "include": ["next-env.d.ts", "src", "app", ".generated", ".next/types/**/*.ts"]
 }
