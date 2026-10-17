@@ -28,6 +28,7 @@ export default defineConfig({
   projects: [
     ...[18, 19].flatMap(react => browsers.map(browserName => ({
       name: `${browserName}-react${react}`,
+      testIgnore: react === 19 ? 'showcase-export.spec.ts' : undefined,
       metadata: { kind: 'react', react },
       use: { browserName, baseURL: `http://127.0.0.1:${react === 18 ? 15273 : 15274}` },
     }))),

@@ -22,7 +22,13 @@ make API calls. The build consumes dist exports, never package-source aliases.
 The packed-consumer gate repeats this from an isolated source-free installation.
 
 Successful CI retains a relocatable `react-showcase` static artifact made from
-that tested consumer. After this PR is merged, a maintainer can enable GitHub
+that tested consumer. Its entry document explicitly selects showcase-only
+navigation: its only link stays on the simulation within its deployment
+directory. Backend-only pages and links are not exported. The full local/live
+workspace retains all four directory-relative
+example links, including when hosted below a path prefix.
+
+After this PR is merged, a maintainer can enable GitHub
 Pages with Actions as its source and manually run `Static showcase` on protected
 main with the matching successful CI run ID. That workflow deploys the tested
 artifact without rebuilding it. No hosted site or Pages account setting has
@@ -54,6 +60,9 @@ The local example web service validates existing resources and proxies reads to
 those explicit loopback services. Stopping it does not stop or delete the
 operator's backend. An absent or invalid configuration fails explicitly rather
 than compiling sibling source or silently substituting a different runtime.
+The live test runner always requests an isolated web port with
+`DRASI_WEB_PORT=0`; it preserves the operator's backend URLs and resolves the
+Playwright CLI through Node so both hoisted workspace and standalone installs work.
 
 | Page | Composition |
 | --- | --- |

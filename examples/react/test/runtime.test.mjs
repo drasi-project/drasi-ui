@@ -229,6 +229,25 @@ test('asset handler rejects traversal, malformed paths and unknown assets withou
   assert.deepEqual(web.requests, []);
 });
 
+test('static subpaths serve their own directory index without falling back to the live root', bounded, async t => {
+  const { dist } = await assets(t);
+  await mkdir(join(dist, 'drasi-ui'));
+  const exported = '<!doctype html><title>Exported simulation only</title>';
+  await writeFile(join(dist, 'drasi-ui/index.html'), exported);
+  const web = await webServer(t, dist);
+  for (const path of ['/drasi-ui/', '/drasi-ui/index.html']) {
+    const response = await get(web.url + path);
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), exported);
+  }
+  for (const path of ['/missing/', '/drasi-ui/hooks.html', '/drasi-ui/query-table.html']) {
+    const response = await get(web.url + path);
+    assert.equal(response.status, 404);
+    assert.doesNotMatch(await response.text(), /Owned live entry|Exported simulation only/);
+  }
+  assert.deepEqual(web.requests, []);
+});
+
 test('browser proxy refuses every write method before forwarding to its owned upstream', bounded, async t => {
   const { dist } = await assets(t);
   const forwarded = [];

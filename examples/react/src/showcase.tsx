@@ -12,7 +12,7 @@ import { columns, rowKey } from './columns';
 import type { Reading } from './readings';
 import { simulatedQuery, simulatedRows, simulatedStates } from './showcaseState';
 
-function Showcase() {
+function Showcase({ showcaseOnly }: { showcaseOnly: boolean }) {
   const [status, setStatus] = useState<QueryStatus>('initial-loading');
   const [rows, setRows] = useState(simulatedRows);
   const [sort, setSort] = useState<SortConfig | null>(null);
@@ -24,7 +24,7 @@ function Showcase() {
   const retry = () => setStatus('resynchronizing');
   const query = simulatedQuery(status, rows, retry);
   const close = () => setSelected(null);
-  return <Shell title="Cold storage: simulated states">
+  return <Shell title="Cold storage: simulated states" showcaseOnly={showcaseOnly}>
     <p><strong>Simulation only.</strong> No server, requests, snapshots or real reconnects.
       Select deterministic presentation states; this is not protocol evidence.</p>
     <section ref={scope} className={coolTheme ? 'example-theme example-controls' : 'example-controls'} aria-label="State showcase">
@@ -72,4 +72,6 @@ function Showcase() {
   </Shell>;
 }
 
-createRoot(document.getElementById('root')!).render(<Showcase />);
+createRoot(document.getElementById('root')!).render(
+  <Showcase showcaseOnly={document.documentElement.hasAttribute('data-drasi-showcase-only')} />,
+);

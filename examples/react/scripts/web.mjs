@@ -64,7 +64,7 @@ export async function serveExample({ dist, rest = null, events = null, port = 53
     let pathname;
     try { pathname = decodeURIComponent(url.pathname); }
     catch { response.writeHead(400).end('Invalid asset path.'); return; }
-    const path = resolve(root, `.${pathname === '/' ? '/index.html' : pathname}`);
+    const path = resolve(root, `.${pathname.endsWith('/') ? `${pathname}index.html` : pathname}`);
     const extension = Object.keys(types).find(suffix => path.endsWith(suffix));
     if (pathname.includes('\0') || pathname.includes('\\') || !path.startsWith(root + sep) || !extension) {
       response.writeHead(404).end('Example asset not found.');
