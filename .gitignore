@@ -7,3 +7,12 @@ coverage/
 
 # Logs
 *.log
+
+# Generated candidate artifacts and source-free consumers
+.artifacts/
+.consumers/
+test-results/
+playwright-report/
+packages/react/styles.css
+packages/*/LICENSE
+packages/*/NOTICE

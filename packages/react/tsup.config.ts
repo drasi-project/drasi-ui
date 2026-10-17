@@ -14,27 +14,32 @@
 
 import { defineConfig } from 'tsup';
 
-export default defineConfig({
-  entry: {
-    index: 'src/index.ts',
-    'client/index': 'src/client/index.ts',
-    'react/index': 'src/react/index.ts',
-    'components/index': 'src/components/index.ts',
-  },
-  // Ship both modern ESM and CommonJS so the package works in any toolchain.
-  format: ['esm', 'cjs'],
-  // Emit TypeScript declarations (.d.ts / .d.cts) alongside the JS.
+const shared = {
+  format: ['esm', 'cjs'] as const,
   dts: true,
   sourcemap: true,
-  // Compact output without changing public/debug names or dropping source maps.
   minifyWhitespace: true,
   minifySyntax: false,
   minifyIdentifiers: false,
-  clean: true,
   treeshake: true,
   splitting: true,
   target: 'es2020',
-  // React and clsx must come from the consumer's app, never bundled in, so a
-  // single copy of React is shared across the tree.
-  external: ['react', 'react-dom', 'react/jsx-runtime', 'clsx'],
-});
+  external: ['@drasi/ui-core', '@drasi/ui-core/adapters/drasi-server', 'react', 'react-dom', 'react/jsx-runtime', 'clsx'],
+};
+
+export default defineConfig([
+{
+  ...shared,
+  entry: {
+    index: 'src/index.ts',
+    'react/index': 'src/react/index.ts',
+    'components/index': 'src/components/index.ts',
+    'adapters/drasi-server/index': 'src/adapters/drasi-server/index.ts',
+  },
+  banner: { js: '"use client";' },
+},
+{
+  ...shared,
+  entry: { 'client/index': 'src/client/index.ts' },
+},
+]);

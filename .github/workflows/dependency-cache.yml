@@ -1,0 +1,42 @@
+name: Dependency cache
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agentofreality-drasi-ui-extraction]
+    paths:
+      - package.json
+      - packages/*/package.json
+      - examples/*/package.json
+      - scripts/cache-lock.mjs
+      - .github/workflows/dependency-cache.yml
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-cache:
+    name: Official registry dependency cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.17.0 --registry=https://registry.npmjs.org
+      - run: npm install --package-lock-only --ignore-scripts --registry=https://registry.npmjs.org
+      - run: node scripts/cache-lock.mjs
+        env:
+          NPM_CACHE_OUTPUT: ${{ runner.temp }}/drasi-npm-cache
+      - run: npm ci --offline --ignore-scripts --cache "$RUNNER_TEMP/drasi-npm-cache" --registry=https://registry.npmjs.org
+      - run: tar -czf .artifacts/dependencies/npm-cache.tgz -C "$RUNNER_TEMP/drasi-npm-cache" _cacache
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: official-npm-dependencies
+          path: .artifacts/dependencies/
+          if-no-files-found: error
+          retention-days: 7

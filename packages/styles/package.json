@@ -1,0 +1,16 @@
+{
+  "name": "@drasi/ui-styles",
+  "version": "0.1.0-beta.1",
+  "description": "Canonical scoped Drasi control styles, theme tokens and reduced-motion rules.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "The Drasi Authors",
+  "homepage": "https://github.com/drasi-project/drasi-ui#readme",
+  "repository": {"type": "git", "url": "git+https://github.com/drasi-project/drasi-ui.git", "directory": "packages/styles"},
+  "bugs": {"url": "https://github.com/drasi-project/drasi-ui/issues"},
+  "exports": {".": "./dist/styles.css", "./styles.css": "./dist/styles.css"},
+  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"],
+  "sideEffects": ["**/*.css"],
+  "scripts": {"build": "node ../../scripts/build-styles.mjs"},
+  "publishConfig": {"access": "public", "registry": "https://registry.npmjs.org/"}
+}
