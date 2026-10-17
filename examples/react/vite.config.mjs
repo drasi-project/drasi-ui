@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 import { moduleIdentity } from './scripts/module-identity.mjs';
 
 export default defineConfig({
+  base: './',
   resolve: { dedupe: ['react', 'react-dom'] },
   build: {
     rollupOptions: { input: ['index.html', 'query-table.html', 'hooks.html', 'showcase.html'] },

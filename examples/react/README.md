@@ -21,6 +21,13 @@ loading, empty, error, stale, live, sorting, themes and modal composition do not
 make API calls. The build consumes dist exports, never package-source aliases.
 The packed-consumer gate repeats this from an isolated source-free installation.
 
+Successful CI retains a relocatable `react-showcase` static artifact made from
+that tested consumer. After this PR is merged, a maintainer can enable GitHub
+Pages with Actions as its source and manually run `Static showcase` on protected
+main with the matching successful CI run ID. That workflow deploys the tested
+artifact without rebuilding it. No hosted site or Pages account setting has
+been enabled by this implementation.
+
 ## Run the real example
 
 An operator must first run an approved released Server/SSE/feed installation

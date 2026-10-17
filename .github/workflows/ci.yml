@@ -76,6 +76,14 @@ jobs:
       - run: npm run audit:dependencies
       - run: npm run test:pnpm
       - run: npm run test:browser
+        env:
+          HOME: /root
+      - run: node scripts/export-showcase.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: react-showcase
+          path: .artifacts/showcase/
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
