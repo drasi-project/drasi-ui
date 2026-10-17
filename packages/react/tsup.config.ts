@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineConfig } from 'tsup';
+import { defineConfig, type Options } from 'tsup';
 
-const shared = {
-  format: ['esm', 'cjs'] as const,
+const shared: Options = {
+  format: ['esm', 'cjs'],
   dts: true,
   sourcemap: true,
   minifyWhitespace: true,
@@ -36,7 +36,6 @@ export default defineConfig([
     'components/index': 'src/components/index.ts',
     'adapters/drasi-server/index': 'src/adapters/drasi-server/index.ts',
   },
-  banner: { js: '"use client";' },
 },
 {
   ...shared,

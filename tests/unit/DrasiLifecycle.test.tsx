@@ -6,7 +6,7 @@
 import React from 'react';
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DrasiClient, type DrasiClientOptions } from '../../packages/core/src/adapters/drasi-server/DrasiClient';
+import { DrasiClient, type DrasiClientOptions } from '@drasi/ui-core/adapters/drasi-server';
 import { createLegacyResultAdapter } from '../../packages/core/src/adapters/drasi-server/results';
 import {
   DrasiServerClientProvider, DrasiProvider, useDrasiClient, useDrasiConnectionStatus,

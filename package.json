@@ -9,7 +9,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "lint": "node scripts/check-boundaries.mjs",
-    "typecheck": "npm run typecheck -w @drasi/ui-core -w @drasi/react && tsc --noEmit",
+    "typecheck": "npm run typecheck -w @drasi/ui-core -w @drasi/react && tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
     "test": "vitest run && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs",
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",

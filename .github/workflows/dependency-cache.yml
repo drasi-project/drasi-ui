@@ -2,14 +2,6 @@ name: Dependency cache
 
 on:
   workflow_dispatch:
-  push:
-    branches: [agentofreality-drasi-ui-extraction]
-    paths:
-      - package.json
-      - packages/*/package.json
-      - examples/*/package.json
-      - scripts/cache-lock.mjs
-      - .github/workflows/dependency-cache.yml
 
 permissions:
   contents: read

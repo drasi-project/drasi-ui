@@ -36,7 +36,7 @@
   },
   "files": ["dist", "styles.css", "README.md", "docs", "CHANGELOG.md", "LICENSE", "NOTICE"],
   "sideEffects": ["**/*.css"],
-  "scripts": {"build": "tsup && node ../../scripts/embed-styles.mjs", "typecheck": "tsc --noEmit"},
+  "scripts": {"build": "node ../../scripts/build-react.mjs", "typecheck": "tsc --noEmit"},
   "dependencies": {
     "@drasi/ui-core": "0.1.0-beta.1",
     "@radix-ui/react-dialog": "1.1.15",

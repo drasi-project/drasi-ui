@@ -1,0 +1,38 @@
+name: Dependency metadata
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/cache-metadata.mjs
+      - .github/workflows/dependency-metadata.yml
+permissions:
+  contents: read
+jobs:
+  metadata:
+    name: Official registry metadata cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - run: test "$(npm --version)" = 11.17.0
+      - run: node scripts/cache-metadata.mjs
+        env:
+          NPM_CACHE_OUTPUT: ${{ runner.temp }}/drasi-npm-metadata
+      - run: npm view react@18.3.1 version --offline --cache "$RUNNER_TEMP/drasi-npm-metadata" --registry=https://registry.npmjs.org
+      - run: |
+          mkdir -p .artifacts/metadata
+          tar -czf .artifacts/metadata/npm-metadata.tgz -C "$RUNNER_TEMP/drasi-npm-metadata" _cacache
+          sha256sum package-lock.json > .artifacts/metadata/lock.sha256
+          printf '%s\n' "$GITHUB_SHA" > .artifacts/metadata/source.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: official-npm-metadata
+          path: .artifacts/metadata/
+          if-no-files-found: error
+          retention-days: 7
