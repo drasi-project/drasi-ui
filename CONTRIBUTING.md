@@ -32,6 +32,13 @@ The package proof inventories every file, both JavaScript/declaration formats,
 source maps, CSS and external dependency graphs. Consumer proofs retain effective
 locks, versions and source-free paths.
 
+Before the sibling packages exist in a registry, the pnpm consumer explicitly
+redirects only the exact `@drasi/ui-core@<candidate-version>` transitive dependency
+to that same verified `.tgz`. pnpm otherwise tries the registry rather than
+reusing the root tarball. This archive-only resolution is recorded in its proof;
+it changes neither package bytes, source imports nor peer ranges. Ordinary
+registry consumption after publication needs no such test-only resolution.
+
 The optional dependency-cache workflows use only the official npm registry and
 produce auditable lock/cache artifacts. Offline restoration must match the
 recorded manifest/lock identities and retain npm integrity validation. Normal

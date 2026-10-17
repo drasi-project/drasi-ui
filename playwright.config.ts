@@ -20,7 +20,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['json', { outputFile: '.artifacts/browser-report.json' }]],
   use: {
-    viewport: { width: 1280, height: 900 },
+    viewport: { width: 1280, height: 1000 },
     locale: 'en-US',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

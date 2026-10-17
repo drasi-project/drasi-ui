@@ -73,8 +73,8 @@ jobs:
       - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
       - run: npm run build && npm run pack:candidates && npm run check:packages
       - run: npm run test:contracts
-      - run: npm run test:pnpm
       - run: npm run audit:dependencies
+      - run: npm run test:pnpm
       - run: npm run test:browser
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

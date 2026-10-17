@@ -14,9 +14,16 @@ const pnpm = args => run(process.execPath, [cli, ...args], directory, {
 });
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert.deepEqual(consumers.artifacts, set.packages.map(({ name, sha256 }) => ({ name, sha256 })));
+const core = set.packages.find(item => item.name === '@drasi/ui-core');
+assert(core);
+const tarballResolutions = { [`${core.name}@${core.version}`]: `file:./artifacts/${core.filename}` };
 try {
   await copyConsumer(source, directory);
   await copyFile(join(source, 'package-lock.json'), join(directory, 'package-lock.json'));
+  // pnpm does not resolve an unpublished transitive semver from a root tarball
+  // dependency. Redirect only that exact sibling version to its verified archive.
+  await writeFile(join(directory, 'pnpm-workspace.yaml'), `overrides:\n${Object.entries(tarballResolutions)
+    .map(([name, value]) => `  ${JSON.stringify(name)}: ${JSON.stringify(value)}`).join('\n')}\n`);
   assert.equal(pnpm(['--version']).trim(), '12.14.0');
   pnpm(['import', '--registry=https://registry.npmjs.org']);
   pnpm(['install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org',
@@ -31,7 +38,7 @@ try {
   await copyFile(join(directory, 'pnpm-lock.yaml'), '.artifacts/pnpm-lock.yaml');
   await writeFile('.artifacts/pnpm-proof.json', JSON.stringify({
     pnpm: '12.14.0', source: set.source, artifacts: consumers.artifacts, renders,
-    sourceLinks: false, peerOverrides: false, scriptsDisabled: true,
+    sourceLinks: false, peerOverrides: false, scriptsDisabled: true, tarballResolutions,
   }, null, 2) + '\n');
   console.log('Fresh pnpm consumer built and rendered the exact candidate set with one React identity.');
 } finally {

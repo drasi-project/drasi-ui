@@ -15,11 +15,18 @@ separate gates.
 | Maintainer toolchain | Node 24.19.0, npm 11.17.0; release operations use npm 11.21.0 |
 | Browser automation | Playwright 1.56.1 Chromium, Firefox and WebKit; pinned Linux image in CI |
 
-The current local core/React build, strict source types and 568 unit tests pass
-with all original coverage floors preserved. Exact tarball package checks and
-ESM/CJS SSR/global traps are being qualified alongside the full consumer/browser
-matrix. Required CI results at the final PR head, not historical assertions in a
-guide, determine technical readiness.
+The local core/React build, strict source types and 568 unit tests pass with all
+original coverage floors preserved. Both React versions pass the actual
+source-free runtime/SSR and declaration fixtures, all 17 installed documentation
+recipes, Vite builds, and the Next App Router build. Native Vue passes the same
+shared non-Server scenarios without React/Radix. The three-engine browser matrix
+passes 340 cases, with another 12 canonical showcase cases. Required CI results
+at the final PR head, not historical assertions in a guide, determine readiness.
+
+One optional example test requires an explicitly configured real SSE/template
+backend and is not run by server-free qualification. Its absence is not a new
+live-runtime claim; recorded adapter fixtures and the separate operator-owned
+live gate retain their stated scope.
 
 The standalone package does not claim every browser, framework, runtime or AT.
 The historical Node 22.20.0/React 18.3.1 Server evidence remains in the immutable
