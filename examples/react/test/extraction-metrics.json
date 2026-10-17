@@ -2,7 +2,7 @@
   "sourceCommit": "da399714d28203f47ebef151da2e5a213dfd52fe",
   "baselineArchiveSha256": "4a0238d220bda38114c96ae4023c9674677433cae08eb2445073f1b50429247d",
   "calibrationVite": "5.4.19",
-  "securityToolchainUpdate": "Vite 7.3.5 remains below these existing caps (236518 total JS bytes, 79592 gzip bytes). The security update does not refresh or increase the allowances.",
+  "securityToolchainUpdate": "Vite 7.3.7 with esbuild 0.28.1 and relocatable asset URLs remains below these existing caps (236646 total JS bytes, 79644 gzip bytes). Security and hosting updates do not refresh or increase the allowances.",
   "method": "Build the untouched imported package and its untouched canonical example using the same official-registry locked toolchain as the extraction. Keep the original P7 baseline unchanged; add only the positive extraction delta relative to this paired control.",
   "control": {
     "total": {"js": 237045, "jsGzip": 78528, "css": 7462, "cssGzip": 1981},

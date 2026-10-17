@@ -90,6 +90,7 @@ jobs:
           name: packed-consumer-evidence
           include-hidden-files: true
           path: |
+            .artifacts/candidates/*.tgz
             .artifacts/candidates/*.json
             .artifacts/consumer-proofs/
             .artifacts/consumers.json

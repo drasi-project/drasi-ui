@@ -88,7 +88,8 @@ the extraction added 930 raw JS bytes / 1,199 gzip bytes in total and
 1,337 / 1,363 bytes to headless use, while removing Server code from the
 provider-free showcase. The initial Vite 7.3.5 security update remained below
 those existing caps (236,518 total JS bytes / 79,592 gzip bytes); it does not
-increase them. Original P7 limits and fixed extraction deltas remain, with no
+increase them. The final patched, relocatable showcase measures 236,646 / 79,644
+bytes and also stays within the same limits. Original P7 limits and fixed extraction deltas remain, with no
 CSS allowance or blanket baseline refresh.
 
 Human review must cover actual keyboard/screen-reader usage, announcements,

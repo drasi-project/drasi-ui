@@ -51,6 +51,14 @@ CSS changes require a minor release; compatible fixes use patches. Exact
 dependencies and embedded CSS require appropriate dependent updates, not
 permanent lockstep versioning.
 
+This initial preparation already selects `0.1.0-beta.1` in the manifests.
+The retained initial changeset currently plans the later `0.1.0` transition;
+`changeset status` verifies that explicitly. Qualify the selected beta before
+applying that stable transition. For additional beta fixes, enter Changesets
+prerelease mode deliberately and review its proposed versions rather than
+assuming the version command always produces another beta. Versioning itself
+never publishes.
+
 Dispatch `prepare` on protected main. It builds and packs once, validates all
 three actual tarballs together, runs source/type/unit/documentation/pnpm/Vite/
 Next/Vue/browser gates, and uploads `npm-candidates` with hashes and
