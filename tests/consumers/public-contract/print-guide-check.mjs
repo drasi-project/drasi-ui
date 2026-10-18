@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { renderPrintGuide, printDiagram } from '../print-guide.mjs';
+import { renderPrintGuide, printDiagram } from '../../../scripts/print-guide.mjs';
 
 test('print edition preserves all chapters, figures, captions, source links and readable diagram alternatives', async () => {
-  const html = await renderPrintGuide(fileURLToPath(new URL('../../packages/react', import.meta.url)), 'a'.repeat(40));
+  const html = await renderPrintGuide(fileURLToPath(new URL('../../../packages/react', import.meta.url)), 'a'.repeat(40));
   assert.equal((html.match(/<h3 id="\d+-/g) ?? []).length, 17);
   assert.equal((html.match(/<img /g) ?? []).length, 14);
   assert.equal((html.match(/<figcaption>/g) ?? []).length, 14);

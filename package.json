@@ -11,7 +11,7 @@
     "lint": "node scripts/check-boundaries.mjs && npm run docs:check",
     "docs:sync": "node scripts/sync-documentation.mjs",
     "docs:print": "node scripts/print-guide.mjs",
-    "docs:check": "node scripts/sync-documentation.mjs --check && node --test tests/consumers/public-contract/documentation-links-check.mjs tests/consumers/public-contract/readme-examples-check.mjs tests/consumers/public-contract/install-recipes-check.mjs tests/consumers/public-contract/developer-guide-check.mjs",
+    "docs:check": "node scripts/sync-documentation.mjs --check && node --test tests/consumers/public-contract/documentation-links-check.mjs tests/consumers/public-contract/readme-examples-check.mjs tests/consumers/public-contract/install-recipes-check.mjs tests/consumers/public-contract/developer-guide-check.mjs tests/consumers/public-contract/print-guide-check.mjs",
     "typecheck": "npm run typecheck -w @drasi/ui-core -w @drasi/react && tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
     "test": "vitest run && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs",
     "test:unit": "vitest run",
