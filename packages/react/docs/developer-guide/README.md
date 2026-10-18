@@ -1,6 +1,19 @@
 # The React developer guide
 
-Build **Cold storage**, a dashboard that helps you spot warm temperature probes.
+Drasi helps applications detect and respond to meaningful changes in data.
+Its continuous queries maintain their answers as connected data changes, so
+applications can receive additions, updates and removals instead of repeatedly
+reconstructing the whole answer.
+
+This guide teaches React developers to build user interfaces for Drasi-powered
+applications, such as live dashboards, inventory views and monitoring screens.
+You will learn to display maintained query results, handle connection and
+recovery state, and respond to changes in application code. Drasi processes data
+in the backend; React presents it and lets people act on what they see. The
+presentation controls also work with rows your application already owns.
+
+The running example is **Cold storage**, a dashboard that helps you spot warm
+temperature probes.
 Start with a working React screen and local buttons. Then run Drasi, send real
 changes with curl, and let continuous queries maintain the answers. Finish with
 notifications, authentication, and a deployable application.
