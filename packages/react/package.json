@@ -1,0 +1,52 @@
+{
+  "name": "@drasi/react",
+  "version": "0.1.0-beta.1",
+  "description": "Drasi React query bindings, provider-free tables and accessible modal composition.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "The Drasi Authors",
+  "homepage": "https://github.com/drasi-project/drasi-ui/tree/main/packages/react#readme",
+  "repository": {"type": "git", "url": "git+https://github.com/drasi-project/drasi-ui.git", "directory": "packages/react"},
+  "bugs": {"url": "https://github.com/drasi-project/drasi-ui/issues"},
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {"types": "./dist/index.d.ts", "default": "./dist/index.js"},
+      "require": {"types": "./dist/index.d.cts", "default": "./dist/index.cjs"}
+    },
+    "./client": {
+      "import": {"types": "./dist/client/index.d.ts", "default": "./dist/client/index.js"},
+      "require": {"types": "./dist/client/index.d.cts", "default": "./dist/client/index.cjs"}
+    },
+    "./react": {
+      "import": {"types": "./dist/react/index.d.ts", "default": "./dist/react/index.js"},
+      "require": {"types": "./dist/react/index.d.cts", "default": "./dist/react/index.cjs"}
+    },
+    "./components": {
+      "import": {"types": "./dist/components/index.d.ts", "default": "./dist/components/index.js"},
+      "require": {"types": "./dist/components/index.d.cts", "default": "./dist/components/index.cjs"}
+    },
+    "./adapters/drasi-server": {
+      "import": {"types": "./dist/adapters/drasi-server/index.d.ts", "default": "./dist/adapters/drasi-server/index.js"},
+      "require": {"types": "./dist/adapters/drasi-server/index.d.cts", "default": "./dist/adapters/drasi-server/index.cjs"}
+    },
+    "./styles.css": {
+      "import": {"types": "./styles.d.ts", "default": "./styles.css"},
+      "require": {"types": "./styles.d.cts", "default": "./styles.css"}
+    }
+  },
+  "files": ["dist", "styles.css", "styles.d.ts", "styles.d.cts", "README.md", "docs", "CHANGELOG.md", "LICENSE", "NOTICE"],
+  "sideEffects": ["**/*.css"],
+  "scripts": {"build": "node ../../scripts/build-react.mjs", "typecheck": "tsc --noEmit"},
+  "dependencies": {
+    "@drasi/ui-core": "0.1.0-beta.1",
+    "@radix-ui/react-dialog": "1.1.15",
+    "clsx": "2.1.1",
+    "scroll-into-view-if-needed": "3.1.0"
+  },
+  "devDependencies": {"@drasi/ui-styles": "0.1.0-beta.1"},
+  "peerDependencies": {"react": "^18.3.1 || ^19.3.1", "react-dom": "^18.3.1 || ^19.3.1"},
+  "publishConfig": {"access": "public", "registry": "https://registry.npmjs.org/"}
+}

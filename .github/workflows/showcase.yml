@@ -1,0 +1,48 @@
+name: Static showcase
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        type: string
+        required: true
+        description: Successful UI CI run on the current protected main commit
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: static-showcase
+  cancel-in-progress: false
+jobs:
+  deploy:
+    name: Deploy qualified server-free showcase
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Require a successful qualification of protected main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: |
+          test "$GITHUB_REPOSITORY" = drasi-project/drasi-ui
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REF_PROTECTED" = true
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$RUNNER_TEMP/showcase-run.json"
+          node -e 'const r=require(process.env.RUNNER_TEMP+"/showcase-run.json");const a=require("node:assert/strict");a.equal(r.conclusion,"success");a.equal(r.head_sha,process.env.GITHUB_SHA);a.equal(r.head_branch,"main");a.equal(r.path,".github/workflows/ci.yml");a.equal(r.head_repository.full_name,process.env.GITHUB_REPOSITORY);'
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: react-showcase
+          run-id: ${{ inputs.ci_run_id }}
+          github-token: ${{ github.token }}
+          path: showcase
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: showcase
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        id: deployment

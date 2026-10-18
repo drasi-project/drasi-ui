@@ -1,133 +1,49 @@
 {
-  "name": "@drasi/react",
-  "version": "0.1.0",
+  "name": "drasi-ui",
+  "version": "0.0.0",
   "private": true,
-  "description": "Reusable Drasi clients, headless React query state, provider-free tables, and accessible modal composition with package-owned themes and reduced-motion support.",
-  "license": "Apache-2.0",
-  "author": "The Drasi Authors",
-  "homepage": "https://github.com/drasi-project/drasi-server/tree/main/dev-tools/react#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/drasi-project/drasi-server.git",
-    "directory": "dev-tools/react"
-  },
-  "bugs": {
-    "url": "https://github.com/drasi-project/drasi-server/issues"
-  },
-  "keywords": [
-    "drasi",
-    "react",
-    "sse",
-    "continuous-query",
-    "change-driven",
-    "data-change-processing",
-    "hooks",
-    "realtime"
-  ],
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "./client": {
-      "import": {
-        "types": "./dist/client/index.d.ts",
-        "default": "./dist/client/index.js"
-      },
-      "require": {
-        "types": "./dist/client/index.d.cts",
-        "default": "./dist/client/index.cjs"
-      }
-    },
-    "./react": {
-      "import": {
-        "types": "./dist/react/index.d.ts",
-        "default": "./dist/react/index.js"
-      },
-      "require": {
-        "types": "./dist/react/index.d.cts",
-        "default": "./dist/react/index.cjs"
-      }
-    },
-    "./components": {
-      "import": {
-        "types": "./dist/components/index.d.ts",
-        "default": "./dist/components/index.js"
-      },
-      "require": {
-        "types": "./dist/components/index.d.cts",
-        "default": "./dist/components/index.cjs"
-      }
-    },
-    "./styles.css": "./styles.css"
-  },
-  "files": [
-    "dist",
-    "styles.css",
-    "README.md",
-    "docs",
-    "CHANGELOG.md",
-    "LICENSE",
-    "NOTICE"
-  ],
-  "sideEffects": [
-    "*.css"
-  ],
-  "engines": {
-    "node": "22.x || 24.x"
-  },
+  "license": "Apache-2.0",
+  "packageManager": "npm@11.17.0",
+  "workspaces": ["packages/core", "packages/styles", "packages/react", "examples/react", "examples/vue-canary", "tests/consumers/react-18", "tests/consumers/react-19"],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "lint": "node scripts/check-boundaries.mjs",
+    "typecheck": "npm run typecheck -w @drasi/ui-core -w @drasi/react && tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
+    "test": "vitest run && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs",
+    "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest",
-    "clean": "rm -rf dist",
-    "prepare": "npm run build",
-    "prepack": "npm run clean && npm run build"
-  },
-  "peerDependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@radix-ui/react-dialog": "1.1.15",
-    "clsx": "^2.0.0",
-    "scroll-into-view-if-needed": "3.1.0"
+    "test:contracts": "node scripts/packed-consumers.mjs",
+    "test:pnpm": "node scripts/pnpm-consumer.mjs",
+    "audit:dependencies": "node scripts/audit-dependencies.mjs",
+    "test:browser": "playwright test && node scripts/test-example-browser.mjs",
+    "check:packages": "node scripts/check-packages.mjs",
+    "check:changesets": "node scripts/check-changesets.mjs",
+    "pack:candidates": "node scripts/pack.mjs",
+    "changeset": "changeset",
+    "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts --registry=https://registry.npmjs.org",
+    "release:prepare": "npm run build && npm run lint && npm run typecheck && npm run test:coverage && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs && npm run pack:candidates && npm run check:packages && npm run test:contracts && npm run audit:dependencies && npm run test:pnpm && npm run test:browser"
   },
   "devDependencies": {
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@arethetypeswrong/cli": "0.18.3",
+    "@axe-core/playwright": "4.10.2",
+    "@changesets/cli": "3.0.3",
+    "@playwright/test": "1.56.1",
+    "playwright-core": "1.56.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.3",
+    "@types/node": "20.19.11",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
     "@vitest/coverage-v8": "3.2.7",
-    "jsdom": "^26.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
+    "jsdom": "26.1.0",
+    "publint": "0.3.25",
+    "pnpm": "12.14.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tsup": "8.5.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
     "vitest": "3.2.7"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

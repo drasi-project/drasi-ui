@@ -1,0 +1,21 @@
+// Copyright 2026 The Drasi Authors.
+// Licensed under the Apache License, Version 2.0.
+
+import type { ReactNode } from 'react';
+
+export function Shell({ title, children, showcaseOnly = false }: {
+  title: string; children: ReactNode; showcaseOnly?: boolean;
+}) {
+  return <main style={{ maxWidth: '64rem', margin: '2rem auto', padding: '0 1rem', fontFamily: 'system-ui, sans-serif' }}>
+    <nav aria-label="Examples">
+      {!showcaseOnly && <>
+        <a href="./">Live table</a>{' | '}
+        <a href="./query-table.html">QueryTable</a>{' | '}
+        <a href="./hooks.html">Hooks only</a>{' | '}
+      </>}
+      <a href={showcaseOnly ? './' : './showcase.html'}>Simulated states</a>
+    </nav>
+    <h1>{title}</h1>
+    {children}
+  </main>;
+}

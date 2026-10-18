@@ -1,0 +1,54 @@
+import {
+  DrasiError, observeQuery, projectQueryRows, queryView, initialQueryState,
+  subscribeToQuery, SSEClient, sortTableRows, nextTableSort, trackRowChanges,
+  type QueryClient, type QueryResult, type QuerySubscriptionState, type RowKey,
+  type QueryProjectionOptions, type ResultRow,
+} from '@drasi/ui-core';
+
+const key: RowKey = row => {
+  if (typeof row.station !== 'string') throw new Error('Missing raw identity');
+  return row.station;
+};
+const options: QueryProjectionOptions<{ label: string }> = {
+  getKey: key,
+  transform: row => {
+    if (typeof row.label !== 'string') throw new Error('Missing label');
+    return { label: row.label };
+  },
+};
+const state: QuerySubscriptionState = {
+  status: 'live', stale: false, error: null, errorScope: null,
+};
+export const client: QueryClient = {
+  getConnectionStatus: () => ({ connected: true }),
+  onConnectionStatusChange(callback) { callback({ connected: true }); return () => {}; },
+  subscribe(queryId, callback, _onError, changed) {
+    callback({ kind: 'snapshot', queryId, rows: [{ station: 'north', label: 'North' }], receivedAt: 1 });
+    changed?.(state);
+    return Object.assign(() => {}, { retry() {}, getState: () => state });
+  },
+};
+export const observer = observeQuery(client, 'sensors', key, () => {});
+export const projection = projectQueryRows(observer.getSnapshot().rows, options);
+export const view = queryView(observer.getSnapshot(), projection, null);
+export const sorted = sortTableRows(view.data, nextTableSort(null, 'label'));
+export const animation = trackRowChanges(sorted ?? [], new Map(), row => row.label, row => row.label, false);
+export const failure = initialQueryState(new DrasiError('FORBIDDEN'));
+export const neutralStream = new SSEClient({ resultAdapter: () => [] });
+export const subscriber = subscribeToQuery({
+  queryId: 'sensors', source: neutralStream,
+  snapshot: async signal => { signal.throwIfAborted(); return []; },
+  details: {}, maxRetries: 1, retryDelay: 1, maxRetryDelay: 1, maxPendingChanges: 2, onStop() {},
+}, (result: QueryResult) => { void result; });
+// @ts-expect-error A generic transport must not infer the Server wire protocol.
+export const noImplicitWire = new SSEClient();
+// @ts-expect-error Unknown wire fields cannot silently become stable keys.
+export const invalidKey: RowKey = (row: Readonly<ResultRow>) => row.station;
+// @ts-expect-error Server inspection is not required or exposed by the generic client.
+client.getQueryConfig('sensors');
+// @ts-expect-error Core cannot expose React hooks.
+import { useDrasiQuery } from '@drasi/ui-core';
+// @ts-expect-error Core cannot expose an implicit Server client.
+import { DrasiClient } from '@drasi/ui-core';
+// @ts-expect-error The public contract does not permit private source imports.
+import { DrasiError as PrivateError } from '@drasi/ui-core/src/client/errors';

@@ -1,0 +1,31 @@
+{
+  "sourceCommit": "da399714d28203f47ebef151da2e5a213dfd52fe",
+  "sourceTree": "2a8c98187b2e238b263149532655437fe80497a1",
+  "baselineArchiveSha256": "4a0238d220bda38114c96ae4023c9674677433cae08eb2445073f1b50429247d",
+  "toolchain": "Node 24.19.0, npm 11.17.0, tsup 8.5.1, TypeScript 5.9.3, retained direct dependency versions",
+  "original": {
+    "tarball": 229731,
+    "esm": 71831,
+    "cjs": 80602,
+    "declarations": 84985,
+    "css": 8658,
+    "maps": 418309
+  },
+  "extractionAllowance": {
+    "tarball": 11612,
+    "esm": 2829,
+    "cjs": 4190,
+    "declarations": 8530,
+    "css": 8658,
+    "maps": 16700
+  },
+  "reason": {
+    "tarball": "Three package manifests, READMEs and required license/notice copies; additional public contract declarations and generated client boundaries. All three archives are counted together.",
+    "esm": "Structural-client observation/projection/view helpers, optional Server context/transport wrappers and cross-package export boundaries; no copied React runtime.",
+    "cjs": "The same new boundaries plus CJS interop/export wrappers; count every entry and shared/lazy chunk.",
+    "declarations": "New structural client, observer, projection/view, sorting and animation contracts plus both explicit adapter entrypoints and both declaration formats.",
+    "css": "Exactly one additional canonical stylesheet archive alongside the byte-identical React compatibility stylesheet: 8658 bytes, not a CSS size reduction.",
+    "maps": "Source content and mapping records for the additional shared helpers, adapter wrappers and entrypoints, including shifted client-directive lines."
+  },
+  "policy": "Each metric is capped at original * 1.02 + the fixed, reviewable extraction allowance. Do not auto-refresh these allowances, exclude files, or compare only the React archive."
+}

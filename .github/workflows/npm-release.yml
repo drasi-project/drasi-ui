@@ -1,0 +1,121 @@
+name: npm release
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        required: true
+        options: [prepare, stage, promote-latest]
+        description: Prepare exact candidates, stage one missing package, or promote a verified stable set
+      candidate_run_id:
+        type: string
+        description: Successful prepare run ID (required for stage and promote-latest)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release-main
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Protected release source
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require the repository's protected main branch
+        run: |
+          test "$GITHUB_REPOSITORY" = drasi-project/drasi-ui
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_REF_PROTECTED" = true
+
+  prepare:
+    name: Qualify exact npm candidates
+    needs: guard
+    if: inputs.action == 'prepare'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
+      - run: npm run build && npm run lint && npm run typecheck && npm run test:coverage
+      - run: node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs
+      - run: npm run pack:candidates && npm run check:packages
+      - run: npm run test:contracts
+      - run: npm run audit:dependencies
+      - run: npm run test:pnpm
+      - run: npm run test:browser
+        env:
+          HOME: /root
+      - run: node scripts/seal-candidates.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-candidates
+          include-hidden-files: true
+          path: |
+            .artifacts/candidates/*.tgz
+            .artifacts/candidates/*.json
+          if-no-files-found: error
+          retention-days: 90
+
+  release:
+    name: Human-gated npm operation
+    needs: guard
+    if: inputs.action != 'prepare'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: npm-release
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      DRASI_RELEASE_ENVIRONMENT: npm-release
+      NPM_CONFIG_LOGLEVEL: notice
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - run: |
+          export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/drasi-oidc.npmrc"
+          printf 'NPM_CONFIG_USERCONFIG=%s\n' "$NPM_CONFIG_USERCONFIG" >> "$GITHUB_ENV"
+          printf 'registry=https://registry.npmjs.org/\n' > "$NPM_CONFIG_USERCONFIG"
+          npm install --global npm@11.21.0 --registry=https://registry.npmjs.org
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: npm-candidates
+          run-id: ${{ inputs.candidate_run_id }}
+          github-token: ${{ github.token }}
+          path: .artifacts/candidates
+      - name: Verify identities and perform only the explicitly selected operation
+        run: node scripts/release.mjs "$RELEASE_OPERATION"
+        env:
+          RELEASE_OPERATION: ${{ inputs.action }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          GH_TOKEN: ${{ github.token }}
+          NPM_ACCOUNT_APPROVAL: ${{ vars.NPM_ACCOUNT_APPROVAL }}
+          HUMAN_ACCESSIBILITY_ACCEPTANCE: ${{ vars.HUMAN_ACCESSIBILITY_ACCEPTANCE }}
+          REGISTRY_ADOPTION_ACCEPTANCE: ${{ vars.REGISTRY_ADOPTION_ACCEPTANCE }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-progress-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          path: .artifacts/release-progress/
+          if-no-files-found: warn
+          retention-days: 90

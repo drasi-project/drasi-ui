@@ -1,0 +1,23 @@
+{
+  "name": "drasi-react-19-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"build": "vite build", "build:next": "next build", "start:next": "next start --hostname 127.0.0.1"},
+  "dependencies": {
+    "@drasi/react": "0.1.0-beta.1",
+    "@drasi/ui-core": "0.1.0-beta.1",
+    "@drasi/ui-styles": "0.1.0-beta.1",
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "6.0.3",
+    "vite": "7.3.7",
+    "esbuild": "0.28.1"
+  }
+}

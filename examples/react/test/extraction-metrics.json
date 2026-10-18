@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "da399714d28203f47ebef151da2e5a213dfd52fe",
+  "baselineArchiveSha256": "4a0238d220bda38114c96ae4023c9674677433cae08eb2445073f1b50429247d",
+  "calibrationVite": "5.4.19",
+  "securityToolchainUpdate": "Vite 7.3.7 with esbuild 0.28.1 and relocatable asset URLs remains below these existing caps (236646 total JS bytes, 79644 gzip bytes). Security and hosting updates do not refresh or increase the allowances.",
+  "method": "Build the untouched imported package and its untouched canonical example using the same official-registry locked toolchain as the extraction. Keep the original P7 baseline unchanged; add only the positive extraction delta relative to this paired control.",
+  "control": {
+    "total": {"js": 237045, "jsGzip": 78528, "css": 7462, "cssGzip": 1981},
+    "index.html": {"js": 230401, "jsGzip": 75375, "css": 7462, "cssGzip": 1981},
+    "query-table.html": {"js": 231198, "jsGzip": 75678, "css": 7462, "cssGzip": 1981},
+    "hooks.html": {"js": 179967, "jsGzip": 57338, "css": 0, "cssGzip": 0},
+    "showcase.html": {"js": 231133, "jsGzip": 75471, "css": 7462, "cssGzip": 1981}
+  },
+  "allowance": {
+    "total": {"js": 930, "jsGzip": 1199, "css": 0, "cssGzip": 0},
+    "index.html": {"js": 930, "jsGzip": 1201, "css": 0, "cssGzip": 0},
+    "query-table.html": {"js": 930, "jsGzip": 1201, "css": 0, "cssGzip": 0},
+    "hooks.html": {"js": 1337, "jsGzip": 1363, "css": 0, "cssGzip": 0},
+    "showcase.html": {"js": 0, "jsGzip": 0, "css": 0, "cssGzip": 0}
+  },
+  "reason": "Explicit generic observer/view helpers, optional Server wrappers and cross-package chunks add bounded live-binding cost. Provider-free showcase code becomes smaller because it no longer retains Server connectivity. CSS is byte-identical; its 70-byte historical emitted difference also exists in the untouched paired control, so no CSS allowance is granted. Headless CSS must remain zero."
+}
