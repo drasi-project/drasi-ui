@@ -15,7 +15,8 @@ test('declarative setup installs concrete numeric ports without modifying query 
     assert(!result.includes(`port: "${port}"`));
   }
   assert(result.includes('filePaths: ["./readings.jsonl"]'));
-  assert.equal(result.match(/queryLanguage: Cypher/g)?.length, 2);
+  assert.equal(result.match(/queryLanguage: Cypher/g)?.length, 3);
+  assert(result.includes('queries: [north-room, south-room, warm-probes]'));
   assert(result.includes('id: cold-chain'));
 });
 
@@ -23,8 +24,8 @@ test('rendering rejects invalid ports, missing/repeated markers and unresolved c
   for (const ssePort of [0, 65536, -1, 1.5, '15382', NaN]) {
     assert.throws(() => renderServerConfig(template, { ...ports, ssePort }), /Invalid allocated/);
   }
-  assert.throws(() => renderServerConfig(template.replace('"${EXAMPLE_SSE_PORT}"', '1234'), ports), /exactly one/);
-  assert.throws(() => renderServerConfig(template + '\nport: "${EXAMPLE_SSE_PORT}"', ports), /exactly one/);
+  assert.throws(() => renderServerConfig(template.replace('port: 8081', 'port: 1234'), ports), /exactly one/);
+  assert.throws(() => renderServerConfig(template + '\nport: 8081\n', ports), /exactly one/);
   assert.throws(() => renderServerConfig(template + '\nextra: "${UNEXPECTED}"', ports), /unresolved/);
 });
 

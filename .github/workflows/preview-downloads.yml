@@ -1,0 +1,47 @@
+name: Preview downloads
+
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        type: string
+        required: true
+        description: Successful UI CI push run for the current protected main commit
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prepare:
+    name: Verify GitHub preview downloads
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - name: Require completed qualification of this reviewed main source
+        run: node scripts/check-preview-run.mjs "$CI_RUN_ID"
+        env:
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: preview-download-candidate
+          run-id: ${{ inputs.ci_run_id }}
+          github-token: ${{ github.token }}
+          path: .artifacts/preview
+      - run: node scripts/verify-preview.mjs .artifacts/preview
+        env:
+          DRASI_EXPECTED_SOURCE: ${{ github.sha }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: github-preview-downloads
+          path: .artifacts/preview/
+          if-no-files-found: error
+          retention-days: 90

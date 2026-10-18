@@ -7,6 +7,10 @@ import { moduleIdentity } from './scripts/module-identity.mjs';
 export default defineConfig({
   base: './',
   resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: { include: [
+    'react', 'react-dom/client', '@drasi/react/components', '@drasi/react/react',
+    '@drasi/react/adapters/drasi-server', '@drasi/ui-core', '@drasi/ui-core/adapters/drasi-server',
+  ] },
   build: {
     rollupOptions: { input: ['index.html', 'query-table.html', 'hooks.html', 'showcase.html'] },
   },

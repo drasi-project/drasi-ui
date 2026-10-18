@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "baselineSource": "aaf5aa62e4e3d87d68580fe2d0f54033d429e572",
+  "reason": "Review-authorized illustrated book, executable verified-backend/auth lesson helpers, and coherent example configuration. All 81 prior non-Markdown public files remain byte-identical. This is a fixed archive-only addition; original/extraction/Markdown and runtime/declaration/CSS/dependency budgets are unchanged.",
+  "archiveAllowance": {
+    "@drasi/ui-core": 0,
+    "@drasi/ui-styles": 0,
+    "@drasi/react": 740314
+  },
+  "archives": {
+    "@drasi/ui-core": {
+      "before": {
+        "filename": "drasi-ui-core-0.1.0-beta.1.tgz",
+        "bytes": 106317,
+        "sha256": "45242ebafced5548105fa600d81e844d988f5e536a4b187817fbe2dd64c37935"
+      },
+      "measured": {
+        "bytes": 106317,
+        "sha256": "45242ebafced5548105fa600d81e844d988f5e536a4b187817fbe2dd64c37935"
+      }
+    },
+    "@drasi/ui-styles": {
+      "before": {
+        "filename": "drasi-ui-styles-0.1.0-beta.1.tgz",
+        "bytes": 7527,
+        "sha256": "770d76956eb80a0e5a74010bc7e7c6169cbf4595e5619f22ad7f2de05bae3e36"
+      },
+      "measured": {
+        "bytes": 7527,
+        "sha256": "770d76956eb80a0e5a74010bc7e7c6169cbf4595e5619f22ad7f2de05bae3e36"
+      }
+    },
+    "@drasi/react": {
+      "before": {
+        "filename": "drasi-react-0.1.0-beta.1.tgz",
+        "bytes": 160626,
+        "sha256": "6450776d95ae9d8314c61b8af8dcc4b8faec2140920af77f205ffc8ea7adbf88"
+      },
+      "measured": {
+        "bytes": 900940,
+        "sha256": "d54916a5ef4d167cb7227aef5a82bb97d42bc3f3fe1708a24f9370c6ce3872cd"
+      }
+    }
+  },
+  "assets": {
+    "docs/developer-guide/runtime/config/runtime-pins.json": {
+      "kind": "lesson-configuration",
+      "bytes": 2746,
+      "sha256": "dfb3828fd01c3c09ed82128c1d6f11d286620003ebf21ef1ab75ae30f3d496ce"
+    },
+    "docs/developer-guide/runtime/config/readings.jsonl": {
+      "kind": "lesson-configuration",
+      "bytes": 624,
+      "sha256": "dcb76edd144d3b00c78aa1413fb670b46350ae749a471525912d416266999ca9"
+    },
+    "docs/developer-guide/runtime/scripts/auth-gateway.mjs": {
+      "kind": "lesson-tooling",
+      "bytes": 5494,
+      "sha256": "9e9af5487f64adb5184e745917112304bc8f1cca206ac46dd9918a1008e285f1"
+    },
+    "docs/developer-guide/runtime/scripts/backend.mjs": {
+      "kind": "lesson-tooling",
+      "bytes": 10575,
+      "sha256": "31263ab11da7cc5ceb2a3cc729e6c37bd5ae97a71b0c37d4e76464b04b4a2c58"
+    },
+    "docs/developer-guide/runtime/scripts/config.mjs": {
+      "kind": "lesson-tooling",
+      "bytes": 1275,
+      "sha256": "e6825b15841e44d41e088aecab0c124a39aaa5d02991dedd69ecc8420b377fcb"
+    },
+    "docs/developer-guide/figures/02-first-screen.png": {
+      "kind": "figure",
+      "bytes": 38833,
+      "sha256": "bd1fc6550d53a05097876ebd8608573b5e831001db961f6b878fe511e8965efb"
+    },
+    "docs/developer-guide/figures/03-sorting.png": {
+      "kind": "figure",
+      "bytes": 34391,
+      "sha256": "6b1e77ee38a398eadb9785429026ea0aeafcf2fcc97a0363d91675cd0db8f57e"
+    },
+    "docs/developer-guide/figures/04-dialog.png": {
+      "kind": "figure",
+      "bytes": 42283,
+      "sha256": "3e47fd30bf7b78626d710013a713d22149cee3f6474d81f6aa204e29213273cb"
+    },
+    "docs/developer-guide/figures/05-theme.png": {
+      "kind": "figure",
+      "bytes": 49275,
+      "sha256": "09890f2868e126e7ac271ccde639f3a30fe20a8700731849859fbcc1b9fa10c5"
+    },
+    "docs/developer-guide/figures/06-live.png": {
+      "kind": "figure",
+      "bytes": 20433,
+      "sha256": "3f52af3b972139bbdfb712c329b17579ad2c38ea211d66c87cac4af659fda004"
+    },
+    "docs/developer-guide/figures/07-identity.png": {
+      "kind": "figure",
+      "bytes": 24041,
+      "sha256": "31fbccb0b298e92ff3ecfbdf1493d634e9f7b7c89214b00daceffcb491bef8b5"
+    },
+    "docs/developer-guide/figures/08-membership.png": {
+      "kind": "figure",
+      "bytes": 52506,
+      "sha256": "2fb03aa078f32e5762630c1b5bd4e8eb84b99d9b18470fbee4f97e47a53229af"
+    },
+    "docs/developer-guide/figures/09-shared-view.png": {
+      "kind": "figure",
+      "bytes": 71291,
+      "sha256": "c97b71b82d96d1faa0ea1badbf8078b0b5c92692af9cd2d2e5349d5f7af1bcdf"
+    },
+    "docs/developer-guide/figures/10-projection-error.png": {
+      "kind": "figure",
+      "bytes": 103761,
+      "sha256": "74c3d7cadedf3fc6307dbe91cc39af172cef4a2ee68a04e55d48687eeaa0c035"
+    },
+    "docs/developer-guide/figures/11-reconnecting.png": {
+      "kind": "figure",
+      "bytes": 30598,
+      "sha256": "3057e1822fcd73a6df18f91ccbc1a72364987c2bcf2d45cc4ea7ea1d2f62e581"
+    },
+    "docs/developer-guide/figures/14-notification.png": {
+      "kind": "figure",
+      "bytes": 85199,
+      "sha256": "a9e9cebc134be6ba2533f4fe90953cf7b0c96f0a2f9f20dd49adfe655ca479ba"
+    },
+    "docs/developer-guide/figures/15-authentication.png": {
+      "kind": "figure",
+      "bytes": 94710,
+      "sha256": "8ce5fdca3c90b5c5f209cd0d68eb0591fc868fb8fd93bcb68251fd7cb8592e8a"
+    },
+    "docs/developer-guide/figures/16-next.png": {
+      "kind": "figure",
+      "bytes": 80475,
+      "sha256": "78df80d10d74fae83a9db2e1f6bf7eb45e0287708aa7382d929b4756f6aa9925"
+    },
+    "docs/developer-guide/figures/17-capstone.png": {
+      "kind": "figure",
+      "bytes": 61319,
+      "sha256": "0fcb1744825dd64d353a3e21971a106fefdc468d3c2d2039394feab4881a0ded"
+    },
+    "docs/developer-guide/runtime/config/server.yaml": {
+      "kind": "lesson-configuration",
+      "bytes": 1737,
+      "sha256": "eb136ab1a2d64302629073a143ffa0337dd9695a6159c0c961441a0b66abf0fb"
+    }
+  },
+  "preservedPublicFiles": 81
+}

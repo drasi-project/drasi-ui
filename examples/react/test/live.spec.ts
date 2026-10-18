@@ -146,12 +146,19 @@ async function feed(evidence: Evidence, probe: ProbeReading, operation: FeedOper
   command.completed = true;
 }
 async function baseline(request: APIRequestContext, evidence: Evidence, north: number, south: number | null) {
-  await expect.poll(async () => Promise.all(queryIds.map(async queryId =>
-    data((await successful(request, evidence, `${instance}/queries/${queryId}/results`)).body),
-  )), { message: 'The actual REST baseline must contain the processed source mutations' }).toEqual([
-    [{ probeId: probes[0].probeId, room: 'North', temperatureC: north }],
-    south === null ? [] : [{ probeId: probes[1].probeId, room: 'South', temperatureC: south }],
-  ]);
+  await expect.poll(async () => Promise.all(queryIds.map(async queryId => {
+    const rows = data((await successful(request, evidence, `${instance}/queries/${queryId}/results`)).body);
+    assert(Array.isArray(rows));
+    const records = rows.filter(object);
+    assert.equal(records.length, rows.length);
+    return records.sort((a, b) => String(a.probeId).localeCompare(String(b.probeId)));
+  })), { message: 'The actual REST baseline must contain the processed source mutations' }).toEqual(
+    ['North', 'South'].map(name => probes
+      .filter(probe => probe.room === name && !(probe.id === 'south-probe' && south === null))
+      .map(probe => ({ probeId: probe.probeId, room: probe.room,
+        temperatureC: probe.id === 'north-probe' ? north : probe.id === 'south-probe' ? south : probe.temperatureC }))
+      .sort((a, b) => a.probeId.localeCompare(b.probeId))),
+  );
 }
 async function seed(request: APIRequestContext, evidence: Evidence) {
   for (const probe of probes) await feed(evidence, probe, 'insert');
@@ -166,16 +173,18 @@ async function visible(page: Page, evidence: Evidence, north: number, south: num
   await expect(connection(page).getByRole('status')).toHaveText('Connection: stream open');
   for (const [index, probe] of probes.entries()) {
     const section = room(page, probe.room);
-    const temperature = index === 0 ? north : south;
-    if (new URL(page.url()).pathname === '/query-table.html' && temperature !== null) {
+    const temperature = index === 0 ? north : index === 1 ? south : probe.temperatureC;
+    if (new URL(page.url()).pathname === '/query-table.html') {
       await expect(section.getByRole('table', { name: `${probe.room} room` })).toBeVisible();
       await expect(section.getByRole('alert')).toHaveCount(0);
       await expect(section.getByRole('status')).toHaveCount(0);
     } else {
       await expect(section.getByRole('status').filter({ hasText: `${probe.room} room query:` }))
-        .toHaveText(`${probe.room} room query: ${temperature === null ? 'empty' : 'live'}`);
+        .toHaveText(`${probe.room} room query: live`);
     }
-    await expect(section.getByText(probes[index === 0 ? 1 : 0].probeId, { exact: true })).toHaveCount(0);
+    for (const other of probes.filter(value => value.room !== probe.room)) {
+      await expect(section.getByText(other.probeId, { exact: true })).toHaveCount(0);
+    }
     await expect(section.getByText(probe.probeId, { exact: true })).toHaveCount(temperature === null ? 0 : 1);
     if (temperature !== null) await expect(section.getByText(temperature.toFixed(1), { exact: true })).toBeVisible();
   }

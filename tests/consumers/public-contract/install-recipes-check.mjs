@@ -11,7 +11,7 @@ const markdown = Object.values(await loadDocumentation(fileURLToPath(
 
 test('retains ordinary React and framework-neutral public installation recipes', () => {
   const recipes = extractInstallRecipes(markdown);
-  assert.deepEqual(recipes.get('react').args, ['install', '@drasi/react']);
+  assert.deepEqual(recipes.get('react').args, ['install', '@drasi/react', '@drasi/ui-core']);
   assert.deepEqual(recipes.get('core').args, ['install', '@drasi/ui-core', '@drasi/ui-styles']);
   assert.equal(extractInstallRecipes(markdown.replaceAll('\n', '\r\n')).size, 2);
 });

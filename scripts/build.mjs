@@ -1,8 +1,11 @@
 import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { buildInventory, recordBuildOutputs } from './build-outputs.mjs';
+import { releasePackages } from './packages.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+await rm(new URL(`../${buildInventory}`, import.meta.url), { force: true });
 for (const directory of ['core', 'styles', 'react']) {
   const base = new URL(`../packages/${directory}/`, import.meta.url);
   await rm(new URL('dist', base), { recursive: true, force: true });
@@ -23,3 +26,4 @@ for (const directory of ['core', 'styles', 'react']) {
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
+await recordBuildOutputs(root, releasePackages);

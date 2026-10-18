@@ -55,7 +55,7 @@ export function markdownAnchors(markdown) {
 }
 
 function markdownLinks(markdown) {
-  return [...prose(markdown).matchAll(/(?<!!)\[[^\]\n]+\]\(([^()\s]+)(?:\s+"[^"]*")?\)/g)]
+  return [...prose(markdown).matchAll(/\[[^\]\n]+\]\(([^()\s]+)(?:\s+"[^"]*")?\)/g)]
     .map(match => match[1]);
 }
 

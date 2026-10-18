@@ -1,0 +1,67 @@
+{
+  "serverVersion": "0.2.4",
+  "serverSource": "a977b6125395f9abbbee4a1f271ca6f84d17daed",
+  "pluginSource": "22125bf1d66062533b832a166fe4a51079a23d6e",
+  "sdkVersion": "0.11.3",
+  "abiVersion": "0.14.0",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "https://github.com/drasi-project/drasi-core/.github/workflows/publish-plugins.yml@refs/heads/main",
+  "platforms": {
+    "darwin-arm64": {
+      "platform": "darwin/arm64",
+      "binary": "drasi-server-aarch64-apple-darwin",
+      "sha256": "6907be1155ebf2798402beb960e2a72b035d5b595f234d3309422fc22fc20b85",
+      "plugins": [
+        {
+          "kind": "source/http",
+          "version": "0.2.13",
+          "digest": "66f9536df8003169b6c88ce4f99be6095c68d6aa896ce838807aacd1073215f5",
+          "filename": "libdrasi_source_http.dylib",
+          "sha256": "cbf1fb950f053419d793b2cfeae2930c3c8d6adfd0ad19ba098c57fed550b7a8"
+        },
+        {
+          "kind": "bootstrap/scriptfile",
+          "version": "0.2.15",
+          "digest": "58582c8d0eac4c830f87480420d3e90ff739588d97bd6fe9f4a8e31d7c7eee18",
+          "filename": "libdrasi_bootstrap_scriptfile.dylib",
+          "sha256": "6fb5563114a97bc663c1d729ff2fd5c26ec5196e817e5e99fa8bb65672ef1b74"
+        },
+        {
+          "kind": "reaction/sse",
+          "version": "0.3.8",
+          "digest": "60c70c051c53c423caa9e60d55f09d01fbdea853ff202450412bdc06cf262ad5",
+          "filename": "libdrasi_reaction_sse.dylib",
+          "sha256": "75c6e1433afdc573b02091fd9b2c768fe0f1b227ec8221a9ab02ac612348b733"
+        }
+      ]
+    },
+    "linux-x64": {
+      "platform": "linux/amd64",
+      "binary": "drasi-server-x86_64-linux-gnu",
+      "sha256": "d64b1fa248e5f67ab9c80e97431d67fca8ae618deb0cc7128b74e1599e2e9a06",
+      "plugins": [
+        {
+          "kind": "source/http",
+          "version": "0.2.13",
+          "digest": "0db10212ba6012a4af13898db766fee0a3d32d95b38cb393401a9282cea6a519",
+          "filename": "libdrasi_source_http.so",
+          "sha256": "914cafaca21d8650fe825df7b115e143805d7efb9525a0a24586dc11360777e5"
+        },
+        {
+          "kind": "bootstrap/scriptfile",
+          "version": "0.2.15",
+          "digest": "72035602c4e4ce928955ed2c425e7e62480938bbf2ac16e61d5da4236926458e",
+          "filename": "libdrasi_bootstrap_scriptfile.so",
+          "sha256": "9b97b1dd74ba18ba2193c58ff12b44ac580ddf789c5b97fd8bd9140e9323b397"
+        },
+        {
+          "kind": "reaction/sse",
+          "version": "0.3.8",
+          "digest": "2c32d2f97ba3ec6b60c53be0b36fa6880343a1e8771aa13260bbbab5188fb6b2",
+          "filename": "libdrasi_reaction_sse.so",
+          "sha256": "e833339a20feddbba5eeef3b346ad59ca5bb2f5b30328bae081164158f434a79"
+        }
+      ]
+    }
+  }
+}

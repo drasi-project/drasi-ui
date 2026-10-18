@@ -15,11 +15,16 @@ export const requiredReadmeExamples = [
 ];
 
 export const requiredGuideExamples = [
-  'cold-storage-main.tsx', 'cold-storage.tsx', 'reading-model.ts', 'sorted-cold-storage.tsx',
-  'live-cold-storage.tsx', 'live-main.tsx', 'cold-storage-dashboard.tsx', 'review-readings.tsx',
-  'application-client.ts', 'application-connection.tsx', 'authenticated-cold-storage.tsx',
-  'theme-scope.tsx', 'cold-storage-client.tsx', 'next-cold-storage-page.tsx',
+  'readings.ts', 'cold-storage.tsx', 'cold-storage-main.tsx',
+  'sorted-cold-storage.tsx', 'sorted-main.tsx', 'review-readings.tsx', 'review-main.tsx',
+  'theme-scope.tsx', 'theme-main.tsx', 'reading-model.ts', 'live-cold-storage.tsx', 'live-main.tsx',
+  'warm-queries.tsx', 'warm-main.tsx', 'cold-storage-dashboard.tsx', 'dashboard-main.tsx',
+  'connection-notice.tsx', 'failure-lesson.tsx', 'failure-main.tsx', 'threshold-alerts.ts',
+  'notification-lesson.tsx', 'notification-main.tsx', 'fetch-event-source.ts',
+  'authenticated-cold-storage.tsx', 'authenticated-main.tsx',
+  'cold-storage-client.tsx', 'next-cold-storage-page.tsx', 'next-layout.tsx',
   'cold-storage-capstone.tsx', 'capstone-main.tsx',
+  'application-client.ts', 'application-connection.tsx', 'application-main.tsx',
 ];
 
 export function markdownFences(markdown) {

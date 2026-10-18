@@ -24,10 +24,13 @@ shared non-Server scenarios without React/Radix. The three-engine browser matrix
 passed 340 cases, with another 12 canonical showcase cases. Required CI results
 at the final PR head, not historical assertions in a guide, determine readiness.
 
-One optional example test requires an explicitly configured real SSE/template
-backend and is not run by server-free qualification. Its absence is not a new
-live-runtime claim; recorded adapter fixtures and the separate operator-owned
-live gate retain their stated scope.
+The server-free suite keeps one explicitly optional real SSE/template test.
+The guide's separate released-backend gate now runs Server 0.2.4 with signed
+HTTP 0.2.13, scriptfile 0.2.15 and SSE 0.3.8 plugins. Its owned launcher verifies
+release/plugin hashes, actual loaded versions/ABI, health and snapshots.
+Fresh curl exercises cover source insert/update/delete/restore and the
+`warm-probes` answer's entry/update/exit. Historical fixture records remain
+unchanged under their original versions.
 
 The standalone package does not claim every browser, framework, runtime or AT.
 The historical Node 22.20.0/React 18.3.1 Server evidence remains in the immutable
@@ -82,13 +85,25 @@ policy is not replaced by comparing only the smaller React archive.
 
 ### Developer-guide artifact accounting
 
-The documentation follow-up adds a single book and generated offline reference
+The usability revision expands the book to 33 literal application modules and
+17 chapters. The original 17 portable recipes and public declarations retain
+strict ESM/CJS/bundler checks. The application source now uses Vite client types
+and extensionless imports with strict bundler resolution, plus an actual strict
+Next build of the exact enumerated files. This accurately models application
+tooling without claiming that extensionless browser source is NodeNext ESM.
+The new lesson scripts/configuration and actual screenshots are explicitly
+classified non-Markdown assets; they are not charged to runtime, declaration,
+CSS or dependency budgets. The historical Markdown-only comparison below stays
+immutable, including its 81 unchanged non-Markdown hashes. The current guard
+checks those same files and a closed list of separately accounted lesson assets.
+
+The original documentation follow-up added a single book and generated offline reference
 copies, with 17 retained recipe contracts and 16 progressive book modules.
 The installed-book gate uses the book's own app manifest and code, not a
 separately maintained tutorial implementation. Its additional browser fixture
 is an explicitly test-only gateway, not live Drasi evidence.
-The original recipes and declaration fixtures retain their strict NodeNext,
-CJS, and bundler options. The book's application-source group additionally uses
+The original recipes and declaration fixtures retained their strict NodeNext,
+CJS, and bundler options. That book's application-source group additionally used
 its documented `allowImportingTsExtensions` with `noEmit`, and a separate real
 Next build/prerender checks the literal App Router chapter. No package-source
 aliases, disabled peer checks, or relaxed declaration checks are used, and the

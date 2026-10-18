@@ -9,6 +9,58 @@ The only initial public packages are `@drasi/ui-core`, `@drasi/ui-styles` and
 `@drasi/react`. Root, examples, test fixtures and applications remain private.
 No Vue, console or management-client placeholder release is permitted.
 
+## GitHub preview downloads
+
+GitHub prerelease downloads are the approved pre-npm learning route. **No
+prerelease is currently published by this revision.** Publication remains a
+maintainer action after this fix is reviewed and merged and the exact
+protected-main artifacts pass qualification. This route does not stage or
+publish npm packages, configure npm accounts, deploy Pages, or merge anything.
+
+`Packed consumers` now also exercises the pinned released backend, actual
+live/auth/notification/HMR/Next lessons, and canonical real examples.
+`Node 22 compatibility` builds both literal book applications and runs the
+released backend on the stated lower tested Node version. The four required
+check names are unchanged.
+
+After its checks, CI runs `npm run preview:prepare`. This reads the already
+packed candidate set and identity-bound package, dependency, npm/pnpm,
+browser, and live-guide proofs; it does **not** rebuild archives. It emits
+`preview-download-candidate` containing all three exact tarballs,
+`release-set.json`, `preview.json`, `SHA256SUMS`, a standalone
+`verify-preview.mjs`, a self-contained printable `developer-guide.html`, and
+installation instructions. The print edition is derived from the exact
+tarball's book and figures using the already-locked Markdown renderer, rather
+than changing or rebuilding a package. Local preparation requires
+a clean committed source and the same completed qualification evidence.
+
+After reviewed merge, let UI CI complete on protected `main`. Run **Preview
+downloads** with that successful main-push CI run ID. The workflow checks the
+exact source and all four required job results, downloads the previously
+prepared files, verifies them again, and retains `github-preview-downloads`.
+It has only read permissions and **cannot publish a release or tag**.
+The authorized maintainer then attaches those unchanged files to a clearly
+labeled GitHub prerelease. If main moved, qualify its new exact source first.
+
+Readers download the whole set from that actual release and run
+`node verify-preview.mjs` in the download directory. The standalone verifier
+checks SHA-256, npm integrity, archive inventories, and built exports without
+installing the monorepo. Checksums identify the files; readers should obtain
+both files and verifier from the official project release over HTTPS.
+
+The current illustrated React archive is about 900 KB, compared with 161 KB
+before this revision. Its documentation and lesson assets add about 0.83 MB
+to an installed copy. The exact closed-list accounting is in
+`tests/contracts/guide-usability-assets.json`; the 81 original non-Markdown
+public files and all runtime/CSS/declaration/map/dependency and existing
+consumer budgets remain unchanged. Capture provenance is in
+`tests/contracts/guide-screenshots.json`. The older Markdown-only accounting
+remains immutable rather than treating PNGs or launchers as Markdown.
+
+Until those release assets exist, the book's source-build/tarball fallback is
+the current executable installation path. No placeholder preview URL is
+advertised.
+
 ## Identity and approval configuration
 
 Use `.github/workflows/npm-release.yml` from protected `main`. Configure each

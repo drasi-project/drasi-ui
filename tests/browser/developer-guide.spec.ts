@@ -16,7 +16,7 @@ test('the exact first-book app runs, changes a reading, sorts, resets, and respe
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Cold storage', exact: true })).toBeVisible();
-  const north = page.getByRole('row').filter({ hasText: 'North' });
+  const north = page.getByRole('row').filter({ hasText: 'probe-1001' });
   await expect(north).toContainText('3.0');
   await page.getByRole('button', { name: 'Warm North' }).click();
   await expect(north).toContainText('8.0');
@@ -33,17 +33,20 @@ test('the exact first-book app runs, changes a reading, sorts, resets, and respe
 
 test('controlled sorting follows the literal sorting lesson and clears to input order', async ({ page }) => {
   await page.goto('/fixture/fixture.html?lesson=sorting');
-  await expect(page.locator('tbody tr').first()).toContainText('North');
+  await expect(page.locator('tbody tr').first()).toContainText('9.0');
+  await page.getByRole('button', { name: 'Warm North', exact: true }).click();
+  await expect(page.locator('tbody tr').nth(1)).toContainText('probe-1001');
+  await page.getByRole('button', { name: 'Reset readings', exact: true }).click();
   await page.getByRole('button', { name: 'Temperature (C)', exact: true }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.locator('tbody tr').first()).toContainText('South');
+  await expect(page.locator('tbody tr').first()).toContainText('3.0');
   await page.getByRole('button', { name: 'Input order', exact: true }).click();
-  await expect(page.locator('tbody tr').first()).toContainText('North');
+  await expect(page.locator('tbody tr').first()).toContainText('6.0');
   expect((await stats(page)).opens).toBe(0);
 });
 
 test('the book shares snapshots across cards/table, reprojects, and isolates retry and sparse deletes', async ({ page }) => {
-  await page.goto('/fixture/fixture.html?lesson=dashboard');
+  await page.goto('/fixture/fixture.html?lesson=failure');
   const north = page.getByRole('region', { name: 'North room', exact: true });
   const south = page.getByRole('region', { name: 'South room', exact: true });
   await expect(north.getByRole('status').filter({ hasText: 'Query: live' })).toBeVisible();
@@ -57,12 +60,13 @@ test('the book shares snapshots across cards/table, reprojects, and isolates ret
   await action(page, 'warm');
   await expect(north.getByRole('list')).toContainText('8.0');
   await expect(north.getByRole('table')).toContainText('8.0');
-  await north.getByLabel('Demonstrate a projection error (client only)').check();
+  await page.getByLabel('Demonstrate a projection error (client only)').check();
   await expect(north.getByRole('alert')).toContainText('RESULT_PROCESSING_FAILED');
   await expect(north.getByRole('alert')).toContainText('last known');
   await expect(north.getByRole('table')).toContainText('8.0');
   await expect(south.getByRole('status').filter({ hasText: 'Query: live' })).toBeVisible();
-  await north.getByLabel('Demonstrate a projection error (client only)').uncheck();
+  await expect(north.getByRole('button', { name: 'Retry query', exact: true })).toHaveCount(0);
+  await page.getByLabel('Demonstrate a projection error (client only)').uncheck();
   await expect(north.getByRole('alert')).toHaveCount(0);
   await action(page, 'fail-query');
   await north.getByRole('button', { name: 'Refresh query', exact: true }).click();
@@ -87,7 +91,8 @@ test('QueryTable uses the same literal model and app-owned client, without a Ser
   await action(page, 'warm');
   await expect(north).toContainText('8.0');
   await action(page, 'delete');
-  await expect(north).toContainText('No data available');
+  await expect(north.getByRole('row').filter({ hasText: 'probe-1001' })).toHaveCount(0);
+  await expect(north).toContainText('6.0');
   expect((await stats(page)).streams).toBe(1);
 });
 
@@ -100,7 +105,7 @@ test('the capstone keeps theme, focus and last-known state while owning connecti
   await page.getByRole('button', { name: 'Dark theme', exact: true }).click();
   await page.getByRole('button', { name: 'Right-to-left layout', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  const opener = north.getByRole('button', { name: 'Review probe' });
+  const opener = north.getByRole('row').filter({ hasText: 'probe-1001' }).getByRole('button', { name: 'Review probe' });
   // Match the book's keyboard exercise; WebKit pointer clicks need not focus buttons.
   await opener.focus();
   await page.keyboard.press('Enter');

@@ -1,163 +1,164 @@
 # The React developer guide
 
-**Drasi's React controls turn changing data into useful screens.** Use a table
-with rows you already own, or connect a screen to the maintained results of a
-Drasi query. You can keep the table, replace it with your own cards, or show
-several presentations of the same data. The library supplies the connection
-binding, query state, table behavior, and dialog primitive; your application
-owns its layout, authentication, row meaning, and business actions.
+Build **Cold storage**, a dashboard that helps you spot warm temperature probes.
+Start with a working React screen and local buttons. Then run Drasi, send real
+changes with curl, and let continuous queries maintain the answers. Finish with
+notifications, authentication, and a deployable application.
 
-This book teaches that journey by building **Cold storage**, a dashboard for
-temperature probes in two rooms. You will start with a complete local screen,
-change a reading, connect the same presentation to changing query results,
-add review dialogs, and prepare the application for deployment. Cold storage
-uses the same domain and query names as this repository's canonical example,
-not a second example catalog.
+You need basic React and TypeScript knowledge and a terminal. **Part I needs no
+backend.** Part II includes a released-backend launcher for macOS Apple Silicon
+and Linux x64; it downloads Server and signed plugins, without a Rust build.
 
-You should know React, JavaScript or TypeScript, and how to run an npm command.
-No prior knowledge of Drasi, event streams, providers, or graph databases is
-assumed. Read in order the first time; the contents and reference appendix make
-later visits quick. Everything needed for the browser lessons is in this book.
-Backend deployment is a separate, explicitly identified operator prerequisite.
-
-## Understand what runs where
-
-A **continuous query** is a question whose answer Drasi maintains as source
-data changes. Instead of repeatedly asking "what are all the readings now?",
-you can receive changes to that answer. A **source** brings changes into the
-backend. A query selects, joins, or summarizes them. A delivery component makes
-the result available to your application; in the optional Drasi Server
-integration, that component is an **SSE reaction**.
-
-**SSE**, or server-sent events, is a long-lived HTTP response carrying messages
-from a server to a browser. It is a delivery mechanism, not the query engine.
-An **initial snapshot** supplies the current result rows. Later **changes**
-add, replace, or remove rows in the browser's view.
-
+<a id="understand-what-runs-where"></a>
 ```mermaid
 flowchart LR
-    subgraph Backend["Backend: deployed and operated separately"]
-        Probe["Probe changes: North 3 C to 8 C"] --> Source["Source"]
-        Source --> Query["Continuous query: north-room"]
-        Query --> Snapshot["Snapshot HTTP endpoint"]
-        Query --> Delivery["Result delivery / SSE reaction"]
-    end
-    subgraph Browser["Your React application"]
-        Snapshot --> Client["Client: reads and receives results"]
-        Delivery --> Client
-        Client --> Hook["Query hook: rows and recovery state"]
-        Hook --> Table["DataTable / QueryTable"]
-        Hook --> Cards["Your cards and summaries"]
-    end
+    Probe["Probe reports 8 C"] --> Source["HTTP source"]
+    Source --> Query["Drasi maintains the answer"]
+    Query --> Snapshot["Current rows: HTTP"]
+    Query --> Stream["Changes: SSE"]
+    Snapshot --> App["Your React application"]
+    Stream --> App
+    App --> Table["Tables and cards"]
+    App --> Toast["A useful notification"]
 ```
 
-Trace one real change before choosing an API:
+*Figure 1. The backend maintains query results; React presents and responds to them.*
 
-1. Probe `probe-1001` reports **8 C**, replacing its previous **3 C** reading.
-2. Drasi updates the `north-room` query's answer. Its projected row includes
-   `probeId`, `room`, and `temperatureC`. A query that only selected warm probes
-   could instead add the probe to its answer at this point.
-3. The browser client receives the result change, identifies the existing raw
-   row by `probeId`, and updates the retained result set.
-4. A hook validates and converts that row to your `Reading` type. React renders
-   **8.0 C** and **Needs attention**. The browser did not execute the query or
-   deploy a resource.
-
-A **provider** is a React context binding that makes a client available to
-descendant hooks. A **hook** turns that client's result notifications into React
-state. A **component** renders that state. These are distinct responsibilities:
-putting a provider around React does not run a Drasi engine inside the page.
-
-Choose the path that matches your application:
-
-| Your starting point | What you configure | What you do not need |
-| --- | --- | --- |
-| **Display my own data** | Rows, typed columns, a stable render key, and CSS | A provider, query, backend, or network connection |
-| **Connect to an existing Drasi query** | A client binding, existing query ID, raw row identity, and validation/projection | Resource creation inside a React component |
-| **Use the optional Drasi Server integration** | Existing instance/query/reaction references and browser-reachable HTTP/SSE URLs | A custom implementation of Server's read protocol |
-| **Use an application-owned data service** | A structural client that implements the documented subscription contract | A Server superclass, Server DTOs, or administration API |
-
-The controls do not provision resources, choose an instance, manage arbitrary
-drasi-lib applications because a port is open, or give a browser permission to
-mutate a backend. The native drasi-lib computation-graph guide describes a
-different backend API; its existence is not proof of Server-adapter
-compatibility. [Chapter 8](#8-own-a-client-without-drasi-server) shows the
-non-Server path without pretending those APIs are interchangeable.
+When `probe-1001` warms from 3 C to 8 C, its row changes in `north-room`.
+It also **enters** `warm-probes`, whose query selects temperatures of at least
+8 C. A snapshot supplies the current rows; server-sent events (SSE) carry later
+changes over a long-lived HTTP response. You will observe both kinds of change.
 
 ## Contents
 
-**Part I - Build a useful screen**
+**Part I - Build a useful screen, without a backend**
 
 1. [Run your first screen](#1-run-your-first-screen)
-2. [Model rows and preserve identity](#2-model-rows-and-preserve-identity)
-3. [Control sorting and presentation](#3-control-sorting-and-presentation)
+2. [Control sorting and presentation](#2-control-sorting-and-presentation)
+3. [Add actions and a review dialog](#3-add-actions-and-a-review-dialog)
+4. [Theme an accessible screen](#4-theme-an-accessible-screen)
 
-**Part II - Work with changing results**
+**Part II - Work with real Drasi results**
 
-4. [Connect to an existing query](#4-connect-to-an-existing-query)
-5. [Share one query across presentations](#5-share-one-query-across-presentations)
-6. [Keep failures and recovery visible](#6-keep-failures-and-recovery-visible)
-7. [Add actions and a review dialog](#7-add-actions-and-a-review-dialog)
+5. [Run the Cold storage backend](#5-run-the-cold-storage-backend)
+6. [Connect your first live table](#6-connect-your-first-live-table)
+7. [Preserve identity through deletes](#7-preserve-identity-through-deletes)
+8. [Watch rows enter and leave an answer](#8-watch-rows-enter-and-leave-an-answer)
+9. [Share one query across presentations](#9-share-one-query-across-presentations)
+10. [Keep failures and recovery visible](#10-keep-failures-and-recovery-visible)
+11. [React to change in application code](#11-react-to-change-in-application-code)
 
 **Part III - Own the application**
 
-8. [Own a client without Drasi Server](#8-own-a-client-without-drasi-server)
-9. [Authenticate and reconfigure safely](#9-authenticate-and-reconfigure-safely)
-10. [Theme an accessible, responsive screen](#10-theme-an-accessible-responsive-screen)
-11. [Use SSR and Next client boundaries](#11-use-ssr-and-next-client-boundaries)
-12. [Test, debug, and deploy](#12-test-debug-and-deploy)
-13. [Capstone: a Cold storage dashboard](#13-capstone-a-cold-storage-dashboard)
+12. [Authenticate both transports](#12-authenticate-both-transports)
+13. [Use SSR and Next client boundaries](#13-use-ssr-and-next-client-boundaries)
+14. [Test observable behavior](#14-test-observable-behavior)
+15. [Diagnose by layer](#15-diagnose-by-layer)
+16. [Deploy the complete application](#16-deploy-the-complete-application)
+17. [Capstone: a Cold storage dashboard](#17-capstone-a-cold-storage-dashboard)
 
 [Appendix A: Vocabulary](#appendix-a-vocabulary) |
 [Appendix B: Imports and reference](#appendix-b-imports-and-reference) |
-[Appendix C: Installation after publication](#appendix-c-installation-after-publication)
+[Appendix C: Installation after publication](#appendix-c-installation-after-publication) |
+[Appendix D: Bring your own gateway](#appendix-d-bring-your-own-gateway) |
+[Source notes](#source-notes)
 
-## Part I - Build a useful screen
+<a id="part-i---build-a-useful-screen"></a>
+## Part I - Build a useful screen, without a backend
 
 ### 1. Run your first screen
 
-Build a screen that displays two readings. Press **Warm North** and see one
-temperature change. This first lesson is deliberately local: it needs neither
-a backend nor a simulation pretending to be a live Drasi connection.
+**Goal:** display four probes, warm one, and reset the screen.
+**Prerequisites:** a terminal, Git, and one of the tested toolchains:
+Node **22.20.0** or **24.19.0**, with npm **11.17.0**.
+22.20.0 is the lowest Node version exercised by this book's qualification;
+24.19.0 is the maintainer pin. The browser packages themselves impose no Node
+engine requirement. The pinned Vite tooling has its own Node requirement.[^tools]
 
-#### Get installable artifacts
+<a id="get-installable-artifacts"></a>
+#### Install the controls
 
-**The npm packages are not published yet.** Do not start by installing
-`@drasi/react` from the registry. The executable prepublication route is to build
-the three packages and install their actual tarballs. You need Node **24.19.0**,
-npm **11.17.0**, Git, and access to the official npm registry for dependencies.
-No Rust compiler, plugin, or drasi-server checkout is involved.
+**Current availability:** neither the npm packages nor GitHub preview downloads
+are published yet. GitHub prerelease downloads are the intended lighter route:
+they will contain the same three qualified archives, a source identity, and
+checksums. Until a prerelease is actually listed on the
+[releases page](https://github.com/drasi-project/drasi-ui/releases), use the
+working source-build route below. There is no preview URL to guess.
 
-In a directory where `drasi-ui` and `cold-storage` do not already exist:
+In a directory without an existing `drasi-ui` or `cold-storage` folder:
 
 ```sh
-git clone https://github.com/drasi-project/drasi-ui.git drasi-ui
-cd drasi-ui
-npm ci
-npm run build
-DRASI_CANDIDATES=.artifacts/learning npm run pack:candidates
-cd ..
-mkdir cold-storage
-cd cold-storage
+git clone https://github.com/drasi-project/drasi-ui.git drasi-ui &&
+cd drasi-ui &&
+npm ci --ignore-scripts &&
+npm run build &&
+DRASI_CANDIDATES=.artifacts/learning npm run pack:candidates &&
+DRASI_CANDIDATES=.artifacts/learning npm run check:packages &&
+cd .. &&
+mkdir cold-storage &&
+cd cold-storage &&
 mkdir src
 ```
 
-In PowerShell, set `$env:DRASI_CANDIDATES = '.artifacts/learning'` before
-`npm run pack:candidates`, then `Remove-Item Env:DRASI_CANDIDATES`; run the other
-commands normally. Packing will not overwrite an existing candidate directory.
-Use a new directory name and adjust the install paths if you repeat this step.
-These are local learning archives, not a publication or a release approval.
+Each `&&` stops the sequence if its preceding command fails. Packing checks
+the complete successful build, including shared JavaScript, declarations, maps,
+and styles, before creating any archive. `check:packages` checks archive contents,
+checksums, exports, and matching dependency versions. A small archive alone is
+not proof of a valid package. Expect core at about **106 KB**, styles at about
+**7.5 KB**, and React at about **900 KB**, including this illustrated book.
+The illustrations, lesson helpers, and expanded text add about **0.83 MB**
+to the installed React package; the browser runtime and dependency graph stay
+the same.
+The release set names all three:
+`drasi-ui-core-0.1.0-beta.1.tgz`, `drasi-ui-styles-0.1.0-beta.1.tgz`, and
+`drasi-react-0.1.0-beta.1.tgz`.
 
-If a maintainer supplied a verified set of the three tarballs, skip cloning and
-building: create the app directory and substitute their paths below. Keep all
-three at the same supplied version. The filenames below match the current
-`0.1.0-beta.1` preparation version; no availability on npm is implied.
+For **Windows PowerShell**, external command failures need explicit checks:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+git clone https://github.com/drasi-project/drasi-ui.git drasi-ui
+if ($LASTEXITCODE) { throw 'Clone failed' }
+Set-Location drasi-ui
+npm ci --ignore-scripts
+if ($LASTEXITCODE) { throw 'Dependency installation failed' }
+npm run build
+if ($LASTEXITCODE) { throw 'Build failed' }
+$env:DRASI_CANDIDATES = '.artifacts/learning'
+npm run pack:candidates
+if ($LASTEXITCODE) { throw 'Packing failed' }
+npm run check:packages
+if ($LASTEXITCODE) { throw 'Package verification failed' }
+Remove-Item Env:DRASI_CANDIDATES
+Set-Location ..
+New-Item -ItemType Directory cold-storage | Out-Null
+Set-Location cold-storage
+New-Item -ItemType Directory src | Out-Null
+```
+
+Packing refuses to overwrite an existing candidate directory. Use a new name
+when repeating it. This fallback installs the repository's development tools
+as well as its package builders; future prebuilt downloads will avoid that work.
+Once a preview exists, download the whole set and its checksum file, follow its
+verification instructions, and substitute the two application archive paths in
+the install command below. Keep the third archive with the set; a React-only
+app uses the CSS already included in `@drasi/react`.
+
+**Corporate networks.** The repository respects your configured npm registry
+and CA. Check `npm config get registry` and `npm config get cafile` before
+installing. If your organization supplies a trusted registry or PEM CA bundle,
+use its approved npm user configuration or `NPM_CONFIG_REGISTRY` /
+`NPM_CONFIG_CAFILE` for this terminal. The lock records official-registry
+resolutions and integrity hashes; npm treats its default-registry URLs as
+replaceable by the configured registry. An approved proxy must supply those
+same bytes. Keep TLS verification and integrity checks enabled. An `ENOTCONN`
+or certificate error is an installation failure to resolve, rather than a
+reason to continue to packing.
 
 #### Create the application
 
-Create these four files. The complete screen follows them. The special comments
-identify examples that this repository checks against installed packages; they
-are harmless to keep in your copy.
+Create the following complete files. Every later chapter names its new files
+and supplies a complete entrypoint; keep earlier modules for later checkpoints.
 
 **`package.json`**
 
@@ -175,7 +176,6 @@ are harmless to keep in your copy.
   "dependencies": {
     "@drasi/react": "0.1.0-beta.1",
     "@drasi/ui-core": "0.1.0-beta.1",
-    "@drasi/ui-styles": "0.1.0-beta.1",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -188,6 +188,13 @@ are harmless to keep in your copy.
   }
 }
 ```
+
+The app declares core because its live recipes import core directly. This also
+works with pnpm's strict dependency isolation. `@drasi/ui-styles` is useful in
+mixed-framework apps; this app instead imports `@drasi/react/styles.css`.
+The explicit `esbuild` development pin keeps Vite from selecting an older,
+range-compatible development-server dependency. Version 0.28.1 is used for
+these checkpoints; it is not a Drasi runtime dependency.
 
 **`tsconfig.json`**
 
@@ -202,14 +209,18 @@ are harmless to keep in your copy.
     "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": false,
-    "allowImportingTsExtensions": true,
     "noUncheckedSideEffectImports": true,
     "noEmit": true,
-    "types": []
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }
 ```
+
+Vite's client types support both `import.meta.env` and stylesheet imports.
+Application imports below are extensionless; Vite and Next resolve their
+TypeScript sources. Published package declarations remain strict, portable
+ESM/CommonJS contracts.
 
 **`index.html`**
 
@@ -229,17 +240,85 @@ are harmless to keep in your copy.
 </html>
 ```
 
-**`src/main.tsx`**
+**`vite.config.mjs`**
 
-```tsx
-// @drasi-docs: cold-storage-main.tsx
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { ColdStorage } from './cold-storage.tsx';
+<!-- @drasi-guide-file: vite.config.mjs -->
+```js
+import { defineConfig } from 'vite';
 
-const root = document.getElementById('root');
-if (!root) throw new Error('Missing application root');
-createRoot(root).render(<StrictMode><ColdStorage /></StrictMode>);
+export default defineConfig({
+  resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: {
+    include: [
+      'react', 'react-dom/client',
+      '@drasi/react', '@drasi/react/components', '@drasi/react/react',
+      '@drasi/react/adapters/drasi-server',
+      '@drasi/ui-core', '@drasi/ui-core/adapters/drasi-server',
+    ],
+  },
+  server: {
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8080', changeOrigin: true },
+      '/events': {
+        target: 'http://127.0.0.1:8081',
+        changeOrigin: true,
+        configure(proxy) {
+          proxy.on('proxyRes', (upstream, _request, response) => {
+            upstream.on('aborted', () => response.destroy());
+            upstream.on('error', () => response.destroy());
+            upstream.setTimeout(5000, () => {
+              console.warn('Cold storage SSE missed its one-second heartbeat.');
+              upstream.destroy();
+              response.destroy();
+            });
+          });
+        },
+      },
+      '/lesson-session': { target: 'http://127.0.0.1:8083' },
+      '/secured': { target: 'http://127.0.0.1:8083' },
+    },
+  },
+});
+```
+
+The proxy routes are idle until a live lesson uses them. Prebundling all lesson
+entrypoints and deduplicating React keeps chapter switches from introducing a
+second React identity. An **Invalid hook call** or duplicate-React error is a
+real failure: stop, check `npm ls react react-dom`, and restart Vite with
+`npm run dev -- --force` after correcting the graph. This flag refreshes Vite's
+dependency cache; it is not an npm dependency-resolution workaround.
+
+Browser production builds can report `"use client" ... was ignored`: those
+directives matter to React Server Components, while Vite builds the whole app
+for the browser. Keep other warnings visible. An npm `allow-scripts` configuration
+warning is separate: use the documented npm version and check whether a user or
+organization config belongs to a different package manager.
+
+**`src/readings.ts`**
+
+```ts
+// @drasi-docs: readings.ts
+import type { ColumnDef } from '@drasi/react/components';
+
+export interface Reading { key: string; room: 'North' | 'South'; celsius: number }
+export const rowKey = (row: Reading) => row.key;
+export const initialRows: readonly Reading[] = [
+  { key: 'probe:probe-1002', room: 'North', celsius: 6 },
+  { key: 'probe:probe-2001', room: 'South', celsius: 5 },
+  { key: 'probe:probe-1001', room: 'North', celsius: 3 },
+  { key: 'probe:probe-2002', room: 'South', celsius: 9 },
+];
+export const warmNorth = (rows: readonly Reading[]) => rows.map(row =>
+  row.key === 'probe:probe-1001' ? { ...row, celsius: 8 } : row,
+);
+export const columns: readonly ColumnDef<Reading>[] = [
+  { key: 'key', label: 'Probe', format: (_value, row) => row.key.slice(6) },
+  { key: 'room', label: 'Room' },
+  { key: 'celsius', label: 'Temperature (C)', align: 'right',
+    format: (_value, row) => row.celsius.toFixed(1) },
+  { key: 'condition', label: 'Condition', sortable: false,
+    format: (_value, row) => row.celsius >= 8 ? 'Needs attention' : 'In range' },
+];
 ```
 
 **`src/cold-storage.tsx`**
@@ -247,569 +326,143 @@ createRoot(root).render(<StrictMode><ColdStorage /></StrictMode>);
 ```tsx
 // @drasi-docs: cold-storage.tsx
 import { useState } from 'react';
-import { DataTable, type ColumnDef } from '@drasi/react/components';
+import { DataTable } from '@drasi/react/components';
+import { columns, initialRows, rowKey, warmNorth } from './readings';
 import '@drasi/react/styles.css';
-
-interface Reading { key: string; room: 'North' | 'South'; celsius: number }
-const initialRows: readonly Reading[] = [
-  { key: 'probe:probe-1001', room: 'North', celsius: 3 },
-  { key: 'probe:probe-2001', room: 'South', celsius: 5 },
-];
-const columns: readonly ColumnDef<Reading>[] = [
-  { key: 'room', label: 'Room' },
-  {
-    key: 'celsius', label: 'Temperature (C)', align: 'right',
-    format: (_value, row) => row.celsius.toFixed(1),
-  },
-  {
-    key: 'condition', label: 'Condition', sortable: false,
-    format: (_value, row) => row.celsius >= 8 ? 'Needs attention' : 'In range',
-  },
-];
 
 export function ColdStorage() {
   const [rows, setRows] = useState(initialRows);
   return <main style={{ maxWidth: '60rem', margin: '2rem auto', fontFamily: 'system-ui' }}>
     <h1>Cold storage</h1>
-    <p>Local readings. These buttons change this page only; no backend is connected.</p>
-    <button type="button" onClick={() => setRows(current => current.map(row =>
-      row.room === 'North' ? { ...row, celsius: 8 } : row,
-    ))}>Warm North</button>
+    <p>Local readings. The buttons change this page.</p>
+    <button type="button" onClick={() => setRows(warmNorth)}>Warm North</button>
     <button type="button" onClick={() => setRows(initialRows)}>Reset readings</button>
-    <DataTable<Reading>
-      title="Room readings" rows={rows} columns={columns} rowKey={row => row.key}
-      animateOnChange="celsius" height="20rem"
-    />
+    <DataTable title="Room readings" rows={rows} columns={columns} rowKey={rowKey}
+      animateOnChange="celsius" height="20rem" />
   </main>;
 }
 ```
 
-Now install the **local files**, not the unavailable registry package, and run:
-
-```sh
-npm install ../drasi-ui/.artifacts/learning/drasi-ui-core-0.1.0-beta.1.tgz ../drasi-ui/.artifacts/learning/drasi-ui-styles-0.1.0-beta.1.tgz ../drasi-ui/.artifacts/learning/drasi-react-0.1.0-beta.1.tgz
-npm run build
-npm run dev
-```
-
-Open the URL printed by Vite, normally `http://127.0.0.1:5173`. Keep that
-terminal running while editing files. These application modules import explicit
-`.ts`/`.tsx` source paths, as Vite and Next can resolve them directly. The
-`allowImportingTsExtensions` option is paired with `noEmit`: TypeScript checks
-the code, while the application bundler emits JavaScript. This is a browser
-application, not a set of precompiled Node modules.
-
-**Change and observe.** North begins at **3.0**, South at **5.0**, both in range.
-Press **Warm North**: North becomes **8.0** and **Needs attention**. Press
-**Reset readings** to restore the original values. Click **Temperature (C)** to
-sort ascending, then again for descending. Enable your operating system's
-reduced-motion preference: values still update, without the row flash.
-
-**Why it works.** `DataTable` renders your rows; `useState` owns them. The update
-replaces one object without mutating the old array. `rowKey` lets React recognize
-the same probe after a change or sort. The explicit CSS import supplies scoped
-control styles, without Tailwind or source scanning. There is no provider and
-no network request to Drasi.
-
-Save the application lockfile. After a release is approved,
-[ordinary registry installation](#appendix-c-installation-after-publication)
-replaces only the tarball installation step, not the programming model.
-
-### 2. Model rows and preserve identity
-
-Next, separate the row meaning from its presentation. The source system uses
-`probeId` and `temperatureC`; the screen uses `key` and `celsius`. A **projection**
-is the function that validates a raw row and converts it into your application
-type. A TypeScript generic alone does not validate data received over HTTP.
-
-Create **`src/reading-model.ts`**. Later chapters import this same file:
-
-```ts
-// @drasi-docs: reading-model.ts
-import type { RowKey } from '@drasi/ui-core';
-import type { UseDrasiQueryOptions } from '@drasi/react/react';
-import type { ColumnDef } from '@drasi/react/components';
-
-export interface Reading { key: string; room: 'North' | 'South'; celsius: number }
-export const rowKey = (row: Reading) => row.key;
-
-export const probeKey: RowKey = raw => {
-  if (typeof raw.probeId !== 'string' || !raw.probeId.trim()) {
-    throw new Error('Expected a nonempty probeId, including on deletes');
-  }
-  return raw.probeId;
-};
-
-export const readingOptions: UseDrasiQueryOptions<Reading> = {
-  getKey: probeKey,
-  transform: raw => {
-    const probeId = probeKey(raw);
-    if ((raw.room !== 'North' && raw.room !== 'South') ||
-        typeof raw.temperatureC !== 'number' || !Number.isFinite(raw.temperatureC)) {
-      throw new Error('Expected a room and finite temperatureC');
-    }
-    return { key: `probe:${probeId}`, room: raw.room, celsius: raw.temperatureC };
-  },
-};
-
-export const columns: readonly ColumnDef<Reading>[] = [
-  { key: 'room', label: 'Room' },
-  {
-    key: 'celsius', label: 'Temperature (C)', align: 'right',
-    format: (_value, row) => row.celsius.toFixed(1),
-  },
-  {
-    key: 'condition', label: 'Condition', sortable: false,
-    format: (_value, row) => row.celsius >= 8 ? 'Needs attention' : 'In range',
-  },
-];
-```
-
-To use the shared columns in the first screen, remove its local `Reading`
-interface and `columns` declaration, remove `type ColumnDef` from the component
-import, and add `import { columns, type Reading } from './reading-model.ts';`.
-Keep its local `initialRows` and `useState`. Change the column formatter to
-`row.celsius.toFixed(2)` and save: **3.00** appears without changing the value
-used for sorting. Return it to one decimal place before continuing.
-
-There are **two identities**, for different jobs:
-
-| Identity | Input | Job |
-| --- | --- | --- |
-| `getKey`, here `probeKey` | Raw rows, including sparse deletes | Maintain the result set as changes arrive |
-| `rowKey` | Projected `Reading` objects | Preserve rendered rows, focus, and animation identity |
-
-A delete might contain only `{ probeId: 'probe-1001' }`. It has enough identity
-to remove the retained raw row, even though it has no temperature to format.
-Deletes **never** pass through `transform`. An update with a changed key removes
-its old key before storing its new row. Array indices, timestamps, serialized
-row values, and Server `row_signature` numbers are not suitable substitutes.
-
-The `format` callback's first argument is `unknown`: a column may use a computed
-key such as `condition`, rather than a property of `Reading`. Use the typed
-second argument, or narrow the value. Computed display text does not create a
-sortable property, so this condition column explicitly disables sorting.
-
-A transform can return `null` to hide a row, and `postProcess` can derive a
-sorted or filtered view. Neither evicts the raw row. A later update or committed
-option change can make it visible again. Throwing is different from hiding:
-invalid data becomes a visible typed error, not a silently missing reading.
-
-### 3. Control sorting and presentation
-
-Build a local screen whose sort is application-owned. This makes it possible
-to keep an explicit **Input order** control or share the same sort between
-presentations. Create **`src/sorted-cold-storage.tsx`**:
+**`src/main.tsx`** (save this checkpoint as `src/cold-storage-main.tsx` too):
 
 ```tsx
-// @drasi-docs: sorted-cold-storage.tsx
-import { DataTable } from '@drasi/react/components';
-import { useTableSort } from '@drasi/react/react';
-import { columns, rowKey, type Reading } from './reading-model.ts';
-import '@drasi/react/styles.css';
-
-const rows: readonly Reading[] = [
-  { key: 'probe:probe-1001', room: 'North', celsius: 8 },
-  { key: 'probe:probe-2001', room: 'South', celsius: 5 },
-];
-
-export function SortedColdStorage() {
-  const sorting = useTableSort({ defaultSort: { column: 'celsius', direction: 'desc' } });
-  return <main>
-    <h1>Cold storage</h1>
-    <DataTable<Reading>
-      title="Room readings" rows={rows} columns={columns} rowKey={rowKey}
-      sort={sorting.sort} onSortChange={sorting.setSort}
-      headerControls={<button type="button" onClick={() => sorting.setSort(null)}>
-        Input order
-      </button>}
-      headerSlot={<p>Warmest first until you choose another order.</p>}
-      renderEmpty={() => <span>No probes in this view.</span>}
-      height="20rem"
-    />
-  </main>;
-}
-```
-
-In `src/main.tsx`, import `SortedColdStorage` from `./sorted-cold-storage.tsx`
-instead of `ColdStorage`, and render `<SortedColdStorage />`. North starts first.
-Click **Temperature (C)** to put South first; **Input order** restores North.
-Tab to the header button and use Enter or Space: the same sort applies.
-
-`sort={null}` is a controlled, unsorted value; `sort={undefined}` means the
-table manages its own sort. In controlled mode the owner must apply requests,
-as `sorting.setSort` does here. `defaultSort` is read only on mount. A header
-toggles ascending/descending, not a three-state cycle; clearing is explicit.
-The table copies rows before sorting and does not reorder your input array.
-
-Numeric values sort numerically, not by their formatted strings. Text uses a
-fixed English collation policy; nullish values come last ascending and first
-descending. Hidden properties can sort, but a formatter is not a comparator.
-See the [exact ordering contract](../reference/data-table.md#sorting) when
-mixed types or cross-runtime collation matter.
-
-Slots replace presentation, not ownership. `headerSlot` is content below the
-header; `renderHeader` replaces the header and can call `defaultRender()`.
-`renderEmpty` runs *inside* a spanning table cell, so return content, not a
-`tr` or `td`. A replacement `renderRow` must retain valid table-row semantics.
-A slot returning `null` deliberately suppresses its default.
-
-## Part II - Work with changing results
-
-### 4. Connect to an existing query
-
-Replace the local array with a real maintained query result. Use the optional
-Drasi Server adapter when your operator exposes its supported instance-scoped
-REST API and SSE reaction protocol. This chapter is **not runnable against a
-random drasi-lib port**, and it does not install or start backend resources.
-
-#### Agree on the backend contract
-
-An operator supplies these **existing, running** resources:
-
-| Resource | Cold storage contract |
-| --- | --- |
-| Instance | `cold-chain` |
-| Source | `probe-feed`, supplying `Probe` nodes with `probeId`, `room`, and `temperatureC` |
-| Queries | `north-room` and `south-room`, each projecting those three fields |
-| SSE reaction | `cold-chain-events`, kind `sse`, subscribed to both queries |
-| REST URL | Browser/proxy-reachable base serving `/api/v1/instances/cold-chain/...` |
-| SSE URL | Browser/proxy-reachable stream endpoint, for this example `/events` |
-
-The North query is:
-
-```cypher
-MATCH (p:Probe)
-WHERE p.room = 'North'
-RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
-```
-
-The South query substitutes `'South'`. Initial sample readings are North
-`probe-1001` at **3 C** and South `probe-2001` at **5 C**. The repository's
-[operator configuration](https://github.com/drasi-project/drasi-ui/blob/main/examples/react/config/server.yaml)
-and [initial feed](https://github.com/drasi-project/drasi-ui/blob/main/examples/react/config/readings.jsonl)
-contain the concrete deployment inputs. The operator replaces port markers,
-selects and verifies released binaries/plugins, and mounts the feed file; the
-control package performs none of those steps. Those deployment inputs are not
-the full-view read responses expected by the client.
-
-The default adapter accepts the recorded **untemplated** SSE result envelope.
-If the operator enables a custom template, agree on a validating adapter rather
-than hoping the client guesses the format. The
-[templated-reaction reference](../reference/server-client.md#handlebars-sse-to-querytable)
-preserves the complete template/adapter recipe. The supported read/wire
-contracts and historical version evidence are in that reference and the
-[compatibility reference](../reference/validation.md#verified-compatibility).
-
-For a local backend whose REST and SSE listeners are on **8080** and **8081**,
-add **`vite.config.mjs`** at the learning app root. Replace the targets with the
-operator's actual URLs; a wildcard bind address is not a browser URL.
-
-<!-- @drasi-guide-file: vite.config.mjs -->
-```js
-import { defineConfig } from 'vite';
-
-export default defineConfig({
-  server: {
-    proxy: {
-      '/api': { target: 'http://127.0.0.1:8080', changeOrigin: true },
-      '/events': { target: 'http://127.0.0.1:8081', changeOrigin: true },
-    },
-  },
-});
-```
-
-This development proxy makes both browser requests same-origin. It does not
-create resources or add authorization. Without a proxy, the operator must
-configure CORS, cookies, and allowed browser origins appropriately. Restart
-`npm run dev` after adding the configuration.
-
-#### Bind the connection and render the query
-
-Create **`src/live-cold-storage.tsx`**:
-
-```tsx
-// @drasi-docs: live-cold-storage.tsx
-import type { ReactNode } from 'react';
-import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
-import { QueryTable } from '@drasi/react/components';
-import { useDrasiClient, useDrasiConnectionStatus } from '@drasi/react/react';
-import { columns, readingOptions, rowKey } from './reading-model.ts';
-import '@drasi/react/styles.css';
-
-const queryIds = ['north-room', 'south-room'];
-export interface Endpoints { serverUrl: string; endpoint: string }
-
-export function ColdStorageConnection({ serverUrl, endpoint, children }: Endpoints & {
-  children: ReactNode;
-}) {
-  return <DrasiProvider
-    serverUrl={serverUrl} instanceId="cold-chain" queryIds={queryIds}
-    reaction={{ id: 'cold-chain-events', endpoint }}
-  >{children}</DrasiProvider>;
-}
-
-export function ConnectionNotice() {
-  const connection = useDrasiConnectionStatus();
-  const { error, retry } = useDrasiClient();
-  return <section aria-label="Connection">
-    <p role="status">
-      Stream: {connection.connected ? 'open' : connection.reconnecting ? 'reconnecting' : 'not open'}.
-      An open stream does not mean every query is ready.
-    </p>
-    {error && <div role="alert">
-      <p>{error.code}: {error.message}</p>
-      <button type="button" onClick={retry}>Retry connection</button>
-    </div>}
-  </section>;
-}
-
-export function LiveColdStorage() {
-  return <main>
-    <h1>Cold storage</h1>
-    <ConnectionNotice />
-    {queryIds.map(queryId => <QueryTable
-      key={queryId} title={queryId === 'north-room' ? 'North room' : 'South room'}
-      queryId={queryId} queryOptions={readingOptions}
-      columns={columns} rowKey={rowKey} animateOnChange="celsius"
-      height="20rem"
-    />)}
-  </main>;
-}
-```
-
-Replace **`src/main.tsx`** with:
-
-```tsx
-// @drasi-docs: live-main.tsx
+// @drasi-docs: cold-storage-main.tsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ColdStorageConnection, LiveColdStorage } from './live-cold-storage.tsx';
+import { ColdStorage } from './cold-storage';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing application root');
-const origin = window.location.origin;
-createRoot(root).render(<StrictMode>
-  <ColdStorageConnection serverUrl={origin} endpoint={new URL('/events', origin).href}>
-    <LiveColdStorage />
-  </ColdStorageConnection>
-</StrictMode>);
+createRoot(root).render(<StrictMode><ColdStorage /></StrictMode>);
 ```
 
-`window` is used only in this browser entry, not when importing a library or
-server-rendering a component. Direct browser connections can instead pass the
-operator's absolute HTTPS URLs; do not infer them from a Server bind port.
-
-**Change and observe.** Once existing resources pass validation, the stream
-opens and each table loads its snapshot. In a second terminal, from the
-`drasi-ui` checkout, send changes only to the example's operator-owned local
-HTTP feed:
+Install **local archives**, then build and run:
 
 ```sh
-export DRASI_FEED_URL=http://127.0.0.1:8082
-npm run feed -w drasi-react-cold-storage-example -- "$DRASI_FEED_URL" warm
-npm run feed -w drasi-react-cold-storage-example -- "$DRASI_FEED_URL" delete
-npm run feed -w drasi-react-cold-storage-example -- "$DRASI_FEED_URL" restore
+npm install ../drasi-ui/.artifacts/learning/drasi-ui-core-0.1.0-beta.1.tgz ../drasi-ui/.artifacts/learning/drasi-react-0.1.0-beta.1.tgz &&
+npm run build &&
+npm run dev
 ```
 
-Run one command at a time. `warm` changes North to **8.0**; `delete` removes
-South's probe, leaving an empty South table; `restore` returns both probes at
-**3.0** and **5.0**. The feed script is an example-owned write, not a React
-control method. It deliberately accepts only this example's loopback feed
-and identities. Do not point it at a production data service.
+In Windows PowerShell, run those commands individually and check
+`if ($LASTEXITCODE) { throw 'Command failed' }` immediately after each command.
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`.
+Keep the terminal running. Save the app's lockfile.
 
-**Why it works.** `DrasiProvider` owns one shared connection. It validates the
-query references, then the reaction's kind and query membership, using reads
-only. Each `QueryTable` combines `useDrasiQuery` with `DataTable`, validating
-its query again before its own snapshot read. Raw identity and projection are
-still your responsibility. Provider initialization, reconnect, and retry
-perform **GETs only**; a 404 or disconnected stream never authorizes creation.
+**Change and observe.** The input temperatures are **6, 5, 3, 9**. Warm North:
+`probe-1001` becomes **8.0 C**, flashes, and says **Needs attention**.
+Reset restores 3.0 C. Sorting the temperature column changes `aria-sort`
+between ascending and descending. With reduced motion enabled, values still
+update while the row flash is suppressed.
 
-If no backend is available, keep the provider-free lesson running. Do not
-substitute random data and describe it as live Drasi. You can still read and
-type-check the following components; real data interactions need the resources
-above.
+![Four local probe rows after warming probe-1001 to 8 C.](figures/02-first-screen.png)
 
-### 5. Share one query across presentations
+*Figure 2. A local state update changes the reading and its condition.*
 
-Now show a summary, semantic cards, and a table for the **same query**. A
-provider shares a connection, **not a query cache**. Two `QueryTable`s with
-`queryId="north-room"` would create two independent subscriptions, snapshot
-reads, retained row sets, and projection workloads.
+**Summary.** React state owns the rows. `DataTable` supplies presentation,
+sorting, and row animation. Stable `rowKey` values preserve identity when a row
+changes or moves; immutable updates make that change visible to React.
 
-Instead, call one hook and pass its result down. Create
-**`src/cold-storage-dashboard.tsx`**:
+<a id="3-control-sorting-and-presentation"></a>
+### 2. Control sorting and presentation
+
+**Goal:** own sorting and add controls inside the table header.
+**Prerequisites:** Chapter 1's files and running Vite app.
+
+Create **`src/sorted-cold-storage.tsx`**:
 
 ```tsx
-// @drasi-docs: cold-storage-dashboard.tsx
-import { useMemo, useState } from 'react';
-import { DataTable, queryTableState } from '@drasi/react/components';
-import {
-  useDrasiClient, useDrasiConnectionStatus, useDrasiQuery, useTableSort,
-  type UseDrasiQueryOptions,
-} from '@drasi/react/react';
-import type { DrasiError } from '@drasi/ui-core';
-import { columns, readingOptions, rowKey, type Reading } from './reading-model.ts';
-import { ConnectionNotice } from './live-cold-storage.tsx';
+// @drasi-docs: sorted-cold-storage.tsx
+import { useState } from 'react';
+import { DataTable } from '@drasi/react/components';
+import { useTableSort } from '@drasi/react/react';
+import { columns, initialRows, rowKey, warmNorth } from './readings';
+import '@drasi/react/styles.css';
 
-export function RoomDashboard({ queryId, title }: { queryId: string; title: string }) {
-  const [warmOnly, setWarmOnly] = useState(false);
-  const [demonstrateError, setDemonstrateError] = useState(false);
-  const options = useMemo<UseDrasiQueryOptions<Reading>>(() => ({
-    ...readingOptions,
-    transform: raw => {
-      if (demonstrateError) throw new Error('Deliberate client-only projection failure');
-      const reading = readingOptions.transform(raw);
-      return reading && (!warmOnly || reading.celsius >= 8) ? reading : null;
-    },
-  }), [warmOnly, demonstrateError]);
-  const query = useDrasiQuery(queryId, options);
-  const { retry: retryConnection } = useDrasiClient();
-  const connection = useDrasiConnectionStatus();
+export function SortedColdStorage() {
+  const [rows, setRows] = useState(initialRows);
   const sorting = useTableSort({ defaultSort: { column: 'celsius', direction: 'desc' } });
-  const state = queryTableState(query, retryConnection);
-  return <section aria-label={title}>
-    <h2>{title}</h2>
-    <label><input type="checkbox" checked={warmOnly}
-      onChange={event => setWarmOnly(event.target.checked)} /> Show warm probes only</label>
-    <label><input type="checkbox" checked={demonstrateError}
-      onChange={event => setDemonstrateError(event.target.checked)} />
-      Demonstrate a projection error (client only)
-    </label>
-    <p role="status">
-      Query: {query.status}{query.stale ? ' (last-known data)' : ''}.
-      {' '}Visible probes: {query.data === null ? 'not known yet' : query.data.length}.
-    </p>
-    {query.lastUpdate && <p>Last received: <time dateTime={query.lastUpdate.toISOString()}>
-      {query.lastUpdate.toLocaleTimeString()}
-    </time></p>}
-    {query.data !== null && <ul aria-label={`${title} cards`}>
-      {query.data.map(row => <li key={row.key}>
-        {row.room}: {row.celsius.toFixed(1)} C
-        {row.celsius >= 8 ? ' - Needs attention' : ' - In range'}
-      </li>)}
-    </ul>}
-    <DataTable<Reading, DrasiError>
-      title={`${title} readings`} rows={query.data} columns={columns} rowKey={rowKey}
-      state={state} sort={sorting.sort} onSortChange={sorting.setSort}
-      animateOnChange="celsius" height="20rem"
-      headerControls={<>
-        <button type="button" onClick={() => sorting.setSort(null)}>Input order</button>
-        <button type="button" onClick={query.retry} disabled={!connection.connected}>Refresh query</button>
-      </>}
-      renderEmpty={() => <span>No probes match this view.</span>}
-      renderError={({ error, state: current }) => <div role="alert">
-        <p>{error.code}: {error.message}</p>
-        {current.stale && <p>Showing last known readings.</p>}
-        {current.retry && <button type="button" onClick={current.retry}>{current.retryLabel}</button>}
-      </div>}
-    />
-  </section>;
-}
-
-export function ColdStorageDashboard() {
   return <main>
     <h1>Cold storage</h1>
-    <ConnectionNotice />
-    <RoomDashboard queryId="north-room" title="North room" />
-    <RoomDashboard queryId="south-room" title="South room" />
+    <DataTable title="Room readings" rows={rows} columns={columns} rowKey={rowKey}
+      sort={sorting.sort} onSortChange={sorting.setSort} animateOnChange="celsius"
+      headerControls={<>
+        <button type="button" onClick={() => setRows(warmNorth)}>Warm North</button>
+        <button type="button" onClick={() => setRows(initialRows)}>Reset readings</button>
+        <button type="button" onClick={() => sorting.setSort(null)}>Input order</button>
+      </>}
+      headerSlot={<p>Warmest first. Warm a probe to see it move while sorted.</p>}
+      renderEmpty={() => <span>No probes in this view.</span>} height="20rem" />
   </main>;
 }
 ```
 
-In the live `main.tsx`, keep `ColdStorageConnection`, replace the
-`LiveColdStorage` import with `ColdStorageDashboard` from
-`./cold-storage-dashboard.tsx`, and render `<ColdStorageDashboard />` inside
-that same provider. The number, cards, and table now agree because they use one
-accepted view per room.
+Replace **`src/main.tsx`** with this complete checkpoint:
 
-**Change and observe.** Select **Show warm probes only** in North. At 3 C its
-accepted view becomes empty. Send `warm` again: the card and table both show
-8 C. Clear the filter: the underlying subscription has not changed. Changing
-the filter reprojects retained raw rows rather than opening another stream.
+```tsx
+// @drasi-docs: sorted-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { SortedColdStorage } from './sorted-cold-storage';
 
-The cards intentionally keep query order while the table has its own sort.
-If two tables must share sort and row flashes, hoist one `useTableSort` and one
-`useRowAnimation`, then pass both `animations` **and** `revisions` to both
-tables. The [complete shared-animation recipe](../reference/query-table.md#app-owned-composition)
-shows the exact props. Do not call a second query hook merely to render a
-dialog or an alternative layout.
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+createRoot(root).render(<StrictMode><SortedColdStorage /></StrictMode>);
+```
 
-Choose `QueryTable` for a straightforward live table; choose
-`useDrasiQuery` plus `DataTable` when several presentations share data or the
-app owns composition. A cards-only component can use `/react` and semantic
-HTML with **no component or package CSS import**. The
-[hooks-only reference recipe](../reference/bindings.md#hooks-only-ui-and-scoped-retry)
-is a complete variation of that choice, not a different connection model.
+**Change and observe.** Descending starts **9, 6, 5, 3**. Warm North: its 8 C
+row moves to second place and flashes. Reset, focus **Temperature (C)**, and
+press Enter: ascending becomes **3, 5, 6, 9**. Space reverses it.
+**Input order** restores **6, 5, 3, 9**, a visibly different third ordering.
 
-### 6. Keep failures and recovery visible
+![The controlled table sorted warmest first, with probe-1001 moved to second place.](figures/03-sorting.png)
 
-Use the dashboard to distinguish **no data yet**, **an empty answer**, and
-**last-known data that needs recovery**. They are not interchangeable.
+*Figure 3. Sorting follows the numeric value while formatting remains a display choice.*
 
-**Change and observe.** Let North load, then select **Demonstrate a projection
-error (client only)**. The last accepted readings remain visible, the error
-code is `RESULT_PROCESSING_FAILED`, and the query is marked stale rather than
-quietly displaying a healthy state. South continues updating. Clear the
-checkbox to correct the projection; the retained raw rows can be projected
-again without replacing the shared connection. A retry while the callback is
-still broken cannot make it valid.
+`sort={null}` explicitly chooses input order. `sort={undefined}` lets the table
+own sorting. In controlled mode, `onSortChange` requests a change and your owner
+applies it; `defaultSort` is read only on mount. The table sorts a copy, leaving
+your source array intact.
 
-That checkbox is a deliberate **browser callback failure**, not a fake backend.
-Remove it from a deployed dashboard. For a real connection failure exercise,
-coordinate an interruption of the test backend or proxy with its owner. The
-stream and query recovery states are separate; a browser's generic EventSource
-error does not identify an HTTP status or prove that a query was deleted.
+The formatter's first argument is `unknown`; use its typed row argument.
+The computed `condition` text has no sortable field, so it sets `sortable: false`.
+Try `toFixed(2)` in the temperature formatter: display precision changes, while
+numeric sorting stays correct.
 
-| Query state | What to show |
-| --- | --- |
-| `initial-loading` | No accepted baseline; a loading notice, not an empty-result claim |
-| `live` | The accepted projected rows; this is a best-effort baseline, not a consistency certificate |
-| `empty` | An accepted empty view, including a view whose filters hide every row |
-| `reconnecting` | Shared stream recovery; label any available rows stale |
-| `resynchronizing` | A new query baseline is being read, including overlap recovery |
-| `stale-last-good-data` | A transient query failure left useful rows while retrying |
-| `terminal-error` | A permanent error or exhausted budget; retain and label last-good rows if available |
+A **slot** replaces presentation while leaving data and state ownership with
+the component. For example, `headerControls` adds your buttons to the built-in
+header; `renderEmpty` supplies content inside its spanning cell. Return text or
+elements there, rather than another `tr` or `td`. A custom row renderer should
+preserve table semantics and accessible actions.
 
-`data === null` means no usable view yet. `data.length === 0` means an accepted
-empty view. `loading` alone cannot express all these states. `lastUpdate` is
-the last accepted result's local receipt time, not the time a probe measured
-something or a server synchronization cursor.
+**Summary.** Use a controlled sort when another control or presentation needs
+to share it. Use slots to customize one part without rebuilding the table.
 
-There are two retry scopes:
+<a id="7-add-actions-and-a-review-dialog"></a>
+### 3. Add actions and a review dialog
 
-| Retry | What it restarts | When it helps |
-| --- | --- | --- |
-| `query.retry()` | This subscription's baseline/reconciliation | A query-local read/processing failure, or an explicit refresh |
-| `useDrasiClient().retry()` | The owner's shared connection lifecycle | Shared initialization or connection failure |
-
-`queryTableState(query, retryConnection)` makes this choice from
-`errorScope`. `QueryTable` uses it already. Our composed screen reuses it
-instead of duplicating recovery logic. Retrying North does not disconnect
-South; retrying the connection can affect both. Neither operation provisions
-anything, and the void retry callback is not a promise of successful recovery.
-
-The table's notice precedence is **error, then stale, then loading**. With no
-rows and loading/error it renders a state card; with supplied rows, including
-an empty array, it retains the table. Custom slots must preserve the error,
-last-known-data notice, appropriate retry, and accessible roles. The
-[QueryTable reference](../reference/query-table.md#live-querytable-and-scoped-state-slots)
-lists the full typed slot contexts.
-
-Use bounded recovery, not an extra infinite retry timer. Invalid
-configuration, authentication, row identity, and payload/projection failures
-need correction. Transient failures have bounded automatic recovery; the
-Server defaults are ten retries after the first attempt, exponential backoff
-starting at one second and capped at thirty seconds. Shared revalidation
-checks **all** configured query references and the reaction, so one invalid
-reference there can block the shared connection even though subscriber-local
-processing errors are isolated.
-
-### 7. Add actions and a review dialog
-
-Give each probe a **Review probe** action. The dialog shows the current reading,
-not a second query subscription. This lesson records a review **in local UI
-state only**; it does not acknowledge an alert on a server or change a probe.
+**Goal:** review a current reading in a keyboard-usable dialog.
+**Prerequisites:** Chapter 1; this chapter still needs no backend.
 
 Create **`src/review-readings.tsx`**:
 
@@ -818,13 +471,11 @@ Create **`src/review-readings.tsx`**:
 import { useRef, useState } from 'react';
 import { DataTable, Modal, type DataTableState, type RowAction } from '@drasi/react/components';
 import { useTableSort } from '@drasi/react/react';
-import { columns, rowKey, type Reading } from './reading-model.ts';
+import { columns, initialRows, rowKey, type Reading } from './readings';
 import '@drasi/react/styles.css';
 
 export function ReviewReadings({ rows, state = {}, title }: {
-  rows: readonly Reading[] | null;
-  state?: DataTableState;
-  title: string;
+  rows: readonly Reading[] | null; state?: DataTableState; title: string;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [review, setReview] = useState('');
@@ -834,27 +485,22 @@ export function ReviewReadings({ rows, state = {}, title }: {
   const selected = rows?.find(row => row.key === selectedKey);
   const close = () => setSelectedKey(null);
   const actions: readonly RowAction<Reading>[] = [{
-    icon: <span aria-hidden="true">...</span>,
-    label: 'Review probe',
+    icon: <span aria-hidden="true">...</span>, label: 'Review probe',
     onClick: row => setSelectedKey(row.key),
   }];
   return <section aria-label={title}>
     <h2 ref={heading} tabIndex={-1}>{title}</h2>
     <p role="status">{review}</p>
-    <DataTable
-      ariaLabel={title} rows={rows} columns={columns} rowKey={rowKey}
+    <DataTable ariaLabel={title} rows={rows} columns={columns} rowKey={rowKey}
       state={state} actions={actions} actionsWidth="6rem"
-      sort={sorting.sort} onSortChange={sorting.setSort}
-      animateOnChange="celsius" height="var(--drasi-panel-height, 20rem)"
-      headerControls={<button type="button" onClick={() => sorting.setSort(null)}>Input order</button>}
-    />
-    <Modal
-      open={selectedKey !== null} onClose={close}
-      title={`${title} - probe review`}
-      initialFocusRef={closeButton} fallbackFocusRef={heading}
-    >
+      sort={sorting.sort} onSortChange={sorting.setSort} animateOnChange="celsius"
+      height="var(--drasi-panel-height, 20rem)"
+      headerControls={<button type="button" onClick={() => sorting.setSort(null)}>Input order</button>} />
+    <Modal open={selectedKey !== null} onClose={close} title={`${title} - probe review`}
+      initialFocusRef={closeButton} fallbackFocusRef={heading}>
       <h2>Probe review</h2>
       {selected ? <dl>
+        <dt>Probe</dt><dd>{selected.key.slice(6)}</dd>
         <dt>Room</dt><dd>{selected.room}</dd>
         <dt>Temperature</dt><dd>{selected.celsius.toFixed(1)} C</dd>
       </dl> : <p>This probe is no longer in the current view.</p>}
@@ -871,399 +517,63 @@ export function ReviewReadings({ rows, state = {}, title }: {
 }
 
 export function ReviewLesson() {
+  const [rows, setRows] = useState(initialRows);
   return <main>
     <h1>Cold storage</h1>
-    <ReviewReadings title="Local probe reviews" rows={[
-      { key: 'probe:probe-1001', room: 'North', celsius: 8 },
-      { key: 'probe:probe-2001', room: 'South', celsius: 5 },
-    ]} />
+    <button type="button" onClick={() => setRows(current =>
+      current.filter(row => row.key !== 'probe:probe-1001'))}>Remove probe-1001 locally</button>
+    <ReviewReadings title="Local probe reviews" rows={rows} />
   </main>;
 }
 ```
 
-For a backend-free interaction, import `ReviewLesson` from
-`./review-readings.tsx` in `main.tsx` and render `<ReviewLesson />` without a
-provider. With the live dashboard, pass the existing `query.data` and
-`queryTableState(...)` to `ReviewReadings` instead of mounting another
-`QueryTable`. The capstone below wires that complete live composition.
-
-**Change and observe.** Tab to a **Review probe** button and activate it.
-The dialog opens with focus on **Close review**. Tab/Shift+Tab stay within the
-dialog. Escape closes it and restores focus to the opening control. Reopen it
-and choose **Record local review**: a visible status message appears. In the
-live composition, removing the selected probe leaves a clear "no longer"
-message and a usable close button; focus has the heading fallback if the
-opening row no longer exists.
-
-`Modal` is controlled: `onClose` is a request, so the owner must update `open`.
-It supplies focus containment, topmost dismissal, a body portal, background
-shielding, and scroll ownership. You supply a meaningful `title`, visible
-content, and a visible close/cancel control. Its title is visually hidden, so
-the example also renders a visible heading. Do not add competing global Escape
-handlers, focus traps, or body-scroll locks. Use `returnFocusRef` when there is
-a persistent explicit return target; row actions here use the focused opener
-and an app-owned fallback.
-Default restoration follows the element that was **focused**, not merely
-pointer-clicked, at opening; browsers differ in whether a pointer click focuses
-a button. Use `returnFocusRef` for a persistent explicit destination when that
-distinction matters.
-
-An action's `label` is its accessible name. `disabled(row)` and `loading(row)`
-can prevent activation; loading also sets `aria-busy`. The callback is
-`onClick(row): void`, not an awaited mutation API. For real asynchronous actions,
-the app tracks pending IDs, catches failures, displays a separate action error,
-and clears pending state in `finally`. Do not convert a failed save into a query
-retry or a false "saved" message. The
-[action/state-slot reference](../reference/data-table.md#columns-and-actions)
-shows the typed pending and recovery callbacks.
-
-The stale-data review restriction above is an **application policy**, not a
-control guarantee. A production write still needs server-side authorization,
-validation, and, where appropriate, a version check or idempotency key. A
-disabled browser button is not an authorization boundary.
-
-## Part III - Own the application
-
-### 8. Own a client without Drasi Server
-
-Suppose your application already exposes a snapshot endpoint and a live event
-gateway. You should not subclass `DrasiClient` or manufacture Server resource
-DTOs just to use a React hook. `QueryClient` is structural: it needs
-`subscribe`, `getConnectionStatus`, and `onConnectionStatusChange`.
-
-In this lesson the **application service**, not the library, implements:
-
-| Application-owned endpoint | Contract |
-| --- | --- |
-| `GET /cold-storage/queries/{queryId}` | JSON `{ "rows": [...] }` containing the current object rows |
-| `GET /cold-storage/events` | An SSE stream of JSON upsert/update/delete messages, as described below |
-| Authentication and authorization | Same-origin browser session cookies, checked by that service on both endpoints |
-
-This is an example gateway contract, **not a newly invented Drasi Server API**.
-The gateway must already exist, route only authorized queries, and provide
-the source rows used by our model. It may be backed by Drasi or by another
-application-owned source. Connecting this client does not implement the
-gateway, a Drasi engine, or a stronger snapshot/live consistency protocol.
-
-Its SSE `data` values have these shapes:
-
-```json
-{"queryId":"north-room","op":"upsert","after":{"probeId":"probe-1001","room":"North","temperatureC":8}}
-```
-
-An `update` contains both object-valued `before` and `after`; a `delete`
-contains `before`, which may be just `{ "probeId": "probe-1001" }`.
-A heartbeat is `{ "type": "heartbeat", "ts": 123 }` with a finite numeric
-timestamp. The following adapter validates those choices instead of guessing
-query IDs or casting unknown payloads.
-
-Create **`src/application-client.ts`**. This file imports **only core**, not
-React or the Server adapter:
-
-```ts
-// @drasi-docs: application-client.ts
-import {
-  SSEClient, DrasiError, asDrasiError, subscribeToQuery,
-  type EventSourceFactory, type QueryClient, type QuerySubscription,
-  type ResultAdapter, type ResultChange, type ResultRow,
-} from '@drasi/ui-core';
-
-const queryIds = ['north-room', 'south-room'];
-const object = (value: unknown): value is ResultRow =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
-
-export const applicationEvents: ResultAdapter = (payload, context) => {
-  const invalid = () => new DrasiError('INVALID_PAYLOAD', context);
-  if (!object(payload)) throw invalid();
-  if (payload.type === 'heartbeat') {
-    if (typeof payload.ts !== 'number' || !Number.isFinite(payload.ts)) throw invalid();
-    return [];
-  }
-  if (typeof payload.queryId !== 'string' || !queryIds.includes(payload.queryId)) {
-    throw new DrasiError('UNROUTABLE_RESULT', context);
-  }
-  const row = (value: unknown): ResultRow => {
-    if (!object(value)) throw invalid();
-    return value;
-  };
-  let change: ResultChange;
-  switch (payload.op) {
-    case 'upsert': change = { kind: 'upsert', after: row(payload.after) }; break;
-    case 'update': change = { kind: 'update', before: row(payload.before), after: row(payload.after) }; break;
-    case 'delete': change = { kind: 'delete', before: row(payload.before) }; break;
-    default: throw invalid();
-  }
-  return [{
-    kind: 'delta', queryId: payload.queryId, changes: [change], receivedAt: context.receivedAt,
-  }];
-};
-
-export function createApplicationClient(origin: string, transport: {
-  fetch?: typeof fetch;
-  eventSourceFactory?: EventSourceFactory;
-} = {}) {
-  const url = new URL(origin);
-  if (!['http:', 'https:'].includes(url.protocol) || url.origin !== origin) {
-    throw new DrasiError('INVALID_CONFIGURATION');
-  }
-  const stream = new SSEClient({
-    resultAdapter: applicationEvents,
-    eventSourceFactory: transport.eventSourceFactory,
-    credentials: 'same-origin',
-  });
-  const request = transport.fetch ?? globalThis.fetch.bind(globalThis);
-  const subscriptions = new Set<QuerySubscription>();
-
-  async function snapshot(queryId: string, signal: AbortSignal): Promise<ResultRow[]> {
-    const details = { resourceKind: 'query', resourceId: queryId } as const;
-    let status: number | undefined;
-    try {
-      const response = await request(new URL(`/cold-storage/queries/${encodeURIComponent(queryId)}`, origin), {
-        method: 'GET', credentials: 'same-origin', redirect: 'error',
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
-      });
-      status = response.status;
-      if (!response.ok) {
-        throw new DrasiError(
-          status === 401 ? 'UNAUTHENTICATED' : status === 403 ? 'FORBIDDEN'
-            : status === 408 || status === 429 || status >= 500 ? 'SERVER_UNAVAILABLE' : 'INVALID_PAYLOAD',
-          { ...details, status },
-        );
-      }
-      let body: unknown;
-      try {
-        body = await response.json();
-      } catch (error) {
-        if (error instanceof SyntaxError) throw new DrasiError('INVALID_PAYLOAD', { ...details, status });
-        throw error;
-      }
-      if (!object(body) || !Array.isArray(body.rows) || !body.rows.every(object)) {
-        throw new DrasiError('INVALID_PAYLOAD', { ...details, status });
-      }
-      return body.rows;
-    } catch (error) {
-      if (signal.aborted) throw signal.reason;
-      throw asDrasiError(error, { ...details, status }, 'SERVER_UNAVAILABLE');
-    }
-  }
-
-  const client: QueryClient = {
-    getConnectionStatus: () => stream.getConnectionStatus(),
-    onConnectionStatusChange: callback => stream.onConnectionStatusChange(callback),
-    subscribe(queryId, onResult, onError, onStateChange) {
-      if (!queryIds.includes(queryId)) throw new DrasiError('INVALID_CONFIGURATION');
-      let subscription: QuerySubscription | undefined;
-      subscription = subscribeToQuery({
-        queryId, source: stream, snapshot: signal => snapshot(queryId, signal),
-        details: { resourceKind: 'query', resourceId: queryId },
-        maxRetries: 10, retryDelay: 1000, maxRetryDelay: 30_000, maxPendingChanges: 10_000,
-        onStop: () => { if (subscription) subscriptions.delete(subscription); },
-      }, onResult, onError, onStateChange);
-      subscriptions.add(subscription);
-      return subscription;
-    },
-  };
-  return {
-    client,
-    connect: () => stream.connect(queryIds, new URL('/cold-storage/events', origin).href),
-    dispose: async () => {
-      for (const subscription of subscriptions) subscription();
-      await stream.disconnect();
-    },
-  };
-}
-```
-
-`SSEClient` validates the adapter's normalized output as well as its wire
-input. `subscribeToQuery` supplies independent, cancellable baseline and retry
-state. The hook still owns raw accumulation and the domain projection from
-Chapter 2. This example deliberately uses an origin-root gateway and modern
-`AbortSignal.any`/`timeout`; injected fetch implementations must honor
-cancellation. Adapt those application choices for an older browser or a
-path-prefixed gateway, without weakening the subscription contract.
-
-Now create **`src/application-connection.tsx`**. This owner creates one client
-per committed configuration/explicit retry, observes its shared failure state,
-and disposes its work on replacement or unmount:
+Replace **`src/main.tsx`**:
 
 ```tsx
-// @drasi-docs: application-connection.tsx
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { DrasiClientProvider, type DrasiContextValue } from '@drasi/react/react';
-import { asDrasiError, isAbortError } from '@drasi/ui-core';
-import { createApplicationClient } from './application-client.ts';
+// @drasi-docs: review-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ReviewLesson } from './review-readings';
 
-export function ApplicationConnection({ origin, children }: { origin: string; children: ReactNode }) {
-  const [attempt, setAttempt] = useState(0);
-  const retry = useCallback(() => setAttempt(value => value + 1), []);
-  const scope = useMemo(() => ({ origin, attempt }), [origin, attempt]);
-  const [state, setState] = useState<{ scope: typeof scope; value: DrasiContextValue } | null>(null);
-  useEffect(() => {
-    let owner: ReturnType<typeof createApplicationClient>;
-    try {
-      owner = createApplicationClient(scope.origin);
-    } catch (error) {
-      setState({ scope, value: {
-        client: null, initialized: false, error: asDrasiError(error, {}, 'INVALID_CONFIGURATION'), retry,
-      } });
-      return;
-    }
-    let active = true;
-    let initialized = false;
-    const publish = () => {
-      const status = owner.client.getConnectionStatus();
-      if (active) setState({ scope, value: {
-        client: owner.client, initialized,
-        error: status.reconnecting ? null : status.error ?? null, retry,
-      } });
-    };
-    const stopStatus = owner.client.onConnectionStatusChange(publish);
-    void owner.connect().then(() => {
-      initialized = true;
-      publish();
-    }).catch(error => {
-      if (active && !isAbortError(error)) setState({ scope, value: {
-        client: owner.client, initialized: false, error: asDrasiError(error), retry,
-      } });
-    });
-    return () => {
-      active = false;
-      stopStatus();
-      void owner.dispose().catch(error => {
-        console.error('Cold storage cleanup failed:', asDrasiError(error).code);
-      });
-    };
-  }, [scope, retry]);
-  const value: DrasiContextValue = state?.scope === scope ? state.value
-    : { client: null, initialized: false, error: null, retry };
-  return <DrasiClientProvider value={value}>{children}</DrasiClientProvider>;
-}
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+createRoot(root).render(<StrictMode><ReviewLesson /></StrictMode>);
 ```
 
-Use `ApplicationConnection origin={window.location.origin}` instead of
-`ColdStorageConnection` in the browser entry when your host/proxy exposes the
-gateway above. Do not nest both owners for the same connection. The
-`ColdStorageDashboard` children, query IDs, and `readingOptions` stay the same.
-If the gateway runs on another local port, proxy `/cold-storage` to it using
-the same Vite configuration pattern as Chapter 4, then restart `npm run dev`.
+**Change and observe.** Tab to a **Review probe** action and press Enter.
+Focus moves to **Close review**; Tab and Shift+Tab stay in the dialog.
+Escape closes it and returns focus to the opener. Reopen it and record a local
+review: the status message confirms the reading you reviewed.
 
-**Change and observe.** With that real gateway running, load the page, then
-change the same upstream North reading. Its snapshot establishes the baseline;
-an upsert/update changes North, and an identity-only delete removes it. Use
-**Refresh query** to re-read only that subscription. Unmount the owner or
-navigate away: its subscriptions and stream close. The automated guide checks
-exercise this client against a clearly labeled test transport; they are not
-evidence of an operator's gateway deployment.
+![A real probe review dialog, with its close and local review actions.](figures/04-dialog.png)
 
-`DrasiClientProvider` itself does **not** initialize, disconnect, retry, or
-provision a client. It only binds the supplied value. A custom client must emit
-current connection state when an observer registers, deliver normalized
-snapshots/deltas, publish scoped subscription state, and return a callable
-stop handle with `retry()` and `getState()`. Do not supply a fake object cast
-to a concrete class or a stop-only subscription. The
-[core reference](../reference/core.md) specifies those contracts independently
-of React. If an app-owned **Server** client also needs Server inspection hooks,
-use `DrasiServerClientProvider`; the generic provider intentionally grants no
-query-definition or Server UI capability.
+*Figure 4. The dialog reads from the same rows as the table.*
 
-### 9. Authenticate and reconfigure safely
+Store the **selected key**, then find its current row each render. This keeps
+the dialog up to date without copying a stale row or opening another query.
+In the live capstone you will delete the selected row with curl; the dialog
+then shows its fallback message and Escape returns focus to the heading.
 
-Decide who authenticates the **snapshot request and the stream**, not just one
-of them. A same-origin cookie session is often the simplest browser path. The
-Server adapter's default REST credentials are `same-origin`; native
-EventSource uses its browser cookie behavior. Cross-origin cookies require an
-appropriate server/proxy policy and `credentials: 'include'`, not a wildcard
-CORS workaround.
+`Modal` is controlled: `onClose` requests closure, and your owner updates `open`.
+It handles the portal, focus containment, Escape, background shielding, and
+scroll ownership. Supply a meaningful title and a visible close control.
+Keyboard activation focuses the opener consistently; for an explicit
+persistent return destination, use `returnFocusRef`.
 
-For bearer headers, you need a real transport that supports them. Native
-`EventSource` cannot send arbitrary headers, expose HTTP status, or omit
-same-origin cookies. A wrapper that ignores those limitations is not a valid
-authentication implementation. The library fails unsupported native header or
-`omit` configurations with `INVALID_CONFIGURATION` when opening a stream,
-rather than silently dropping authentication.
+The review here is local UI state. A real save needs its own pending state,
+visible failure handling, and server authorization. The query retry button
+refreshes data; it does not retry your application's write.
 
-Here is a complete optional Server binding for an application that already
-owns a token-acquisition function and a header-capable SSE factory. Create
-**`src/authenticated-cold-storage.tsx`** only when you have those services:
+**Summary.** Actions express intent. The app owns selection and saves, while
+the modal owns dialog mechanics.
 
-```tsx
-// @drasi-docs: authenticated-cold-storage.tsx
-import { useMemo, type ReactNode } from 'react';
-import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
-import { DrasiError, type DrasiHeadersProvider, type EventSourceFactory } from '@drasi/ui-core';
-import type { Endpoints } from './live-cold-storage.tsx';
+<a id="10-theme-an-accessible-responsive-screen"></a>
+### 4. Theme an accessible screen
 
-export function AuthenticatedColdStorage({
-  serverUrl, endpoint, getAccessToken, openStream, children,
-}: Endpoints & {
-  getAccessToken: (signal: AbortSignal) => Promise<string>;
-  openStream: EventSourceFactory;
-  children: ReactNode;
-}) {
-  const headers = useMemo<DrasiHeadersProvider>(() => async ({ signal }) => {
-    const token = await getAccessToken(signal);
-    if (!token) throw new DrasiError('UNAUTHENTICATED');
-    const result = new Headers();
-    result.set('Authorization', ['Bearer', token].join(' '));
-    return result;
-  }, [getAccessToken]);
-  return <DrasiProvider
-    serverUrl={serverUrl} instanceId="cold-chain" queryIds={['north-room', 'south-room']}
-    reaction={{ id: 'cold-chain-events', endpoint }}
-    headers={headers} credentials="omit" eventSourceFactory={openStream}
-  >{children}</DrasiProvider>;
-}
-```
+**Goal:** apply a local theme that also reaches portaled dialogs.
+**Prerequisites:** Chapter 3.
 
-The async header provider runs for **every REST request and stream attempt**.
-A stable callback may acquire a fresh token without replacing the connection.
-The synchronous factory receives `(url, { headers, credentials, signal })`
-and must return `EventSourceLike`, applying all three options and honoring
-`close()`. Authentication can be asynchronous in the header provider, but the
-factory itself does not return a promise. Avoid a second reconnect loop inside
-the transport; the client already owns bounded recovery.
-
-**Observe authentication without exposing it.** Exercise an expired session
-on a test environment. The UI should show a typed failure and use the shared
-retry after the application repairs its session. Do not print tokens, response
-bodies, query contents, or token-bearing URLs to diagnose it. A native stream
-error has no HTTP status; the Server client revalidates through read-only REST
-before classifying recovery. REST-only inspection can use custom headers
-without opening a stream or requiring an SSE factory.
-
-For lifecycle changes, distinguish data options from callable behavior:
-
-| Change | Server provider behavior |
-| --- | --- |
-| Equivalent inline query arrays, reaction/reconnect objects, static headers, or equivalent base-URL spellings | Retains the lifecycle |
-| Material server, instance, query set, reaction, endpoint path/query, credentials, timeouts, or policy | Cancels old work, closes the old stream, and creates the replacement |
-| New `fetch`, header-provider, event-factory, or result-adapter function identity | Replaces the lifecycle; stabilize functions when their meaning is unchanged |
-| Committed query `getKey`, `transform`, or `postProcess` changes | Reprojects retained raw data without reopening the stream |
-
-The endpoint's trailing path slash and query string are meaningful; the client
-does not casually normalize them away. A direct `DrasiClient` has immutable
-configuration: its owner must replace/disconnect it. The generic owner in
-Chapter 8 makes replacement explicit, hides old-scope data immediately, and
-ignores late completion from disposed work. Never keep rows from another
-tenant visible while a replacement client is loading.
-
-In React StrictMode, development effect setup/cleanup may repeat. Constructing
-clients in committed effects and disposing them is intentional; do not fix
-that by putting a live singleton at module scope. Optional query-definition
-inspection is a separate cancellable read: mount `useDrasiQueryDefinition`
-only when needed, unmount to cancel, and remount for its local retry. Tables
-do not secretly fetch tutorial definitions or own an inspector.
-
-### 10. Theme an accessible, responsive screen
-
-Make Cold storage usable in a narrow panel, with a local dark/light switch,
-without changing other applications on the page. There is no global theme
-store or built-in dark-mode data attribute: your CSS defines the palette.
-
-Create **`src/cold-storage.css`**, then add
-`<link rel="stylesheet" href="/src/cold-storage.css" />` inside `index.html`'s
-`head`. Vite processes that stylesheet as an app asset.
+Create **`src/cold-storage.css`**:
 
 <!-- @drasi-guide-file: cold-storage.css -->
 ```css
@@ -1292,15 +602,16 @@ Create **`src/cold-storage.css`**, then add
   --drasi-color-success: #6ee7b7;
   --drasi-color-danger: #fca5a5;
 }
-.cold-storage > .display-preferences {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.cold-storage .room-grid {
+.display-preferences { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.room-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
   gap: 1rem;
+}
+@media print {
+  .cold-storage { max-inline-size: none; color: #111; background: white; }
+  .display-preferences { display: none; }
+  table, figure { break-inside: avoid; }
 }
 ```
 
@@ -1310,6 +621,7 @@ Create **`src/theme-scope.tsx`**:
 // @drasi-docs: theme-scope.tsx
 import { useState, type ReactNode } from 'react';
 import { useReducedMotion } from '@drasi/react/react';
+import './cold-storage.css';
 
 export function ThemeScope({ children }: { children: ReactNode }) {
   const [dark, setDark] = useState(false);
@@ -1326,124 +638,1235 @@ export function ThemeScope({ children }: { children: ReactNode }) {
 }
 ```
 
-Wrap the current screen with `<ThemeScope>...</ThemeScope>` in `main.tsx`,
-importing it from `./theme-scope.tsx`. The capstone entry below shows the complete
-composition.
+Replace **`src/main.tsx`**:
 
-**Change and observe.** Switch themes, open a probe review, and resize the
-window. The table and dialog inherit the scope's tokens even though the dialog
-is portaled to `body`. Tab into the table viewport and use native scrolling
-when it overflows. Enable reduced motion: values and query notices still
-update immediately. Switch to right-to-left layout and inspect controls,
-scrolling, and your custom content.
+```tsx
+// @drasi-docs: theme-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ReviewLesson } from './review-readings';
+import { ThemeScope } from './theme-scope';
 
-The table's explicit `height` overrides `style.height`; otherwise inline
-height wins over inherited `--drasi-table-height`, then the `400px` default.
-Use a custom property for `clamp()`/`calc()`, as the review table does.
-Direct `height` values accept validated lengths, percentages, nonnegative pixel
-numbers, `auto`, and the documented `var()` forms, not Tailwind classes.
-Percentage heights need a sized parent, and `0` is not a collapse flag.
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+createRoot(root).render(<StrictMode><ThemeScope><ReviewLesson /></ThemeScope></StrictMode>);
+```
 
-`Modal` copies resolved `--drasi-*` values, typography, and direction from its
-inline source, or from `themeRef`. Ancestor class/style/attribute changes,
-resize, and color-scheme changes refresh them. Arbitrary CSSOM edits without a
-refresh signal are not watched; reopen or change the source's attributes.
-The [token reference](../reference/styles.md) lists all defaults, and the
-[Modal reference](../reference/modal.md) records portal and focus details.
+**Change and observe.** Switch to dark theme, open a review, and narrow the
+window. The dialog inherits the scope even though its DOM is portaled to
+`body`. Try the direction switch and your operating system's reduced-motion
+preference. Values, notices, keyboard actions, and focus remain usable.
 
-Accessibility remains a shared responsibility. Give each table a `title` or
-`ariaLabel`, each action a meaningful label, and each dialog a title and
-visible close control. Preserve native buttons, `th`/`tr`/`td` semantics,
-`aria-sort`, and focus-visible outlines in custom renderers. Package state
-notices have status/alert roles, but rapidly changing cells are **not**
-automatically announced. Choose useful summaries rather than making every
-temperature an uncontrolled live region.
+![The actual review dialog with the local dark palette inherited through its portal.](figures/05-theme.png)
 
-The RTL switch changes layout direction, not language, number formatting, or
-the meaning of explicit physical column alignment. The fixed sort collation
-is not localization. Test your own text, slots, themes, zoom, touch targets,
-and narrow layouts with real users and assistive technology. Automated
-accessibility checks are not human screen-reader acceptance or a WCAG claim.
-Custom application animations also need reduced-motion handling; package
-row updates never wait for transition completion.
+*Figure 5. Theme tokens follow the dialog's source, rather than its DOM parent.*
 
-### 11. Use SSR and Next client boundaries
+Give tables a title or `ariaLabel`, actions descriptive labels, and dialogs a
+title plus visible controls. Preserve native buttons, table semantics,
+`aria-sort`, and focus outlines when customizing. Use useful status summaries
+instead of announcing every changing cell.
 
-You can server-render a provider-free `DataTable` with known rows. Imports and
-construction do not open connections. A live provider/hook needs a browser
-lifecycle; server rendering it does not preload a query or subscribe on the
-server. Keep function-valued props such as `rowKey`, `format`, and callbacks
-inside a client component when using React Server Components.
+The modal copies resolved `--drasi-*` tokens, typography, and direction from its
+source (or `themeRef`). Attribute changes and resize refresh them. For advanced
+CSSOM changes, reopen or change a source attribute to refresh. RTL controls
+direction; language and number formatting remain application choices.
 
-For an **existing Next App Router application**, copy the applicable lesson
-modules into `app/cold-storage/`. Add this **`cold-storage-client.tsx`** there:
+**Summary.** Scoped CSS works for tables and portals. Exercise keyboard use,
+zoom, narrow layouts, and your chosen assistive technology as part of your app's
+accessibility work.
+
+<a id="part-ii---work-with-changing-results"></a>
+## Part II - Work with real Drasi results
+
+### 5. Run the Cold storage backend
+
+**Goal:** start a real query engine and initialize four probes.
+**Prerequisites:** the installed app from Part I; internet access to GitHub and
+GHCR; **macOS Apple Silicon** or **Linux x64 with glibc**. Windows readers can
+run this backend in a Linux x64 WSL2 environment and use its localhost ports.
+Other release platforms exist but are outside this launcher's tested matrix.
+
+Choose the integration that fits your application:
+
+| Starting point | Use |
+| --- | --- |
+| Rows already in React state | `DataTable`; Part I |
+| Existing Drasi Server queries | `DrasiProvider` and `QueryTable`; this part |
+| Several presentations of one query | One `useDrasiQuery`, passing its rows down |
+| An existing application data service | The structural client in Appendix D |
+
+From `cold-storage`, stop Vite if you need that terminal, then run:
+
+```sh
+node node_modules/@drasi/react/docs/developer-guide/runtime/scripts/backend.mjs
+```
+
+This command downloads **Drasi Server 0.2.4**, verifies its release checksum,
+installs the pinned signed **HTTP source 0.2.13**, **scriptfile bootstrap
+0.2.15**, and **SSE reaction 0.3.8**, then checks their loaded versions and
+hashes. The launcher owns its files under `.cold-storage-backend` and refuses
+occupied ports rather than attaching to an unrelated service. Server 0.2.4
+and these plugins were exercised together against the client read/wire
+contracts in this book.[^server]
+
+It prints **Cold storage ready**, with **North: 2**, **South: 2**, and
+**warm-probes: 1**. Keep it running. In another terminal:
+
+```sh
+curl --fail-with-body http://127.0.0.1:8080/health &&
+curl --fail-with-body http://127.0.0.1:8082/health &&
+curl --fail-with-body http://127.0.0.1:8080/api/v1/instances/cold-chain/queries/warm-probes/results
+```
+
+Expect healthy responses and one result with `probeId: "probe-2002"` and
+`temperatureC: 9`. The URLs are:
+
+| Port | Purpose |
+| --- | --- |
+| **8080** | Server's instance-scoped read API and `/health` |
+| **8081** | SSE reaction, `/events`, with a one-second heartbeat |
+| **8082** | HTTP source, `/sources/probe-feed/events` and `/health` |
+| **5173** | Vite (or the port Vite prints); proxies reads and the stream |
+
+<a id="agree-on-the-backend-contract"></a>
+#### The complete backend inputs
+
+The launcher supplies these files. They are shown here so you can see exactly
+what is running and adapt the queries to your own domain.
+
+**`server.yaml`**
+
+```yaml
+apiVersion: drasi.io/v1
+host: "127.0.0.1"
+port: 8080
+persistConfig: false
+enableUi: false
+verifyPlugins: true
+autoInstallPlugins: false
+logLevel: info
+instances:
+  - id: cold-chain
+    sources:
+      - kind: http
+        id: probe-feed
+        autoStart: true
+        host: "127.0.0.1"
+        port: 8082
+        timeoutMs: 10000
+        bootstrapProvider:
+          kind: scriptfile
+          filePaths: ["./readings.jsonl"]
+    queries:
+      - id: north-room
+        query: >
+          MATCH (p:Probe) WHERE p.room = 'North'
+          RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+        queryLanguage: Cypher
+        autoStart: true
+        sources:
+          - sourceId: probe-feed
+      - id: south-room
+        query: >
+          MATCH (p:Probe) WHERE p.room = 'South'
+          RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+        queryLanguage: Cypher
+        autoStart: true
+        sources:
+          - sourceId: probe-feed
+      - id: warm-probes
+        query: >
+          MATCH (p:Probe) WHERE p.temperatureC >= 8
+          RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+        queryLanguage: Cypher
+        autoStart: true
+        sources:
+          - sourceId: probe-feed
+    reactions:
+      - kind: sse
+        id: cold-chain-events
+        autoStart: true
+        queries: [north-room, south-room, warm-probes]
+        host: "127.0.0.1"
+        port: 8081
+        ssePath: /events
+        heartbeatIntervalMs: 1000
+```
+
+**`readings.jsonl`**
+
+```jsonl
+{"kind":"Header","start_time":"2026-01-15T12:00:00Z","description":"Deterministic cold-storage bootstrap owned by the example"}
+{"kind":"Node","id":"north-spare","labels":["Probe"],"properties":{"probeId":"probe-1002","room":"North","temperatureC":6}}
+{"kind":"Node","id":"south-probe","labels":["Probe"],"properties":{"probeId":"probe-2001","room":"South","temperatureC":5}}
+{"kind":"Node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":3}}
+{"kind":"Node","id":"south-spare","labels":["Probe"],"properties":{"probeId":"probe-2002","room":"South","temperatureC":9}}
+```
+
+Each `MATCH` selects `Probe` nodes. `WHERE` controls membership. `RETURN`
+defines the fields the application will receive, including a stable `probeId`.
+The source's `id` (`north-probe`) identifies an input node; the projected
+`probeId` identifies the result row. Those values serve different boundaries.
+
+**Restart and cleanup.** Ctrl+C stops only this launcher-owned server. Starting
+the same command again initializes a fresh four-probe dataset; downloaded
+binaries/plugins are reused only after their hashes pass. Each run keeps its
+own `server.log`. After stopping, you may remove this app's `.cold-storage-backend`
+directory to reclaim downloads and logs. Avoid deleting another app's directory
+or stopping a service by process name. Add this directory and `node_modules/`
+to your application's `.gitignore`.
+
+**Summary.** You now own a local backend, its three listeners, and reproducible
+initial data. Return to the Vite terminal and run `npm run dev`.
+
+<a id="4-connect-to-an-existing-query"></a>
+### 6. Connect your first live table
+
+**Goal:** replace the local array with a maintained North-room answer.
+**Prerequisites:** Chapter 5's ready backend and Part I's Vite configuration.
+
+Create **`src/reading-model.ts`**. HTTP fields arrive as `unknown`, so validate
+them before treating them as application readings:
+
+```ts
+// @drasi-docs: reading-model.ts
+import type { RowKey } from '@drasi/ui-core';
+import type { UseDrasiQueryOptions } from '@drasi/react/react';
+import type { Reading } from './readings';
+export { columns, rowKey, type Reading } from './readings';
+
+export type ReadingIssue =
+  | 'probeId: expected a nonempty string'
+  | 'room: expected North or South'
+  | 'temperatureC: expected a finite number';
+
+export function createReadingOptions(report?: (issue: ReadingIssue) => void): UseDrasiQueryOptions<Reading> {
+  const invalid = (issue: ReadingIssue): never => {
+    report?.(issue);
+    throw new Error(issue);
+  };
+  const getKey: RowKey = raw => {
+    if (typeof raw.probeId !== 'string' || !raw.probeId.trim()) {
+      return invalid('probeId: expected a nonempty string');
+    }
+    return raw.probeId;
+  };
+  return {
+    getKey,
+    transform: raw => {
+      const key = getKey(raw);
+      if (raw.room !== 'North' && raw.room !== 'South') return invalid('room: expected North or South');
+      if (typeof raw.temperatureC !== 'number' || !Number.isFinite(raw.temperatureC)) {
+        return invalid('temperatureC: expected a finite number');
+      }
+      return { key: `probe:${key}`, room: raw.room, celsius: raw.temperatureC };
+    },
+  };
+}
+export const readingOptions = createReadingOptions();
+export const probeKey = readingOptions.getKey;
+```
+
+<a id="bind-the-connection-and-render-the-query"></a>
+Create **`src/live-cold-storage.tsx`**:
+
+```tsx
+// @drasi-docs: live-cold-storage.tsx
+import type { ReactNode } from 'react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { QueryTable } from '@drasi/react/components';
+import { columns, readingOptions, rowKey } from './reading-model';
+import '@drasi/react/styles.css';
+
+const queryIds = ['north-room', 'south-room', 'warm-probes'];
+export interface Endpoints { serverUrl: string; endpoint: string }
+
+export function ColdStorageConnection({ serverUrl, endpoint, children }: Endpoints & { children: ReactNode }) {
+  return <DrasiProvider serverUrl={serverUrl} instanceId="cold-chain" queryIds={queryIds}
+    reaction={{ id: 'cold-chain-events', endpoint }}>{children}</DrasiProvider>;
+}
+
+export function LiveColdStorage() {
+  return <main>
+    <h1>Cold storage</h1>
+    <QueryTable title="North room" queryId="north-room" queryOptions={readingOptions}
+      columns={columns} rowKey={rowKey} animateOnChange="celsius" height="20rem" />
+  </main>;
+}
+```
+
+Replace **`src/main.tsx`**:
+
+```tsx
+// @drasi-docs: live-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ColdStorageConnection, LiveColdStorage } from './live-cold-storage';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+const origin = window.location.origin;
+createRoot(root).render(<StrictMode>
+  <ColdStorageConnection serverUrl={origin} endpoint={new URL('/events', origin).href}>
+    <LiveColdStorage />
+  </ColdStorageConnection>
+</StrictMode>);
+```
+
+**Change and observe.** North loads at **3 C** and **6 C**. In a second terminal:
+
+```sh
+curl --fail-with-body -H 'Content-Type: application/json' \
+  -d '{"operation":"update","element":{"type":"node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":8}}}' \
+  http://127.0.0.1:8082/sources/probe-feed/events
+```
+
+`probe-1001` changes to **8.0 C** without reloading the page. This is the real
+HTTP source's payload. Omitting its optional timestamp lets the source assign
+the current time.[^feed]
+
+![The North table after a curl update processed by released Drasi Server.](figures/06-live.png)
+
+*Figure 6. The browser presents a real changed query result.*
+
+Every hook or `QueryTable` query ID must appear in **both**
+`DrasiProvider.queryIds` and the SSE reaction's `queries`.
+A subscription outside the provider's set raises `INVALID_CONFIGURATION`;
+a configured query missing from reaction membership fails validation with
+`INCOMPATIBLE_RESOURCE`. The provider validates all its configured references,
+so a bad reference can prevent the shared connection from opening.
+
+The provider owns one connection; `QueryTable` combines a query hook and a table.
+It reads existing resources. Configuration, source writes, and query definitions
+belong to the backend setup you just ran.
+
+**Summary.** A provider connects your components to an existing backend.
+`QueryTable` is the shortest route from a query ID to a live table.
+
+<a id="2-model-rows-and-preserve-identity"></a>
+### 7. Preserve identity through deletes
+
+**Goal:** see why raw identity and render identity are separate.
+**Prerequisites:** Chapter 6; keep its entrypoint.
+
+Create a third North probe:
+
+```sh
+curl --fail-with-body -H 'Content-Type: application/json' \
+  -d '{"operation":"insert","element":{"type":"node","id":"new-probe","labels":["Probe"],"properties":{"probeId":"probe-3001","room":"North","temperatureC":2}}}' \
+  http://127.0.0.1:8082/sources/probe-feed/events
+```
+
+**Change and observe.** North gains a **2.0 C** row. Delete that source node:
+
+```sh
+curl --fail-with-body -H 'Content-Type: application/json' \
+  -d '{"operation":"delete","id":"new-probe","labels":["Probe"]}' \
+  http://127.0.0.1:8082/sources/probe-feed/events
+```
+
+The row disappears. Rerun the insert to restore it, then delete it again to
+leave the original dataset ready for the next chapter.
+
+![The real North table with the newly inserted probe-3001 at 2 C.](figures/07-identity.png)
+
+*Figure 7. Inserting and deleting one source identity adds and removes one result row.*
+
+| Identity | Input | Purpose |
+| --- | --- | --- |
+| `getKey`, here `probeKey` | Raw result rows, including sparse deletes | Update the retained result set |
+| `rowKey` | Projected `Reading` objects | Preserve React rows, focus, and animation identity |
+
+A gateway can send a delete containing only `{ "probeId": "probe-3001" }`.
+`getKey` must still work. Deletion removes the retained row **before**
+projection; `transform` does not need to format the deleted row.
+The released source's input delete uses `id`; its query-result delete carries
+the projected identity. Chapter 14 tests an identity-only result delete too.
+
+Use a stable domain key, rather than an array index, the current temperature,
+a timestamp, or a backend `row_signature`. A key-changing update removes its
+old identity before adding the new one.
+
+**Summary.** Keep the key readable even on sparse deletes. Validate display
+fields only when projecting rows that remain in the answer.
+
+### 8. Watch rows enter and leave an answer
+
+**Goal:** distinguish a row update from a change in query membership.
+**Prerequisites:** Chapters 5-7 and the original four probes.
+
+Create **`src/warm-queries.tsx`**, adding a third visible query:
+
+```tsx
+// @drasi-docs: warm-queries.tsx
+import { QueryTable } from '@drasi/react/components';
+import { columns, readingOptions, rowKey } from './reading-model';
+
+export function WarmQueries() {
+  return <main>
+    <h1>Cold storage</h1>
+    {[
+      ['north-room', 'North room'], ['south-room', 'South room'], ['warm-probes', 'Warm probes'],
+    ].map(([queryId, title]) => <QueryTable key={queryId} title={title}
+      queryId={queryId} queryOptions={readingOptions} columns={columns} rowKey={rowKey}
+      animateOnChange="celsius" height="14rem" />)}
+  </main>;
+}
+```
+
+Replace **`src/main.tsx`**:
+
+```tsx
+// @drasi-docs: warm-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ColdStorageConnection } from './live-cold-storage';
+import { WarmQueries } from './warm-queries';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+const origin = window.location.origin;
+createRoot(root).render(<StrictMode>
+  <ColdStorageConnection serverUrl={origin} endpoint={new URL('/events', origin).href}>
+    <WarmQueries />
+  </ColdStorageConnection>
+</StrictMode>);
+```
+
+The query is already in `server.yaml`:
+
+```cypher
+MATCH (p:Probe) WHERE p.temperatureC >= 8
+RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+```
+
+**Change and observe.** Run these one at a time, watching all three tables:
+
+```sh
+curl --fail-with-body -H 'Content-Type: application/json' -d '{"operation":"update","element":{"type":"node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":4}}}' http://127.0.0.1:8082/sources/probe-feed/events
+curl --fail-with-body -H 'Content-Type: application/json' -d '{"operation":"update","element":{"type":"node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":8}}}' http://127.0.0.1:8082/sources/probe-feed/events
+curl --fail-with-body -H 'Content-Type: application/json' -d '{"operation":"update","element":{"type":"node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":9}}}' http://127.0.0.1:8082/sources/probe-feed/events
+curl --fail-with-body -H 'Content-Type: application/json' -d '{"operation":"update","element":{"type":"node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":4}}}' http://127.0.0.1:8082/sources/probe-feed/events
+```
+
+At 4 C, North retains the probe and Warm omits it. At 8 C it **enters** Warm.
+At 9 C it **updates while remaining present**. Back at 4 C it **leaves** Warm,
+while its North row remains. South's 9 C probe remains in Warm throughout.
+
+![North, South and Warm queries after probe-1001 enters the warm answer.](figures/08-membership.png)
+
+*Figure 8. One input change can update one answer and change another answer's membership.*
+
+**Check the configuration rule.** Temporarily remove only `'warm-probes'` from
+the `queryIds` array in `live-cold-storage.tsx`, save, and inspect the rejected
+Warm subscription in the development console. The low-level subscription
+throws `DrasiError` with code `INVALID_CONFIGURATION` synchronously; an
+application error boundary or the development overlay handles that programming
+error. Restore the ID to recover. To exercise reaction
+membership independently, stop the launcher, use a copy of its printed run's
+`server.yaml` with Warm removed from the reaction's `queries`, and start the
+verified downloaded binary with that config and the same printed plugins
+directory. The provider then reports `INCOMPATIBLE_RESOURCE`. Restore the
+original config or restart the launcher before continuing. Provider membership
+and reaction membership are separate checks.
+
+**Summary.** Push a selection into a continuous query when membership itself
+matters. A browser-only filter changes presentation; this query changes its
+maintained backend answer.
+
+<a id="5-share-one-query-across-presentations"></a>
+### 9. Share one query across presentations
+
+**Goal:** feed a count, cards, and table from one accepted view.
+**Prerequisites:** Chapter 6.
+
+Create **`src/cold-storage-dashboard.tsx`**:
+
+```tsx
+// @drasi-docs: cold-storage-dashboard.tsx
+import { useMemo, useState } from 'react';
+import { DataTable, queryTableState } from '@drasi/react/components';
+import { useDrasiClient, useDrasiConnectionStatus, useDrasiQuery, useTableSort,
+  type UseDrasiQueryOptions } from '@drasi/react/react';
+import type { DrasiError } from '@drasi/ui-core';
+import { columns, readingOptions, rowKey, type Reading } from './reading-model';
+
+export function RoomDashboard({ queryId, title, options = readingOptions }: {
+  queryId: string; title: string; options?: UseDrasiQueryOptions<Reading>;
+}) {
+  const [warmOnly, setWarmOnly] = useState(false);
+  const filtered = useMemo<UseDrasiQueryOptions<Reading>>(() => ({
+    ...options, transform: raw => {
+      const row = options.transform(raw);
+      return row && (!warmOnly || row.celsius >= 8) ? row : null;
+    },
+  }), [options, warmOnly]);
+  const query = useDrasiQuery(queryId, filtered);
+  const { retry: retryConnection } = useDrasiClient();
+  const connection = useDrasiConnectionStatus();
+  const sorting = useTableSort({ defaultSort: { column: 'celsius', direction: 'desc' } });
+  return <section aria-label={title}>
+    <h2>{title}</h2>
+    <label><input type="checkbox" checked={warmOnly}
+      onChange={event => setWarmOnly(event.target.checked)} /> Show warm probes only</label>
+    <p role="status">Query: {query.status}{query.stale ? ' (last-known data)' : ''}.
+      {' '}Visible probes: {query.data === null ? 'not known yet' : query.data.length}.</p>
+    {query.data !== null && <ul aria-label={`${title} cards`}>{query.data.map(row =>
+      <li key={row.key}>{row.key.slice(6)} - {row.room}: {row.celsius.toFixed(1)} C
+        {row.celsius >= 8 ? ' - Needs attention' : ' - In range'}</li>)}</ul>}
+    <DataTable<Reading, DrasiError> title={`${title} readings`} rows={query.data}
+      columns={columns} rowKey={rowKey} state={queryTableState(query, retryConnection)}
+      sort={sorting.sort} onSortChange={sorting.setSort} animateOnChange="celsius" height="20rem"
+      headerControls={<>
+        <button type="button" onClick={() => sorting.setSort(null)}>Input order</button>
+        <button type="button" onClick={query.retry} disabled={!connection.connected}>Refresh query</button>
+      </>}
+      renderEmpty={() => <span>No probes match this view.</span>}
+      renderError={({ error, state }) => <div role="alert">
+        <p>{error.code}: {error.message}</p>
+        {state.stale && <p>Showing last known readings.</p>}
+        {error.code === 'RESULT_PROCESSING_FAILED' || error.code === 'INVALID_ROW_KEY'
+          ? <p>Correct the projection or identity callback before refreshing.</p>
+          : state.retry && <button type="button" onClick={state.retry}>{state.retryLabel}</button>}
+      </div>} />
+  </section>;
+}
+export function ColdStorageDashboard() {
+  return <main><h1>Cold storage</h1>
+    <RoomDashboard queryId="north-room" title="North room" />
+    <RoomDashboard queryId="south-room" title="South room" />
+  </main>;
+}
+```
+
+Replace **`src/main.tsx`**:
+
+```tsx
+// @drasi-docs: dashboard-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ColdStorageConnection } from './live-cold-storage';
+import { ColdStorageDashboard } from './cold-storage-dashboard';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+const origin = window.location.origin;
+createRoot(root).render(<StrictMode>
+  <ColdStorageConnection serverUrl={origin} endpoint={new URL('/events', origin).href}>
+    <ColdStorageDashboard />
+  </ColdStorageConnection>
+</StrictMode>);
+```
+
+**Change and observe.** Select North's warm filter, then send Chapter 8's 4 C
+and 8 C updates. The count, cards, and table agree. Clearing the filter
+reprojects retained rows; it neither opens a new stream nor reads a new snapshot.
+Check the browser Network panel while toggling it.
+
+![One North query displayed as a count, filtered cards and a table.](figures/09-shared-view.png)
+
+*Figure 9. Presentations share one hook rather than duplicate subscriptions.*
+
+A provider shares a **connection**, not a query cache. Two hooks for the same
+ID create independent subscriptions and snapshot reads. Hoist one hook when
+presentations should share its accepted view.
+
+Define constant query callbacks at module scope, or use `useMemo` /
+`useCallback` when they depend on props or state. This avoids unnecessary
+projection work. It is a recommendation, not an object-identity requirement:
+`useDrasiQuery` tracks `getKey`, `transform`, and `postProcess`, not the outer
+options object's identity. Changing those callbacks intentionally reprojects
+retained rows without reopening the transport.
+
+To share flashes across two tables, hoist `useRowAnimation` too. Its
+`animations` return value goes to **`rowAnimations`**; its `revisions` goes to
+**`rowAnimationRevisions`**. Pass both, so another change with the same animation
+name can restart it. `useTableSort` similarly shares `sort` and `setSort`.
+
+**Summary.** One hook can power many presentations. Callback changes are useful
+for local filters; stable identities keep unchanged projections inexpensive.
+
+<a id="6-keep-failures-and-recovery-visible"></a>
+### 10. Keep failures and recovery visible
+
+**Goal:** trigger errors and recover while preserving useful readings.
+**Prerequisites:** Chapter 9.
+
+Create **`src/connection-notice.tsx`**:
+
+```tsx
+// @drasi-docs: connection-notice.tsx
+import { useDrasiClient, useDrasiConnectionStatus } from '@drasi/react/react';
+
+export function ConnectionNotice() {
+  const connection = useDrasiConnectionStatus();
+  const { error, retry } = useDrasiClient();
+  return <section aria-label="Connection">
+    <p role="status">Stream: {connection.connected ? 'open'
+      : connection.reconnecting ? 'reconnecting' : 'not open'}.</p>
+    {error && <div role="alert"><p>{error.code}: {error.message}</p>
+      <button type="button" onClick={retry}>Retry connection</button></div>}
+  </section>;
+}
+```
+
+Create **`src/failure-lesson.tsx`**:
+
+```tsx
+// @drasi-docs: failure-lesson.tsx
+import { useMemo, useState } from 'react';
+import { createReadingOptions, type ReadingIssue } from './reading-model';
+import { RoomDashboard } from './cold-storage-dashboard';
+import { ConnectionNotice } from './connection-notice';
+
+const report = (issue: ReadingIssue) => {
+  if (import.meta.env.DEV) console.warn('Cold storage row validation:', issue);
+};
+const diagnosticOptions = createReadingOptions(report);
+
+export function FailureLesson() {
+  const [broken, setBroken] = useState(false);
+  const options = useMemo(() => ({
+    ...diagnosticOptions, transform: (raw: Parameters<typeof diagnosticOptions.transform>[0]) => {
+      if (broken) throw new Error('Deliberate projection exercise');
+      return diagnosticOptions.transform(raw);
+    },
+  }), [broken]);
+  return <main>
+    <h1>Cold storage</h1>
+    <ConnectionNotice />
+    <label><input type="checkbox" checked={broken}
+      onChange={event => setBroken(event.target.checked)} />
+      Demonstrate a projection error (client only)</label>
+    <RoomDashboard queryId="north-room" title="North room" options={options} />
+    <RoomDashboard queryId="south-room" title="South room" />
+  </main>;
+}
+```
+
+Replace **`src/main.tsx`**:
+
+```tsx
+// @drasi-docs: failure-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ColdStorageConnection } from './live-cold-storage';
+import { FailureLesson } from './failure-lesson';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+const origin = window.location.origin;
+createRoot(root).render(<StrictMode>
+  <ColdStorageConnection serverUrl={origin} endpoint={new URL('/events', origin).href}>
+    <FailureLesson />
+  </ColdStorageConnection>
+</StrictMode>);
+```
+
+**Change and observe: projection failure.** Check the box. North retains its
+accepted readings and shows `RESULT_PROCESSING_FAILED` / `terminal-error`.
+South stays live. Uncheck it: corrected code reprojects the retained rows,
+without reconnecting. A retry while the callback is broken cannot repair it.
+Our error slot therefore offers correction advice rather than a useless retry.
+
+![An isolated North projection failure retaining last-known rows while South remains live.](figures/10-projection-error.png)
+
+*Figure 10. Terminal describes stopped automatic recovery, not an unfixable application.*
+
+Thrown callback messages are **sanitized** into typed codes. The original
+exception text is not forwarded to the UI or automatically logged. The
+development wrapper above reports only a closed set of static field/reason
+strings, such as `temperatureC: expected a finite number`. It never prints
+the raw row, a token, or arbitrary exception text. The remedy table in
+Chapter 15 maps the actual codes to useful next actions.
+
+**Change and observe: reconnect.** With readings visible, press Ctrl+C in the
+backend terminal. The notice changes to **reconnecting** and rows become
+last-known data. Restart the same backend command; a fresh snapshot restores
+the initialized readings. **Refresh query** rereads that room only; connection
+retry restarts shared work.
+
+![The real default QueryTable outage notice retaining readings behind its error state.](figures/11-reconnecting.png)
+
+*Figure 11. The default table gives errors precedence over its stale notice.*
+
+`QueryTable`'s default notice order is **error, stale, loading**. A routine
+reconnect can therefore show a red `STREAM_UNAVAILABLE` error while retaining
+rows; it does not automatically replace that with a neutral stale label.
+Our composed error slot intentionally also says **Showing last known readings**.
+An open connection and a ready query are separate observations.
+
+```mermaid
+stateDiagram-v2
+    [*] --> initial_loading
+    initial_loading --> live: snapshot accepted
+    live --> empty: accepted view has no rows
+    empty --> live: row enters the view
+    live --> reconnecting: transport error
+    reconnecting --> resynchronizing: stream reopens
+    resynchronizing --> live: new snapshot accepted
+    live --> stale_last_good_data: transient query read failure
+    stale_last_good_data --> resynchronizing: bounded retry
+    live --> terminal_error: invalid projection or exhausted recovery
+    terminal_error --> live: corrected projection
+    terminal_error --> resynchronizing: corrected resource and scoped retry
+```
+
+*Figure 12. Observable query states. Hyphens in API values correspond to underscores in this diagram.*
+
+| API state | How to exercise it | Interpretation |
+| --- | --- | --- |
+| `initial-loading` | Reload with Network throttling before the first snapshot | No accepted baseline yet |
+| `live` | Let the snapshot finish | An accepted view with rows |
+| `empty` | Enable North's warm filter while both probes are below 8 C | An accepted view containing zero rows |
+| `reconnecting` | Stop the backend while the stream is open | Shared transport recovery; retained rows are stale |
+| `resynchronizing` | Restart the backend, or press Refresh query with throttling | Another baseline is being read |
+| `stale-last-good-data` | Block only a query's `/results` request in DevTools, then refresh it | A transient query read failed; useful old rows remain |
+| `terminal-error` | Use the projection checkbox, or exhaust bounded recovery | Automatic work has stopped; correct the cause |
+
+Transient states may be brief or batched in a render. Use the Network panel
+and throttling to observe them; a UI need not paint every intermediate state.
+
+#### Stream liveness and the snapshot boundary
+
+The native transport has an **opening timeout**, not a heartbeat watchdog.
+A silent proxy can keep a stream looking open after its upstream stops. Quiet
+query data alone is normal and cannot diagnose that condition.
+The Vite configuration deliberately propagates upstream failures and enforces
+a **five-second upstream inactivity limit**, relying on this example's
+**one-second SSE heartbeat**. Any upstream bytes reset that limit. This is a
+local proxy policy, not a new library retry policy. Use an equivalent,
+verified heartbeat/streaming policy in production; a generic quiet stream
+without that heartbeat needs a different timeout.
+
+```mermaid
+sequenceDiagram
+    participant UI as Query subscriber
+    participant SSE as Open SSE transport
+    participant HTTP as Snapshot endpoint
+    UI->>SSE: Subscribe to this query
+    UI->>HTTP: GET current results
+    alt a delta overlaps the pending read
+        SSE-->>UI: Delta (counted, not replayed)
+        HTTP-->>UI: Candidate snapshot
+        Note over UI: Discard candidate; SNAPSHOT_OVERLAP
+        UI->>HTTP: Bounded retry of snapshot
+    else no overlap observed
+        HTTP-->>UI: Snapshot
+        Note over UI: Accept baseline, then report live
+        SSE-->>UI: Later delta
+        Note over UI: Update retained rows
+    end
+```
+
+*Figure 13. Subscribe first, then read. There is no shared snapshot/stream cursor.*
+
+<a id="know-what-live-does-not-guarantee"></a>
+**Guarantees in one place.** Snapshots and deltas are best-effort browser
+state, rather than a gap-free replay log. Observed overlap causes bounded
+resynchronization; too many pending changes produce `RESULT_BUFFER_OVERFLOW`.
+A delayed older delta arriving after a newer snapshot is still indistinguishable
+from a new change. Receipt times and row signatures are not ordering cursors.
+Refresh obtains another baseline. Strong ordering, replay, exactly-once effects,
+and cross-query transactions need an appropriate backend protocol.
+
+**Summary.** Preserve useful rows, label recovery honestly, and retry the
+smallest scope. Correct callback failures in code; use heartbeat-aware proxies
+to detect transport silence.
+
+### 11. React to change in application code
+
+**Goal:** show one toast when a probe becomes warm.
+**Prerequisites:** Chapters 6 and 10.
+
+Comparing `query.data` in an effect is useful for simple view comparisons, but
+it cannot reliably distinguish a resync snapshot from a live transition:
+React may batch the intermediate states. Use the existing public
+**snapshot/delta subscription contract** before rendering instead.
+This app-owned wrapper adds notifications while the normal hook still owns
+its rows.
+
+Create **`src/threshold-alerts.ts`**:
+
+```ts
+// @drasi-docs: threshold-alerts.ts
+import { accumulateResult, type QueryClient, type QueryResult, type QuerySubscription,
+  type QuerySubscriptionState, type ResultRow } from '@drasi/ui-core';
+import { probeKey, readingOptions, type Reading } from './reading-model';
+
+export function createWarmTracker() {
+  let rows: ResultRow[] = [];
+  let baseline = false;
+  let live = false;
+  return {
+    state(state: QuerySubscriptionState) { live = state.status === 'live' && !state.stale; },
+    accept(result: QueryResult): Reading[] {
+      if (result.kind === 'snapshot') {
+        rows = accumulateResult(rows, result, probeKey);
+        baseline = true;
+        return [];
+      }
+      let next = rows;
+      const alerts: Reading[] = [];
+      for (const change of result.changes) {
+        const before = next;
+        next = accumulateResult(next, { ...result, changes: [change] }, probeKey);
+        if (baseline && live && change.kind !== 'delete') {
+          const row = readingOptions.transform(change.after);
+          const previous = before.find(raw => probeKey(raw) === probeKey(change.after));
+          const prior = previous ? readingOptions.transform(previous) : null;
+          if (row && row.celsius >= 8 && (!prior || prior.celsius < 8)) alerts.push(row);
+        }
+      }
+      rows = next;
+      return alerts;
+    },
+  };
+}
+
+export function withWarmAlerts(client: QueryClient, notify: (row: Reading) => void): QueryClient {
+  return {
+    instanceId: client.instanceId,
+    getConnectionStatus: () => client.getConnectionStatus(),
+    onConnectionStatusChange: callback => client.onConnectionStatusChange(callback),
+    subscribe(queryId, onResult, onError, onState) {
+      const tracker = createWarmTracker();
+      let active = true;
+      const subscription = client.subscribe(queryId, result => {
+        if (!active) return;
+        onResult(result);
+        const alerts = tracker.accept(result);
+        if (queryId === 'north-room') alerts.forEach(notify);
+      }, error => {
+        if (active) onError?.(error);
+      }, state => {
+        if (!active) return;
+        tracker.state(state);
+        onState?.(state);
+      });
+      const stop: QuerySubscription = Object.assign(() => {
+        active = false;
+        subscription();
+      }, { retry: () => subscription.retry(), getState: () => subscription.getState() });
+      return stop;
+    },
+  };
+}
+```
+
+Create **`src/notification-lesson.tsx`**:
+
+```tsx
+// @drasi-docs: notification-lesson.tsx
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DrasiClientProvider, useDrasiClient } from '@drasi/react/react';
+import type { Reading } from './reading-model';
+import { withWarmAlerts } from './threshold-alerts';
+import { ColdStorageDashboard } from './cold-storage-dashboard';
+import { ConnectionNotice } from './connection-notice';
+
+export function NotificationLesson() {
+  const context = useDrasiClient();
+  const sequence = useRef(0);
+  const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
+  const notify = useCallback((row: Reading) => {
+    const id = ++sequence.current;
+    setToasts(current => [...current, { id,
+      text: `${row.key.slice(6)} is now warm: ${row.celsius.toFixed(1)} C.` }]);
+  }, []);
+  const client = useMemo(() => context.client ? withWarmAlerts(context.client, notify) : null,
+    [context.client, notify]);
+  useEffect(() => { setToasts([]); }, [client]);
+  const value = useMemo(() => ({ ...context, client }), [context, client]);
+  return <DrasiClientProvider value={value}>
+    <ConnectionNotice />
+    <ol aria-label="Warm notifications" aria-live="polite">
+      {toasts.map(toast => <li key={toast.id}>{toast.text}
+        <button type="button" onClick={() => setToasts(current =>
+          current.filter(item => item.id !== toast.id))}>Dismiss notification</button>
+      </li>)}
+    </ol>
+    <ColdStorageDashboard />
+  </DrasiClientProvider>;
+}
+```
+
+Replace **`src/main.tsx`**:
+
+```tsx
+// @drasi-docs: notification-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ColdStorageConnection } from './live-cold-storage';
+import { NotificationLesson } from './notification-lesson';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+const origin = window.location.origin;
+createRoot(root).render(<StrictMode>
+  <ColdStorageConnection serverUrl={origin} endpoint={new URL('/events', origin).href}>
+    <NotificationLesson />
+  </ColdStorageConnection>
+</StrictMode>);
+```
+
+**Change and observe.** Run Chapter 8's 4 C, 8 C, 9 C, 4 C sequence.
+Only the 4-to-8 transition produces a toast. Another 8 C update, a filter
+toggle, a rerender, or Refresh query adds none. Warm it again after cooling:
+another toast is appropriate. Reload while it is already warm: the new
+snapshot establishes a quiet baseline.
+
+![A real threshold-crossing toast alongside the shared North presentation.](figures/14-notification.png)
+
+*Figure 14. An observed live transition, rather than the initial answer, creates a toast.*
+
+The tracker keys raw rows by stable identity. A live deletion removes that
+identity; reinserting it warm counts as a new entry and creates one toast.
+An update that stays warm creates none. Every snapshot replaces the baseline
+quietly, including resync snapshots. Stopped subscriptions ignore late
+callbacks, and StrictMode's repeated setup gets a new quiet baseline.
+Keep one North subscription for this recipe; duplicating the subscription
+would duplicate its notification ownership.
+
+These are **ephemeral browser notifications**. They intentionally disappear
+on reload or connection-owner replacement. The delayed-event limitation from
+Chapter 10 still applies: without an ordering cursor, an old delta may resemble
+a new crossing. Put durable alerts, audit records, and business effects in a
+backend Drasi reaction with the persistence and delivery guarantees you need.
+
+**Summary.** React to normalized changes when event meaning matters, then use
+React state to present a small, useful notification.
+
+## Part III - Own the application
+
+<a id="9-authenticate-and-reconfigure-safely"></a>
+### 12. Authenticate both transports
+
+**Goal:** send fresh authentication on snapshot reads and stream openings.
+**Prerequisites:** Chapter 6 and its backend.
+
+A same-origin cookie session is often the simplest production integration.
+For bearer headers, native `EventSource` is insufficient: it cannot apply
+arbitrary headers or `credentials: 'omit'`. The following **application-owned
+fetch transport** implements the public `EventSourceFactory` contract without
+adding a package dependency or a second reconnect loop.
+
+Create **`src/fetch-event-source.ts`**:
+
+```ts
+// @drasi-docs: fetch-event-source.ts
+import { DrasiError, type EventSourceFactory, type EventSourceLike } from '@drasi/ui-core';
+
+export const openAuthenticatedStream: EventSourceFactory = (url, options) => {
+  const controller = new AbortController();
+  const listeners = new Map<string, Set<EventListener>>();
+  let closed = false;
+  const source: EventSourceLike = {
+    onopen: null, onmessage: null, onerror: null,
+    addEventListener(type, listener) {
+      let group = listeners.get(type);
+      if (!group) { group = new Set(); listeners.set(type, group); }
+      group.add(listener);
+    },
+    close() {
+      closed = true;
+      controller.abort();
+      options.signal.removeEventListener('abort', abort);
+      listeners.clear();
+    },
+  };
+  const abort = () => source.close();
+  options.signal.addEventListener('abort', abort, { once: true });
+  if (options.signal.aborted) source.close();
+
+  async function receive() {
+    if (closed) return;
+    const headers = new Headers(options.headers);
+    headers.set('Accept', 'text/event-stream');
+    const response = await fetch(url, {
+      headers, credentials: options.credentials, redirect: 'error', signal: controller.signal,
+    });
+    if (!response.ok || !response.body ||
+        !/^text\/event-stream(?:;|$)/i.test(response.headers.get('content-type') ?? '')) {
+      throw new DrasiError('STREAM_UNAVAILABLE');
+    }
+    if (closed) return;
+    source.onopen?.(new Event('open'));
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let pending = '', eventType = '', data: string[] = [], eventBytes = 0;
+    const line = (value: string) => {
+      if (value === '') {
+        if (data.length) {
+          const type = eventType || 'message';
+          const event = new MessageEvent<string>(type, { data: data.join('\n') });
+          if (type === 'message') source.onmessage?.(event);
+          for (const listener of listeners.get(type) ?? []) listener(event);
+        }
+        eventType = ''; data = []; eventBytes = 0;
+      } else if (!value.startsWith(':')) {
+        eventBytes += value.length;
+        if (eventBytes > 1_048_576) throw new DrasiError('INVALID_PAYLOAD');
+        const colon = value.indexOf(':');
+        const field = colon < 0 ? value : value.slice(0, colon);
+        const body = colon < 0 ? '' : value.slice(colon + 1).replace(/^ /, '');
+        if (field === 'event') eventType = body;
+        if (field === 'data') data.push(body);
+      }
+    };
+    try {
+      while (!closed) {
+        const chunk = await reader.read();
+        if (chunk.done) {
+          pending += decoder.decode();
+          if (pending.endsWith('\r')) line(pending.slice(0, -1));
+          break;
+        }
+        pending += decoder.decode(chunk.value, { stream: true });
+        let end;
+        while ((end = pending.search(/[\r\n]/)) >= 0) {
+          if (pending[end] === '\r' && end === pending.length - 1) break;
+          const width = pending.slice(end, end + 2) === '\r\n' ? 2 : 1;
+          const value = pending.slice(0, end);
+          pending = pending.slice(end + width);
+          line(value);
+          if (closed) return;
+        }
+        if (pending.length + eventBytes > 1_048_576) throw new DrasiError('INVALID_PAYLOAD');
+      }
+    } finally { reader.releaseLock(); }
+    if (!closed) throw new DrasiError('STREAM_UNAVAILABLE');
+  }
+  void receive().catch(() => {
+    if (!closed) {
+      source.onerror?.(new Event('error'));
+      source.close();
+    }
+  });
+  return source;
+};
+```
+
+This parser handles chunked UTF-8, multi-line data, LF/CRLF/CR lines, comments,
+unnamed `message` events, and named events. Other fields, including `retry`
+and `id`, do not create replay or reconnect behavior. It bounds a pending
+message at one million characters. Failure reaches the client's error path;
+Server revalidation classifies authentication errors through REST. `close()`
+and the supplied signal cancel the request. The **Drasi client alone owns
+bounded reconnection**, acquiring fresh headers for each attempt.
+
+Create **`src/authenticated-cold-storage.tsx`**:
+
+```tsx
+// @drasi-docs: authenticated-cold-storage.tsx
+import { useMemo, type ReactNode } from 'react';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { DrasiError, type DrasiHeadersProvider } from '@drasi/ui-core';
+import { openAuthenticatedStream } from './fetch-event-source';
+import type { Endpoints } from './live-cold-storage';
+
+export function AuthenticatedColdStorage({
+  serverUrl, endpoint, getAccessToken, children,
+}: Endpoints & {
+  getAccessToken: (signal: AbortSignal) => Promise<string>; children: ReactNode;
+}) {
+  const headers = useMemo<DrasiHeadersProvider>(() => async ({ signal }) => {
+    const token = await getAccessToken(signal);
+    if (!token) throw new DrasiError('UNAUTHENTICATED');
+    return { Authorization: `Bearer ${token}` };
+  }, [getAccessToken]);
+  return <DrasiProvider serverUrl={serverUrl} instanceId="cold-chain"
+    queryIds={['north-room', 'south-room', 'warm-probes']}
+    reaction={{ id: 'cold-chain-events', endpoint }}
+    headers={headers} credentials="omit" eventSourceFactory={openAuthenticatedStream}>
+    {children}
+  </DrasiProvider>;
+}
+```
+
+#### Run an authenticated stream
+
+Keep the backend and Vite running. In another terminal start the packaged
+**local authentication exercise gateway**:
+
+```sh
+node node_modules/@drasi/react/docs/developer-guide/runtime/scripts/auth-gateway.mjs
+```
+
+It listens on **127.0.0.1:8083**, authenticates both read and stream routes, and
+forwards the real backend's bytes. Its `/lesson-session` route issues fresh
+short-lived, in-memory exercise tokens. This is a runnable local authentication
+example, **not a production login service**. The query engine remains the
+released Drasi Server from Chapter 5.
+
+Replace **`src/main.tsx`**:
+
+```tsx
+// @drasi-docs: authenticated-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { DrasiError } from '@drasi/ui-core';
+import { AuthenticatedColdStorage } from './authenticated-cold-storage';
+import { ColdStorageDashboard } from './cold-storage-dashboard';
+import { ConnectionNotice } from './connection-notice';
+
+async function getAccessToken(signal: AbortSignal): Promise<string> {
+  const response = await fetch('/lesson-session', { signal, credentials: 'omit', cache: 'no-store' });
+  if (!response.ok) throw new DrasiError('UNAUTHENTICATED');
+  const body: unknown = await response.json();
+  if (!body || typeof body !== 'object' || !('accessToken' in body) ||
+      typeof body.accessToken !== 'string') throw new DrasiError('UNAUTHENTICATED');
+  return body.accessToken;
+}
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+const origin = window.location.origin;
+createRoot(root).render(<StrictMode>
+  <AuthenticatedColdStorage serverUrl={new URL('/secured', origin).href}
+    endpoint={new URL('/secured/events', origin).href} getAccessToken={getAccessToken}>
+    <ConnectionNotice /><ColdStorageDashboard />
+  </AuthenticatedColdStorage>
+</StrictMode>);
+```
+
+**Change and observe.** The tables load through `/secured/...`; send the
+Chapter 8 updates and watch them change. This unauthenticated request fails
+with **401**, rather than exposing a snapshot:
+
+```sh
+curl --include http://127.0.0.1:8083/secured/api/v1/instances/cold-chain/queries/north-room/results
+```
+
+Refresh a query, then stop and restart the gateway with Ctrl+C and the same
+command. Reconnection obtains a fresh token and opens a new authenticated
+stream. Inspect status codes and request counts, rather than copying token
+values into logs or screenshots.
+
+![Cold storage running through the authenticated local gateway.](figures/15-authentication.png)
+
+*Figure 15. Both snapshots and live changes pass through the exercise gateway's authentication.*
+
+`getAccessToken` and `openAuthenticatedStream` are stable module-level
+functions here. In a real parent component, use `useCallback` for a token
+function that depends on a session service. Stable identity can still return
+a fresh token on every call.
+
+| Change | Lifecycle behavior |
+| --- | --- |
+| Equivalent inline query arrays, reaction objects, static headers, or reconnect settings | Retains the provider lifecycle |
+| Material endpoint, instance, query set, credentials, or retry-policy change | Cancels old work and creates a replacement |
+| New `fetch`, headers-provider, event-factory, or result-adapter callback identity | Replaces the connection owner |
+| New query `getKey`, `transform`, or `postProcess` callback | Reprojects retained rows, without replacing the connection |
+
+Use browser session cookies or your real authentication service in production;
+keep service credentials server-side. Authenticate and authorize **both**
+snapshot and SSE endpoints. Cross-origin cookies need an explicit CORS and
+credential policy. Stop the exercise gateway with Ctrl+C when done.
+
+**Summary.** Fresh credentials and stable callbacks solve different problems.
+Apply the credentials on both transports and let one owner manage reconnects.
+
+<a id="11-use-ssr-and-next-client-boundaries"></a>
+### 13. Use SSR and Next client boundaries
+
+**Goal:** render a Next route with a concrete client boundary.
+**Prerequisites:** a Next App Router application and Chapter 6's modules.
+This path is exercised with **Next 16.4.2**, **React/React DOM 19.3.1**,
+**TypeScript 6.0.3**, `@types/react` / `@types/react-dom` **19.2.2**, and
+`@types/node` **24.19.2**. Use the tested Node toolchains from Chapter 1.
+Keep your Next manifest; do not replace it with the Vite starter.
+
+Install the same React and core tarballs in that app, then copy these exact
+files from your completed learning app:
+
+| Destination | Source |
+| --- | --- |
+| `app/cold-storage/readings.ts` | `src/readings.ts` |
+| `app/cold-storage/reading-model.ts` | `src/reading-model.ts` |
+| `app/cold-storage/live-cold-storage.tsx` | `src/live-cold-storage.tsx` |
+| `app/cold-storage/connection-notice.tsx` | `src/connection-notice.tsx` |
+| `app/cold-storage/cold-storage-dashboard.tsx` | `src/cold-storage-dashboard.tsx` |
+
+Create **`app/cold-storage/cold-storage-client.tsx`**:
 
 ```tsx
 // @drasi-docs: cold-storage-client.tsx
 'use client';
-import { ColdStorageConnection, type Endpoints } from './live-cold-storage.tsx';
-import { ColdStorageDashboard } from './cold-storage-dashboard.tsx';
+import { ColdStorageConnection, type Endpoints } from './live-cold-storage';
+import { ColdStorageDashboard } from './cold-storage-dashboard';
+import { ConnectionNotice } from './connection-notice';
 
 export function ColdStorageClient({ serverUrl, endpoint }: Endpoints) {
   return <ColdStorageConnection serverUrl={serverUrl} endpoint={endpoint}>
-    <ColdStorageDashboard />
+    <ConnectionNotice /><ColdStorageDashboard />
   </ColdStorageConnection>;
 }
 ```
 
-Add **`app/cold-storage/page.tsx`**:
+Create **`app/cold-storage/page.tsx`**:
 
 ```tsx
 // @drasi-docs: next-cold-storage-page.tsx
-import { ColdStorageClient } from './cold-storage-client.tsx';
+import { ColdStorageClient } from './cold-storage-client';
 
 export default function Page() {
-  return <ColdStorageClient
-    serverUrl="https://drasi.example"
-    endpoint="https://events.example/changes"
-  />;
+  return <ColdStorageClient serverUrl="http://127.0.0.1:8080"
+    endpoint="http://127.0.0.1:8081/events" />;
 }
 ```
 
-Replace those example URLs with the browser-reachable URLs your operator
-supplied. Only public routing information crosses this boundary, never a
-service credential. Import `@drasi/react/styles.css` in the app's existing
-root layout (and integrate your app stylesheet there). In that application's
-`tsconfig.json`, enable `allowImportingTsExtensions: true` alongside Next's
-`noEmit: true`, just as in Chapter 1, for the copied `.ts`/`.tsx` source imports.
-Do not substitute nonexistent `.js` files: Turbopack does not automatically
-resolve those explicit `.js` specifiers to these TypeScript files. Run your Next
-application's normal build and dev commands; do not paste the Vite manifest
-over an existing Next application.
+For a new minimal app, this is the complete **`app/layout.tsx`**:
 
-**Observe the boundary.** The initial HTML can contain loading state; it
-cannot contain a live query fetched by a hook effect. After hydration, the
-client opens its connection and tables receive snapshots. A `Modal`, even
-with `open={true}`, server-renders only its hidden theme anchor; its portal
-and focus ownership begin after client mount and lazy loading. Keep the lazy
-chunk reachable and use your app's React error boundary for loading failures.
-`useReducedMotion` returns `false` during SSR, then observes the browser's
-actual preference.
+```tsx
+// @drasi-docs: next-layout.tsx
+import type { ReactNode } from 'react';
+import '@drasi/react/styles.css';
 
-React entrypoints carry client directives; core does not. The direct core
-Server client can make explicit REST-only reads in Node with native/injected
-fetch, but native live EventSource execution is browser-only unless you supply
-a compatible transport. Do not treat SSR-safe imports as proof of a
-server-side live subscription or serialize a client instance through props.
-Server/hydration rows and sorting must agree; avoid locale-dependent output
-differences for an initially rendered table.
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return <html lang="en"><body>{children}</body></html>;
+}
+```
 
-### 12. Test, debug, and deploy
+For an existing layout, retain its structure and add the stylesheet import.
+Keep strict checking, `skipLibCheck: false`, `noEmit: true`, and
+`moduleResolution: "bundler"` in Next's TypeScript configuration.
+The extensionless imports work in both Vite and the actual Next build; neither
+`allowImportingTsExtensions` nor a fabricated `.js` source file is needed.
 
-Start with the smallest checks that describe your application's contract.
-Run `npm run build` in the learning app after each code change. Exercise
-Warm/Reset, sort/reset, the warm filter, projection-error recovery, and
-dialog open/close from this book. For a real integration, repeat
-warm/delete/restore against the operator's test resources; a simulated UI
-or a mocked transport is not a backend compatibility result.
+Run your Next app's `next build`, then `next start --hostname 127.0.0.1`.
+Open `/cold-storage`. These local URLs target the released backend directly;
+use your app's authorized HTTPS routes and CORS policy when deploying.
 
-For a small executable identity regression, create **`identity.test.mjs`**
-at the learning app root and run `node --test identity.test.mjs`:
+**Change and observe.** Initial HTML contains **initial-loading**. Hydration
+opens the browser connection and loads rows; sending a curl update changes
+them. Inspect View Source to distinguish the prerendered loading view from
+the hydrated result.
+
+![The actual Next route hydrated with the released backend's North and South readings.](figures/16-next.png)
+
+*Figure 16. The server renders the page boundary; the client owns live subscriptions.*
+
+A provider-free `DataTable` can render known rows on the server. Live hooks
+subscribe after client mount. Keep callback-valued props (`rowKey`, formatters,
+event handlers) inside the client boundary; pass only serializable routing
+values from the page.
+
+Modal portals, focus management, and reduced-motion detection also start in
+the browser. Deploy the lazy Modal chunk and keep an application error
+boundary for loading failures. SSR-safe imports do not themselves open a
+server-side subscription.
+
+**Summary.** Share the same model and presentations, but make the browser
+ownership boundary explicit.
+
+<a id="12-test-debug-and-deploy"></a>
+### 14. Test observable behavior
+
+**Goal:** protect your application's identity and interaction rules.
+**Prerequisites:** the completed local and live checkpoints.
+
+Run `npm run build` after changes. Create **`identity.test.mjs`** at the app
+root, then run `node --test identity.test.mjs`:
 
 <!-- @drasi-guide-file: identity.test.mjs -->
 ```js
@@ -1469,102 +1892,106 @@ test('an identity-only delete removes the current probe', () => {
 });
 ```
 
-Add application tests for invalid projections, unchanged keys during sorting,
-accepted empty views, terminal errors with retained rows, correct retry scope,
-cleanup on replacement, and dialogs whose opening row disappears. Test custom
-clients with a structural transport that records starts/stops and cancellable
-snapshot reads. Assert observable results and cleanup, not a private class
-layout. The library's packed-document checks compile this book's literal
-TypeScript in strict ESM/CJS/bundler modes and run its learning app; editing
-the prose code is therefore a tested change.
+Test your notification tracker with initial and resync snapshots, same-value
+updates, cool-to-warm crossings, sparse deletes, and warm reinsertions. Test
+the wrapper under StrictMode and after unmount. Assert that refresh and local
+filter changes create no extra toast.
 
-#### Diagnose by layer
+In browser tests, assert visible values and roles, keyboard sorting,
+`aria-sort`, row movement, focus return, and error recovery. Record stream
+openings and per-query reads: North's refresh should not refresh South or
+replace the stream. Repeat critical exercises through the real proxy and
+released backend as well as any deterministic fixtures.
+
+**Summary.** Small domain tests and real browser exercises complement each
+other. Test the behavior your users rely on, including cleanup.
+
+<a id="diagnose-by-layer"></a>
+### 15. Diagnose by layer
+
+**Goal:** turn a typed error into an actionable correction.
+**Prerequisites:** Chapter 10's failure lesson.
+
+Use the code, not message text, as the discriminator. `terminal-error` means
+automatic work stopped: the cause may be correctable configuration, a broken
+callback, a repaired session, or an exhausted transient retry budget.
+
+| Code | Meaning and remedy |
+| --- | --- |
+| `INVALID_CONFIGURATION` | Check URLs, identifiers, provider query membership, numeric retry settings, and native EventSource header limitations |
+| `INSTANCE_NOT_FOUND`, `QUERY_NOT_FOUND`, `REACTION_NOT_FOUND` | Correct the reference or restore that resource in the backend setup |
+| `INCOMPATIBLE_RESOURCE` | Check the reaction kind and whether it subscribes to every configured query |
+| `RESOURCE_STARTING` | A resource is bootstrapping; bounded retry can wait for it |
+| `RESOURCE_STOPPED`, `RESOURCE_UNAVAILABLE` | Start or repair the backend resource, then retry the appropriate scope |
+| `SERVER_UNAVAILABLE` | Inspect the REST route, connectivity, timeout, and server status |
+| `STREAM_UNAVAILABLE` | Inspect the SSE route, proxy streaming, heartbeat policy, credentials, and CORS |
+| `UNAUTHENTICATED`, `FORBIDDEN` | Restore the session or correct authorized access on both transports |
+| `INVALID_PAYLOAD` | Match the actual snapshot/wire envelope to the selected validating adapter |
+| `UNROUTABLE_RESULT` | Preserve a usable query ID and an explicit adapter routing policy |
+| `INVALID_ROW_KEY` | Correct `getKey`, including its handling of sparse deletes |
+| `RESULT_PROCESSING_FAILED` | Correct a transform, derived-state callback, or result listener; refreshing broken code cannot fix it |
+| `SNAPSHOT_OVERLAP`, `RESULT_BUFFER_OVERFLOW` | Changes overlapped a read; bounded resynchronization obtains a new baseline |
 
 | Symptom | Inspect next |
 | --- | --- |
-| Imports fail or components are unstyled | Installed tarball versions, public import paths, explicit CSS, and one React/React DOM identity |
-| REST works but the stream does not | Browser endpoint, streaming proxy, CORS/cookies, CSP `connect-src`, and EventSource's header limitations |
-| Stream open, rows not ready | Query `status`, `errorScope`, `stale`, and snapshot validation; socket health is not query readiness |
-| Deletes leave ghosts or rows disappear unexpectedly | Raw `getKey`, sparse deletes, changed update keys, and intentional `transform: ... => null` filtering |
-| Repeated reconnects after rendering | Identities of connection callback options, rather than equivalent inline data objects |
-| Retry does not help | Permanent configuration/auth/data errors, and query-local versus shared recovery |
-| Dialog blank or focus wrong | Client chunk delivery, the error boundary, controlled `open`, usable focus refs, and competing focus/scroll code |
+| Unstyled controls | The explicit CSS import and delivered stylesheet |
+| Invalid hook calls after an edit | One React identity, `optimizeDeps.include`, and a clean Vite optimization restart |
+| Socket open but rows not ready | Query state and snapshot response; open transport is separate from readiness |
+| Ghost rows after delete | Raw identity, rather than the render key or formatted fields |
+| Reconnect on every parent render | Connection callback identities, rather than equivalent inline data objects |
+| Stale dialog content | Store the selected key and find the current row |
 
-Keep diagnostics safe: record package versions, operation, typed error code,
-resource IDs where appropriate, and whether a failure is query-local or
-shared. Do not log credentials, raw result payloads, token URLs, or arbitrary
-callback exception details. Inspect only resources you are authorized to see.
+Keep logs restricted to package versions, operations, typed error codes, and
+the static field/reason diagnostics from Chapter 10. Inspect sensitive data
+only through your application's authorized tools.
 
-#### Know what "live" does not guarantee
+**Summary.** Correct the failing layer, then retry its scope.
 
-The default Server integration has **no shared snapshot cursor and stream
-resume/replay protocol**. It subscribes before fetching the snapshot. If
-changes arrive during that pending read, their order relative to the snapshot
-is ambiguous: the client discards the candidate, reports `SNAPSHOT_OVERLAP`,
-and performs bounded resynchronization. It counts pending changes rather than
-retaining unbounded row bodies. Exceeding `maxPendingChanges` reports
-`RESULT_BUFFER_OVERFLOW`; it never truncates a result and labels it live.
+<a id="deploy-the-application-not-a-development-server"></a>
+### 16. Deploy the complete application
 
-No observed overlap is only a **best-effort baseline**. An older event can be
-delayed until after a newer snapshot and temporarily replace newer row data
-without being detected or automatically marked stale. An explicit query
-refresh gets another baseline; timestamps and row signatures do not repair
-the missing causal protocol. Continuous overlap can exhaust retries. There
-is no atomic, gap-free, exactly-once, or cross-query transaction guarantee.
-Use a backend protocol with appropriate cursor/replay semantics if your
-application requires stronger guarantees.
+**Goal:** preserve working behavior outside the development server.
+**Prerequisites:** the tested application and an authorized deployment host.
 
-Each hook owns a retained raw set and projection work. Small deltas can still
-rekey/project the full set. Filtering or slicing visible rows does not bound
-the retained data; `maxPendingChanges` bounds overlap, not total rows or memory.
-There is no built-in pagination, selection, or virtualization. Narrow queries
-upstream with supported filters/projections/aggregations, avoid duplicate
-subscriptions, and measure realistic row counts, burst sizes, memory,
-projection/render/layout time, and retry frequency on target devices. No
-universal row-count or throughput promise follows from the example.
+Run `npm run build` and deploy Vite's **entire `dist` directory**, including
+CSS and shared/lazy chunks. A missing Modal chunk must not receive an HTML
+route fallback. Set the appropriate base path for your host.
 
-#### Deploy the application, not a development server
+Vite's proxy configuration is development-only. Production needs its own
+same-origin gateway or authorized HTTPS REST/SSE URLs. Stream
+`text/event-stream` without buffering or caching, propagate upstream closure,
+and verify your chosen heartbeat and idle-timeout contract. The client refuses
+REST redirects, so configure the final read URL directly.
 
-Run `npm run build` and deploy the learning app's **entire `dist` directory**,
-including shared/lazy chunks and CSS. A route fallback that returns HTML for
-a missing Modal JavaScript chunk is a deployment error. Configure the actual
-base path for your host. The Vite development proxy is not part of `dist`;
-production needs its own same-origin gateway or authorized HTTPS REST/SSE
-URLs.
+Authorize both transports and protect business writes independently.
+Configure appropriate HTTPS, CSP `connect-src`, MIME, and framing policies.
+Account for layout and portal styles in your tested CSP. Render untrusted
+fields as React text rather than injecting HTML.
 
-The production proxy must stream `text/event-stream` without buffering or
-caching and use suitable long-connection timeouts. Expose the correct REST
-URL directly: the Server client deliberately refuses REST redirects.
-Restrict backend access to the intended users, instances, and resources on
-**both** transports. Protect business writes separately.
+Each query hook retains raw rows and performs projection work. A visible
+filter does not reduce that retained set; `maxPendingChanges` bounds overlap,
+not total rows. Narrow queries upstream and measure realistic bursts, memory,
+layout, and retry frequency on your target devices. The controls provide no
+built-in virtualization or universal row-count promise.
 
-Configure host security headers, including appropriate CSP script/style and
-`connect-src` rules, HTTPS/HSTS scope, MIME protection, and framing policy.
-Account for the controls' inline layout/portal styles in your tested CSP;
-the package does not supply a universal policy or send HTTP headers. Render
-untrusted data as React text, not unsanitized HTML. Keep service credentials
-on the server and browser authentication in the app's own session flow.
+**Summary.** Deploy all assets and qualify the real network path. Recheck
+auth, recovery, keyboard use, zoom, and screen-reader behavior in your app.
 
-Before shipping, verify the real proxy, authorization, reconnect behavior,
-lazy chunks, empty/error states, cleanup, keyboard use, zoom, themes, and
-human screen-reader behavior. This repository's automated evidence does not
-complete your app's human accessibility acceptance.
+<a id="13-capstone-a-cold-storage-dashboard"></a>
+### 17. Capstone: a Cold storage dashboard
 
-### 13. Capstone: a Cold storage dashboard
+**Goal:** combine shared queries, reviews, themes, and scoped recovery.
+**Prerequisites:** Chapters 3, 4, 6, and 10; a running backend.
 
-Finish with one connection owner, one query subscription per room, a summary
-and reviewable table fed by that subscription, scoped themes, explicit
-connection/query states, and no client-side provisioning. Leave out the
-deliberate projection-error checkbox.
-
-Create **`src/cold-storage-capstone.tsx`** using the files you already wrote:
+Create **`src/cold-storage-capstone.tsx`**:
 
 ```tsx
 // @drasi-docs: cold-storage-capstone.tsx
 import { queryTableState } from '@drasi/react/components';
 import { useDrasiClient, useDrasiConnectionStatus, useDrasiQuery } from '@drasi/react/react';
-import { readingOptions } from './reading-model.ts';
-import { ReviewReadings } from './review-readings.tsx';
+import { readingOptions } from './reading-model';
+import { ReviewReadings } from './review-readings';
+import { ConnectionNotice } from './connection-notice';
 
 function Room({ queryId, title }: { queryId: string; title: string }) {
   const query = useDrasiQuery(queryId, readingOptions);
@@ -1578,22 +2005,13 @@ function Room({ queryId, title }: { queryId: string; title: string }) {
         : query.data.filter(row => row.celsius >= 8).length}</dd>
     </dl>
     <button type="button" onClick={query.retry} disabled={!connection.connected}>Refresh {title}</button>
-    <ReviewReadings
-      title={title} rows={query.data} state={queryTableState(query, retryConnection)}
-    />
+    <ReviewReadings title={title} rows={query.data} state={queryTableState(query, retryConnection)} />
   </article>;
 }
-
 export function ColdStorageBoard() {
-  const connection = useDrasiConnectionStatus();
-  const { error, retry } = useDrasiClient();
   return <main>
     <h1>Cold storage</h1>
-    <p role="status">Stream: {connection.connected ? 'open' : 'not open'}.</p>
-    {error && <div role="alert">
-      <p>{error.code}: {error.message}</p>
-      <button type="button" onClick={retry}>Retry connection</button>
-    </div>}
+    <ConnectionNotice />
     <div className="room-grid">
       <Room queryId="north-room" title="North room" />
       <Room queryId="south-room" title="South room" />
@@ -1602,15 +2020,15 @@ export function ColdStorageBoard() {
 }
 ```
 
-For the **Server-backed** capstone, replace **`src/main.tsx`** with:
+Replace **`src/main.tsx`**:
 
 ```tsx
 // @drasi-docs: capstone-main.tsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ColdStorageConnection } from './live-cold-storage.tsx';
-import { ColdStorageBoard } from './cold-storage-capstone.tsx';
-import { ThemeScope } from './theme-scope.tsx';
+import { ColdStorageConnection } from './live-cold-storage';
+import { ColdStorageBoard } from './cold-storage-capstone';
+import { ThemeScope } from './theme-scope';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing application root');
@@ -1622,130 +2040,109 @@ createRoot(root).render(<StrictMode>
 </StrictMode>);
 ```
 
-For the application gateway, import `ApplicationConnection` from
-`./application-connection.tsx` instead of `ColdStorageConnection`, and wrap
-the same children with `<ApplicationConnection origin={origin}>`. The board
-does not depend on a Server type. Keep the stylesheet link from Chapter 10
-and the proxy routes appropriate to the selected backend.
-
-Run `npm run build`, then `npm run dev`. With a real test backend, send
-warm/delete/restore again. Confirm the summary and table agree, a query-local
-refresh does not restart the other room, review dialogs follow current rows,
-and disconnected data is visibly last-known. A local review disappears on
-reload: it was deliberately not a durable backend action.
-
-The canonical repository workspace also offers the complete cold-storage
-presentations and an explicitly simulated showcase. From `drasi-ui`:
+**Change and observe.** Send a warm update and compare the summary and table.
+Refresh North and check that South performs no new snapshot read. Open a review
+for `probe-2001`, then delete it:
 
 ```sh
-npm run build -w drasi-react-cold-storage-example
-npm start -w drasi-react-cold-storage-example
+curl --fail-with-body -H 'Content-Type: application/json' \
+  -d '{"operation":"delete","id":"south-probe","labels":["Probe"]}' \
+  http://127.0.0.1:8082/sources/probe-feed/events
 ```
 
-Open `http://127.0.0.1:15373/showcase.html` for the labeled provider-free
-showcase. It is useful for comparing states, themes, and dialog behavior,
-not for validating a backend. The real pages use the **same** source/query/
-reaction setup from Chapter 4. To run their validating local proxy against
-an already prepared runtime:
+The dialog shows **no longer in the current view**. Escape returns focus to
+South's heading because its opener is gone. Restore it:
 
 ```sh
-export DRASI_SERVER_URL=http://127.0.0.1:8080
-export DRASI_SSE_URL=http://127.0.0.1:8081
-export DRASI_FEED_URL=http://127.0.0.1:8082
-export DRASI_RUNTIME_PROVENANCE=/absolute/path/to/released-runtime-provenance.json
+curl --fail-with-body -H 'Content-Type: application/json' \
+  -d '{"operation":"insert","element":{"type":"node","id":"south-probe","labels":["Probe"],"properties":{"probeId":"probe-2001","room":"South","temperatureC":5}}}' \
+  http://127.0.0.1:8082/sources/probe-feed/events
+```
+
+Stop and restart the backend. The shared `ConnectionNotice` includes the
+**reconnecting** state, and each room labels retained readings while recovering.
+
+![The running capstone with summaries, themed tables and scoped refresh controls.](figures/17-capstone.png)
+
+*Figure 17. One connection owner, one query per room, and multiple shared presentations.*
+
+The repository's canonical React example uses this same backend dataset.
+From its checkout, the complete real example is:
+
+```sh
+npm run build -w drasi-react-cold-storage-example &&
 npm run start:live -w drasi-react-cold-storage-example
 ```
 
-The operator-owned provenance file contains `serverVersion`, `sseVersion`,
-and a 64-character lowercase `binarySha256` from the verified runtime. The
-example records that evidence; it does not remotely attest the binary.
-The live pages `/`, `/query-table.html`, and `/hooks.html` compare hoisted
-DataTable, QueryTable, and headless presentations. The
-[example workspace reference](https://github.com/drasi-project/drasi-ui/blob/main/examples/react/README.md)
-records its optional live test and safe run cleanup; none of those require
-cloning Server or building Rust in the frontend workspace.
+That command launches its own verified backend unless you explicitly supply
+external service URLs. Its `/`, `/query-table.html`, and `/hooks.html` pages
+compare the three presentations. `npm start` in that workspace is instead a
+clearly labeled provider-free showcase.
 
-You now have a complete browser application and a clear ownership boundary.
-Choose the simplest sufficient integration: supplied rows for local data,
-QueryTable for a straightforward live table, a hoisted hook for shared
-presentations, and an app-owned client when the connection already belongs
-to your service. Stronger backend consistency, durable business effects,
-and resource administration remain separate engineering work.
+**Summary.** You can now build local controls, run a real backend, distinguish
+membership from row updates, react in code, and own the application's recovery
+and deployment choices.
 
 ## Appendix A: Vocabulary
 
-| Term | Meaning in this library |
+| Term | Meaning |
 | --- | --- |
-| Continuous query | A backend-maintained answer that changes as its input changes |
-| Source | A backend component that supplies input changes |
-| Reaction / delivery | A backend consumer that exposes or acts on results; Server's SSE reaction is one integration |
-| Snapshot / baseline | A current set of result rows accepted by one subscriber |
-| Delta | Normalized upsert, update, or delete changes after/beside a snapshot |
-| Raw row | An object with unknown fields received through the client contract |
-| Projection | Validating a raw row and converting or hiding it for the application |
-| Raw identity / `getKey` | Stable domain identity used before projection, including sparse deletes |
-| Render identity / `rowKey` | Identity of a projected row in React and animation state |
-| Client | A data/subscription/connection-observation boundary, not necessarily a Server class |
-| Provider | A React binding that makes a client available; ownership depends on the chosen provider |
-| Subscription | One independent result baseline, change/recovery lifecycle, and cleanup handle |
-| Stale / last-good | Useful previously accepted data retained while current recovery/error state is visible |
-| Query-local retry | Refresh one subscription, without reopening the shared connection |
-| Shared retry | Restart the owning connection lifecycle; potentially affects all its queries |
-| DTO | A data-transfer object describing a wire/read response, not permission or a creation command |
-| SSR / hydration | Produce initial HTML on a server, then attach the browser React lifecycle |
+| Continuous query | A backend-maintained answer that changes with its input |
+| Source | A backend component supplying changes, such as the HTTP source |
+| Reaction | A backend result consumer; SSE delivers results to this app |
+| Snapshot / baseline | Current rows accepted by one subscriber |
+| Delta | An upsert, before/after update, or delete after/beside a snapshot |
+| Projection | Validation and conversion from unknown fields to application rows |
+| `getKey` / `rowKey` | Raw result identity / React render identity |
+| Provider | A React binding to a client; the chosen owner controls its lifecycle |
+| Subscription | An independent result baseline, recovery state, and stop handle |
+| Stale | Useful last-good data while current work is recovering or failing |
+| SSR / hydration | Initial server HTML followed by browser React ownership |
 
 ## Appendix B: Imports and reference
 
-Import public entrypoints, never `src`, `dist`, or hashed chunks. React and
-React DOM are required peers of `@drasi/react`; the qualified runtime targets
-are **18.3.1** and **19.3.1**. Core/styles have no renderer peers. Use one
-React identity in an application.
+Use public entrypoints and one React/React DOM identity. The exercised renderer
+versions are **18.3.1** and **19.3.1**; core and styles have no renderer peers.
 
 | Import | Use |
 | --- | --- |
-| `@drasi/react/components` | `DataTable`, `QueryTable`, `Modal`, `queryTableState`, typed columns/actions/slots, optional decorative icons |
-| `@drasi/react/react` | Generic provider, query/status hooks, sorting, animation, reduced motion |
-| `@drasi/react/adapters/drasi-server` | Optional Server-owning provider and Server inspection bindings |
-| `@drasi/ui-core` | Structural clients, normalized results, generic SSE, reducers and query/table algorithms; no React |
-| `@drasi/ui-core/adapters/drasi-server` | Server read client, DTOs, explicit wire adapters and Server-default SSE convenience |
-| `@drasi/react/client` | Data-only compatibility re-export of core; install core directly to avoid installing React |
-| `@drasi/react` | Generic convenience exports, never the Server adapters; not a React-free entrypoint |
-| `@drasi/react/styles.css` | Explicit control CSS; mixed-framework apps can instead import `@drasi/ui-styles/styles.css` once |
+| `@drasi/react/components` | Tables, Modal, state helpers, and typed columns/actions/slots |
+| `@drasi/react/react` | Generic provider, query/status hooks, sorting and animation |
+| `@drasi/react/adapters/drasi-server` | Server-owning provider and Server inspection bindings |
+| `@drasi/ui-core` | Structural contracts, SSE, reducers, and query algorithms |
+| `@drasi/ui-core/adapters/drasi-server` | Server read client, DTOs, and explicit wire adapters |
+| `@drasi/react/client` | Data-only compatibility re-export of core |
+| `@drasi/react` | Generic convenience exports, including core types; Server adapters are separate |
+| `@drasi/react/styles.css` | Explicit control CSS |
+| `@drasi/ui-styles/styles.css` | Alternative shared CSS for mixed-framework applications |
 
-The [concise reference index](../reference/README.md) leads to
+The [reference index](../reference/README.md) provides detailed
 [DataTable](../reference/data-table.md), [QueryTable](../reference/query-table.md),
-[Modal](../reference/modal.md), [hooks](../reference/bindings.md),
+[Modal](../reference/modal.md), [bindings](../reference/bindings.md),
 [styles](../reference/styles.md), [core](../reference/core.md),
-[Server client](../reference/server-client.md),
-[Server provider](../reference/server-provider.md), and the
-[exact symbol/entrypoint map](../reference/exports.md).
-These are lookup references, not prerequisite lessons.
+[Server client](../reference/server-client.md), and
+[Server provider](../reference/server-provider.md) contracts.
+Essential setup is inline in this book; these references provide deeper lookup.
+The book, figures, backend helper, and reference copies are available offline
+inside the installed package.
 
-Each detailed reference is authored beside its implementation and copied with
-validated link rewriting into the package. The guide and all essential
-reference links work in GitHub and in
-`node_modules/@drasi/react/docs/developer-guide/README.md`, offline.
-Repository-only examples and historical evidence are explicitly external
-links; private source/test apps are not shipped.
-
-[Migration history](../reference/migration.md) preserves earlier import and
-behavior changes. [Validation and compatibility](../reference/validation.md)
-separates technical evidence from pending human acceptance. Old
-`getting-started.md`, `connection.md`, `reference.md`, `testing.md`, and
-`migration.md` bookmarks retain their headings and point to the new homes.
-There is one learning path: this book.
+**Reading on paper.** A prepared preview includes an offline
+`developer-guide.html` with wrapped code, embedded screenshots, and text-first
+diagram alternatives that preserve flow, transitions, and sequence branches.
+From the source checkout you can produce the same edition with
+`npm run docs:print`, then open `.artifacts/react-developer-guide.html` and use
+your browser's Print command. Captions and source notes travel with the book.
 
 ## Appendix C: Installation after publication
 
-**These registry commands apply only after an approved release is actually
-published.** Until then, use Chapter 1's source/tarball route. They are retained
-as tested installation contracts, not a claim about current npm availability.
+**Use these commands only once an npm release actually exists.** Until then,
+Chapter 1's verified tarballs are the executable route.
 
-For controls and React hooks in an existing supported React application:
+For this guide's app, which directly imports both React and core:
 
 ```sh
 # @drasi-install: react
-npm install @drasi/react
+npm install @drasi/react @drasi/ui-core
 ```
 
 For a renderer-free client and shared stylesheet:
@@ -1755,7 +2152,256 @@ For a renderer-free client and shared stylesheet:
 npm install @drasi/ui-core @drasi/ui-styles
 ```
 
-Import CSS explicitly for rendered controls. No package install hook rebuilds
-the library; ESM/CommonJS, matching declarations, maps, styles, and this guide
-are already in the artifacts. Commit the application's lockfile and review
-the exact release compatibility evidence before changing a supported version.
+Applications importing only React's public re-exports can depend only on
+`@drasi/react`. Declare every package your own code imports, including with
+pnpm. Keep your application lockfile and import CSS explicitly.
+
+For **pnpm 12.14.0 with unpublished tarballs**, also map React's exact internal
+core version to the same verified archive. In the app root, create
+`pnpm-workspace.yaml` (adjust the file path to your download location):
+
+```yaml
+overrides:
+  "@drasi/ui-core@0.1.0-beta.1": "file:../drasi-ui/.artifacts/learning/drasi-ui-core-0.1.0-beta.1.tgz"
+```
+
+Then use `pnpm add` with the same two tarball paths from Chapter 1 and run
+`pnpm run build`. This mapping is for the verified, version-matching unpublished
+sibling only; it changes no React peer range. Once the cohort is published,
+ordinary registry installation no longer needs that mapping.
+
+<a id="8-own-a-client-without-drasi-server"></a>
+## Appendix D: Bring your own gateway
+
+**Goal:** connect an existing application service without Server resource DTOs.
+**Prerequisites:** that service must already provide the endpoints below.
+This advanced adapter is an alternative to Part II's Server binding, not a
+second query engine or an implementation of these service endpoints.
+
+| Endpoint | Application-owned contract |
+| --- | --- |
+| `GET /cold-storage/queries/{queryId}` | JSON `{ "rows": [...] }` with the current object rows |
+| `GET /cold-storage/events` | SSE with normalized application upsert/update/delete JSON |
+| Both routes | Enforce the application's authorized session |
+
+A stream result's `data` can be:
+
+```json
+{"queryId":"north-room","op":"upsert","after":{"probeId":"probe-1001","room":"North","temperatureC":8}}
+```
+
+An `update` has object-valued `before` and `after`; a `delete` has `before`,
+possibly only `{ "probeId": "probe-1001" }`. A heartbeat is
+`{ "type": "heartbeat", "ts": 123 }`.
+The transport accepts **unnamed `message` events** and **named `query-result`
+events**. Other event names are ignored; naming a result `update` will not route
+it. Use a validating adapter for the data envelope.
+
+Create **`src/application-client.ts`**:
+
+```ts
+// @drasi-docs: application-client.ts
+import { SSEClient, DrasiError, asDrasiError, subscribeToQuery,
+  type EventSourceFactory, type QueryClient, type QuerySubscription,
+  type ResultAdapter, type ResultChange, type ResultRow } from '@drasi/ui-core';
+
+const queryIds = ['north-room', 'south-room', 'warm-probes'];
+const object = (value: unknown): value is ResultRow =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+export const applicationEvents: ResultAdapter = (payload, context) => {
+  const invalid = () => new DrasiError('INVALID_PAYLOAD', context);
+  if (!object(payload)) throw invalid();
+  if (payload.type === 'heartbeat') {
+    if (typeof payload.ts !== 'number' || !Number.isFinite(payload.ts)) throw invalid();
+    return [];
+  }
+  if (typeof payload.queryId !== 'string' || !queryIds.includes(payload.queryId)) {
+    throw new DrasiError('UNROUTABLE_RESULT', context);
+  }
+  const row = (value: unknown): ResultRow => {
+    if (!object(value)) throw invalid();
+    return value;
+  };
+  let change: ResultChange;
+  switch (payload.op) {
+    case 'upsert': change = { kind: 'upsert', after: row(payload.after) }; break;
+    case 'update': change = { kind: 'update', before: row(payload.before), after: row(payload.after) }; break;
+    case 'delete': change = { kind: 'delete', before: row(payload.before) }; break;
+    default: throw invalid();
+  }
+  return [{ kind: 'delta', queryId: payload.queryId, changes: [change], receivedAt: context.receivedAt }];
+};
+
+export function createApplicationClient(origin: string, transport: {
+  fetch?: typeof fetch; eventSourceFactory?: EventSourceFactory;
+} = {}) {
+  const url = new URL(origin);
+  if (!['http:', 'https:'].includes(url.protocol) || url.origin !== origin) {
+    throw new DrasiError('INVALID_CONFIGURATION');
+  }
+  const stream = new SSEClient({
+    resultAdapter: applicationEvents, eventSourceFactory: transport.eventSourceFactory,
+    credentials: 'same-origin',
+  });
+  const request = transport.fetch ?? globalThis.fetch.bind(globalThis);
+  const subscriptions = new Set<QuerySubscription>();
+  async function snapshot(queryId: string, signal: AbortSignal): Promise<ResultRow[]> {
+    const details = { resourceKind: 'query', resourceId: queryId } as const;
+    let status: number | undefined;
+    try {
+      const response = await request(new URL(`/cold-storage/queries/${encodeURIComponent(queryId)}`, origin), {
+        method: 'GET', credentials: 'same-origin', redirect: 'error',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+      });
+      status = response.status;
+      if (!response.ok) throw new DrasiError(
+        status === 401 ? 'UNAUTHENTICATED' : status === 403 ? 'FORBIDDEN'
+          : status === 408 || status === 429 || status >= 500 ? 'SERVER_UNAVAILABLE' : 'INVALID_PAYLOAD',
+        { ...details, status });
+      let body: unknown;
+      try { body = await response.json(); }
+      catch (error) {
+        if (error instanceof SyntaxError) throw new DrasiError('INVALID_PAYLOAD', { ...details, status });
+        throw error;
+      }
+      if (!object(body) || !Array.isArray(body.rows) || !body.rows.every(object)) {
+        throw new DrasiError('INVALID_PAYLOAD', { ...details, status });
+      }
+      return body.rows;
+    } catch (error) {
+      if (signal.aborted) throw signal.reason;
+      throw asDrasiError(error, { ...details, status }, 'SERVER_UNAVAILABLE');
+    }
+  }
+  const client: QueryClient = {
+    getConnectionStatus: () => stream.getConnectionStatus(),
+    onConnectionStatusChange: callback => stream.onConnectionStatusChange(callback),
+    subscribe(queryId, onResult, onError, onStateChange) {
+      if (!queryIds.includes(queryId)) throw new DrasiError('INVALID_CONFIGURATION');
+      let subscription: QuerySubscription | undefined;
+      subscription = subscribeToQuery({
+        queryId, source: stream, snapshot: signal => snapshot(queryId, signal),
+        details: { resourceKind: 'query', resourceId: queryId },
+        maxRetries: 10, retryDelay: 1000, maxRetryDelay: 30_000, maxPendingChanges: 10_000,
+        onStop: () => { if (subscription) subscriptions.delete(subscription); },
+      }, onResult, onError, onStateChange);
+      subscriptions.add(subscription);
+      return subscription;
+    },
+  };
+  return {
+    client,
+    connect: () => stream.connect(queryIds, new URL('/cold-storage/events', origin).href),
+    dispose: async () => {
+      for (const subscription of subscriptions) subscription();
+      await stream.disconnect();
+    },
+  };
+}
+```
+
+Create **`src/application-connection.tsx`**:
+
+```tsx
+// @drasi-docs: application-connection.tsx
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DrasiClientProvider, type DrasiContextValue } from '@drasi/react/react';
+import { asDrasiError, isAbortError } from '@drasi/ui-core';
+import { createApplicationClient } from './application-client';
+
+export function ApplicationConnection({ origin, children }: { origin: string; children: ReactNode }) {
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt(value => value + 1), []);
+  const scope = useMemo(() => ({ origin, attempt }), [origin, attempt]);
+  const [state, setState] = useState<{ scope: typeof scope; value: DrasiContextValue } | null>(null);
+  useEffect(() => {
+    let owner: ReturnType<typeof createApplicationClient>;
+    try { owner = createApplicationClient(scope.origin); }
+    catch (error) {
+      setState({ scope, value: {
+        client: null, initialized: false, error: asDrasiError(error, {}, 'INVALID_CONFIGURATION'), retry,
+      } });
+      return;
+    }
+    let active = true, initialized = false;
+    const publish = () => {
+      const status = owner.client.getConnectionStatus();
+      if (active) setState({ scope, value: {
+        client: owner.client, initialized,
+        error: status.reconnecting ? null : status.error ?? null, retry,
+      } });
+    };
+    const stopStatus = owner.client.onConnectionStatusChange(publish);
+    void owner.connect().then(() => { initialized = true; publish(); }).catch(error => {
+      if (active && !isAbortError(error)) setState({ scope, value: {
+        client: owner.client, initialized: false, error: asDrasiError(error), retry,
+      } });
+    });
+    return () => {
+      active = false;
+      stopStatus();
+      void owner.dispose().catch(error => console.error('Cold storage cleanup failed:', asDrasiError(error).code));
+    };
+  }, [scope, retry]);
+  const value: DrasiContextValue = state?.scope === scope ? state.value
+    : { client: null, initialized: false, error: null, retry };
+  return <DrasiClientProvider value={value}>{children}</DrasiClientProvider>;
+}
+```
+
+Use this complete **`src/main.tsx`** checkpoint when your service exposes the
+gateway contract on the application's origin:
+
+```tsx
+// @drasi-docs: application-main.tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ApplicationConnection } from './application-connection';
+import { ColdStorageDashboard } from './cold-storage-dashboard';
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing application root');
+createRoot(root).render(<StrictMode>
+  <ApplicationConnection origin={window.location.origin}><ColdStorageDashboard /></ApplicationConnection>
+</StrictMode>);
+```
+
+The owner creates, connects, retries, and disposes the client. The generic
+`DrasiClientProvider` only binds its value. Each subscription supplies a
+callable stop handle with `retry()` and `getState()`, and publishes current
+connection/query state. Keep this contract when adapting your service.
+
+**Summary.** A structural client lets the same hooks and presentations work
+with your service, while keeping service-specific wire validation and
+connection ownership explicit.
+
+## Source notes
+
+[^tools]: Vite 7.3.7 declares Node `^20.19.0 || >=22.12.0`; the book qualifies
+    22.20.0 and 24.19.0 rather than claiming every permitted version was tested.
+    React's browser packages and maintainer tooling have different requirements.
+    The pinned manifests and lockfile in the source checkout record the exact
+    build inputs.
+
+[^server]: Drasi Server's real
+    [0.2.4 release](https://github.com/drasi-project/drasi-server/releases/tag/0.2.4)
+    supplies
+    [macOS arm64](https://github.com/drasi-project/drasi-server/releases/download/0.2.4/drasi-server-aarch64-apple-darwin)
+    and
+    [Linux x64 glibc](https://github.com/drasi-project/drasi-server/releases/download/0.2.4/drasi-server-x86_64-linux-gnu)
+    binaries. Server source is `a977b6125395f9abbbee4a1f271ca6f84d17daed`.
+    Plugin source is `22125bf1d66062533b832a166fe4a51079a23d6e`;
+    [its reviewed Server-side pins](https://github.com/drasi-project/drasi-server/blob/a977b6125395f9abbbee4a1f271ca6f84d17daed/examples/trading/app/test/live/plugins-darwin-arm64.lock)
+    record the signed component versions. The launcher carries the exact release
+    and plugin checksums, verifies them automatically, and records its own run.
+    Earlier compatibility evidence remains under its original versions in the
+    [compatibility reference](../reference/validation.md#verified-compatibility).
+
+[^feed]: The released HTTP source's
+    [event model](https://github.com/drasi-project/drasi-core/blob/22125bf1d66062533b832a166fe4a51079a23d6e/components/sources/http/src/models.rs)
+    defines `insert` / `update` with an `element`, `delete` with an `id` and
+    optional labels, and an optional nanosecond timestamp. These exercises omit
+    the timestamp and use the source's current-time behavior. Screenshots in
+    this book are captured from the running local lessons and released backend;
+    diagrams describe the protocol rather than substitute for those runs.

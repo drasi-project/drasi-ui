@@ -55,17 +55,17 @@ async function installedPackages(directory) {
   return result;
 }
 
-async function compile({ directory, output, label, files, mode, boundary, allowImportingTsExtensions = false }) {
+async function compile({ directory, output, label, files, mode, boundary, application = false }) {
   const ts = createRequire(join(directory, 'package.json'))('typescript');
   const packages = await installedPackages(directory);
   const options = {
-    noEmit: true, strict: true, skipLibCheck: false, noUncheckedSideEffectImports: true, types: [],
+    noEmit: true, strict: true, skipLibCheck: false, noUncheckedSideEffectImports: true,
+    types: application ? ['vite/client'] : [],
     target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
     lib: ['lib.es2022.d.ts', 'lib.dom.d.ts', 'lib.dom.iterable.d.ts'],
     module: mode === 'bundler' ? ts.ModuleKind.ESNext : ts.ModuleKind.NodeNext,
     moduleResolution: mode === 'bundler' ? ts.ModuleResolutionKind.Bundler : ts.ModuleResolutionKind.NodeNext,
     traceResolution: true,
-    ...(allowImportingTsExtensions ? { allowImportingTsExtensions: true } : {}),
   };
   const retained = join(output, label, mode);
   await mkdir(retained, { recursive: true });
@@ -87,6 +87,7 @@ async function compile({ directory, output, label, files, mode, boundary, allowI
   await save(join(retained, 'compiler-options.json'), options);
   const trace = [];
   const host = ts.createCompilerHost(options);
+  host.getCurrentDirectory = () => directory;
   host.trace = message => trace.push(message);
   const program = ts.createProgram(files, options, host);
   const diagnostics = ts.getPreEmitDiagnostics(program);
@@ -137,22 +138,21 @@ async function compileFixture(directory, output, name, boundary) {
   return result;
 }
 
-async function compileDocuments(directory, output, examples, label, boundary, allowImportingTsExtensions = false) {
+async function compileDocuments(directory, output, examples, label, boundary, application = false) {
   const result = {};
-  for (const mode of ['esm', 'cjs', 'bundler']) {
+  for (const mode of application ? ['bundler'] : ['esm', 'cjs', 'bundler']) {
     const folder = join(directory, `contract-${label}-${mode}`);
     await mkdir(folder);
     await save(join(folder, 'package.json'), { private: true, type: mode === 'cjs' ? 'commonjs' : 'module' });
     const files = [];
     for (const example of examples) {
-      // Keep literal relative imports working across the book's modules.
-      // The per-mode package.json selects real NodeNext ESM/CJS for .ts/.tsx;
-      // explicit .mts/.cts contract fixtures above remain separate gates.
+      // Application source uses bundler resolution; portable recipes and package
+      // declarations retain their independent NodeNext ESM/CJS checks.
       const file = join(folder, example.name);
       await writeFile(file, example.code);
       files.push(file);
     }
-    result[mode] = await compile({ directory, output, label, files, mode, boundary, allowImportingTsExtensions });
+    result[mode] = await compile({ directory, output, label, files, mode, boundary, application });
   }
   return result;
 }

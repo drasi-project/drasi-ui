@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 /** Parse the literal public recipes; never evaluate arbitrary documentation as shell. */
 export function extractInstallRecipes(markdown) {
   const expected = {
-    react: ['npm', 'install', '@drasi/react'],
+    react: ['npm', 'install', '@drasi/react', '@drasi/ui-core'],
     core: ['npm', 'install', '@drasi/ui-core', '@drasi/ui-styles'],
   };
   const recipes = new Map();

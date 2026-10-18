@@ -4,12 +4,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import { DrasiError, observeQuery, projectQueryRows, readAdaptedResults } from '@drasi/ui-core';
-import { applicationEvents, createApplicationClient } from './src/application-client.ts';
-import { probeKey, readingOptions } from './src/reading-model.ts';
+import { applicationEvents, createApplicationClient } from './compiled/application-client.mjs';
+import { probeKey, readingOptions } from './compiled/reading-model.mjs';
 
 const initial = {
-  'north-room': [{ probeId: 'probe-1001', room: 'North', temperatureC: 3 }],
-  'south-room': [{ probeId: 'probe-2001', room: 'South', temperatureC: 5 }],
+  'north-room': [
+    { probeId: 'probe-1001', room: 'North', temperatureC: 3 },
+    { probeId: 'probe-1002', room: 'North', temperatureC: 6 },
+  ],
+  'south-room': [
+    { probeId: 'probe-2001', room: 'South', temperatureC: 5 },
+    { probeId: 'probe-2002', room: 'South', temperatureC: 9 },
+  ],
 };
 
 async function eventually(check) {
@@ -90,6 +96,7 @@ test('the literal app client shares a stream, projects changes, refreshes locall
   assert.equal(setup.streams.length, 1);
   assert.deepEqual(projectQueryRows(north.rows, readingOptions).data, [
     { key: 'probe:probe-1001', room: 'North', celsius: 3 },
+    { key: 'probe:probe-1002', room: 'North', celsius: 6 },
   ]);
   setup.streams[0].emit({
     queryId: 'north-room', op: 'update', before: { probeId: 'probe-1001' },
@@ -97,7 +104,7 @@ test('the literal app client shares a stream, projects changes, refreshes locall
   });
   assert.equal(projectQueryRows(north.rows, readingOptions).data[0].celsius, 8);
   setup.streams[0].emit({ queryId: 'north-room', op: 'delete', before: { probeId: 'probe-1001' } });
-  assert.deepEqual(north.rows, []);
+  assert.deepEqual(north.rows, [initial['north-room'][1]]);
   first.retry();
   await eventually(() => setup.reads.get('north-room') === 2 && north.state.status === 'live');
   assert.equal(setup.reads.get('south-room'), 1);
