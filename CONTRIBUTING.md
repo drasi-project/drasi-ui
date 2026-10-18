@@ -45,6 +45,31 @@ recorded manifest/lock identities and retain npm integrity validation. Normal
 contributors use `npm ci`; the cache is not a registry mirror or a replacement
 for installation.
 
+## Documentation ownership
+
+The [React developer guide](packages/react/docs/developer-guide/README.md) is the
+single learning path. Author detailed references beside the implementation:
+React control sidecars and binding/provider READMEs, core client/adapter
+READMEs, and the stylesheet README. Do not hand-edit their packaged copies.
+
+```sh
+npm run docs:sync
+npm run docs:check
+```
+
+Commit sources and generated Markdown together. The mapping in
+`scripts/documentation.mjs` rewrites links into the closed installed-doc tree;
+build and document gates reject stale copies. Keep old document headings as
+compatibility pointers when moving material.
+
+Marked book modules and project files are literal test inputs. The packed
+consumer gate compiles all inherited recipes and book modules in strict
+ESM/CJS/bundler modes, builds a fresh app extracted from the installed guide,
+and runs its client/identity examples. Browser gates exercise the actual
+first screen and advanced lessons against an explicitly test-only gateway.
+Keep these distinct from optional real Drasi and human accessibility acceptance.
+Do not replace the book's examples with separately maintained test lookalikes.
+
 ## Changes and review
 
 Keep code with its owner: core for shared non-rendering contracts/algorithms,

@@ -10,6 +10,7 @@ import { copyConsumer, installConsumer, run } from './consumer-install.mjs';
 import { assertFrameworkIsolation, checkPackedPublicContract } from '../tests/consumers/public-contract/packed-contracts.mjs';
 import { installedDependencyAccounting } from './dependency-accounting.mjs';
 import { measureEmittedAssets } from './metrics-policy.mjs';
+import { prepareGuideConsumer, prepareNextGuideConsumer } from './guide-consumer.mjs';
 
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert(await readFile(join(candidateDirectory, 'package-proof.json')), 'Validate candidates before installing consumers');
@@ -76,5 +77,13 @@ run('npm', ['run', 'typecheck'], example);
 run('npm', ['test'], example);
 run('npm', ['run', 'build'], example);
 proof.consumers.examples = { directory: example };
+proof.consumers.guide = await prepareGuideConsumer({
+  packageRoot: join(directory, 'react-18/node_modules/@drasi/react'),
+  directory: join(directory, 'developer-guide'), set,
+});
+proof.consumers.guideNext = await prepareNextGuideConsumer({
+  packageRoot: join(directory, 'react-19/node_modules/@drasi/react'),
+  directory: join(directory, 'developer-guide-next'), set,
+});
 await writeFile(join(root, '.artifacts/consumers.json'), JSON.stringify(proof, null, 2) + '\n');
 console.log(`Source-free npm consumers ready for browser qualification: ${directory}`);

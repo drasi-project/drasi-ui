@@ -5,38 +5,27 @@ Applications own their data sources, authentication, provisioning and business
 logic. A Drasi Server connection is an explicit optional integration, not a
 requirement for displaying rows or subscribing to an application-owned client.
 
-**Release preparation:** this repository does not yet claim an npm publication.
-The `@drasi` namespace has been selected; package availability, ownership and
-trusted-publisher configuration still require authenticated verification.
-The installation below is the intended onboarding once the first release is
-approved. Contributors can qualify the same artifacts using
-[the source-free tarball workflow](CONTRIBUTING.md).
+**Start here: [The React developer guide](packages/react/docs/developer-guide/README.md).**
+Build a complete cold-storage screen, change your first reading without a backend,
+then connect the same row model to live queries, shared views, review dialogs,
+themes, and your application's connection lifecycle. The guide explains the
+backend/browser boundary before asking you to configure a connection.
+
+**Packages are not published to npm yet.** The guide starts with an executable
+source/tarball installation, not an unavailable registry command. No Server
+checkout or Rust build is needed for its first lesson.
 
 ## Start with rows you own
 
-In an existing supported React application:
+The [first working screen](packages/react/docs/developer-guide/README.md#1-run-your-first-screen)
+uses `DataTable` with supplied rows: no provider, query, network request,
+Tailwind configuration, or package-source scanning. Follow the same book into
+live data when you have an existing query to connect.
 
-```sh
-npm install @drasi/react
-```
-
-```tsx
-import { DataTable } from '@drasi/react/components';
-import '@drasi/react/styles.css';
-
-export function Readings() {
-  return <DataTable
-    title="Sensor readings"
-    rows={[{ station: 'North', temperature: 21 }]}
-    columns={[{ key: 'station', label: 'Station' }, { key: 'temperature', label: 'Temperature' }]}
-    rowKey={row => row.station}
-  />;
-}
-```
-
-No provider, backend, Tailwind configuration or source scanning is needed.
-[React documentation](packages/react/README.md) covers typed columns, headless
-query state, shared presentations, modals, themes and optional Server connectivity.
+The [reference index](packages/react/docs/reference/README.md) is for lookup,
+not a second tutorial path. Detailed DataTable, QueryTable, and Modal references
+live beside their implementations; checked copies ship with the guide in the
+React package, including working offline links.
 
 ## Repository catalog
 

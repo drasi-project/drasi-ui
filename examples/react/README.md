@@ -1,5 +1,11 @@
 # Canonical React examples
 
+**Learning the controls? Start with the single
+[React developer guide](../../packages/react/docs/developer-guide/README.md).**
+It builds this cold-storage domain progressively, beginning with a complete
+provider-free screen. This README is the workspace's run/operator reference,
+not another tutorial to piece together with package docs.
+
 This is the single moved example workspace, consuming built public package
 exports. It contains a provider-free simulated showcase and three optional
 live-data presentations. It does not build a Server, install plugins, provision

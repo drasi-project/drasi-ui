@@ -3,6 +3,13 @@
 The canonical Drasi control stylesheet: scoped `.drasi-*` classes, `--drasi-*`
 custom properties, light/dark themes and reduced-motion rules.
 
+See the [co-located token reference](https://github.com/drasi-project/drasi-ui/blob/main/packages/styles/src/README.md)
+for exact defaults. The
+[React developer guide](https://github.com/drasi-project/drasi-ui/blob/main/packages/react/docs/developer-guide/README.md#10-theme-an-accessible-responsive-screen)
+teaches scoped themes, responsive layout, motion, and portal responsibilities
+in the running cold-storage application. An offline reference copy ships with
+that guide in `@drasi/react`.
+
 **Initial beta preparation, not a publication claim.**
 
 ```ts

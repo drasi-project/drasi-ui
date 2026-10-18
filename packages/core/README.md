@@ -5,6 +5,14 @@ bounded snapshot/stream reconciliation, typed errors and pure table/animation
 bookkeeping. No React, Vue, Radix, renderer types, DOM ownership or management
 mutations are included in the generic dependency graph.
 
+The [co-located client/result reference](https://github.com/drasi-project/drasi-ui/blob/main/packages/core/src/client/README.md)
+specifies the structural contracts and helper options. The
+[Server adapter reference](https://github.com/drasi-project/drasi-ui/blob/main/packages/core/src/adapters/drasi-server/README.md)
+separately owns Server reads, DTOs, and wire conventions. React developers
+should learn through the single
+[React developer guide](https://github.com/drasi-project/drasi-ui/blob/main/packages/react/docs/developer-guide/README.md),
+which also ships offline copies of these references in the React package.
+
 **Initial beta preparation, not a publication claim.** The selected npm name
 still requires package-specific ownership verification before release.
 

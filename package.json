@@ -7,8 +7,10 @@
   "packageManager": "npm@11.17.0",
   "workspaces": ["packages/core", "packages/styles", "packages/react", "examples/react", "examples/vue-canary", "tests/consumers/react-18", "tests/consumers/react-19"],
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "lint": "node scripts/check-boundaries.mjs",
+    "build": "node scripts/sync-documentation.mjs --check && node scripts/build.mjs",
+    "lint": "node scripts/check-boundaries.mjs && npm run docs:check",
+    "docs:sync": "node scripts/sync-documentation.mjs",
+    "docs:check": "node scripts/sync-documentation.mjs --check && node --test tests/consumers/public-contract/documentation-links-check.mjs tests/consumers/public-contract/readme-examples-check.mjs tests/consumers/public-contract/install-recipes-check.mjs tests/consumers/public-contract/developer-guide-check.mjs",
     "typecheck": "npm run typecheck -w @drasi/ui-core -w @drasi/react && tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
     "test": "vitest run && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs",
     "test:unit": "vitest run",

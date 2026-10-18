@@ -13,6 +13,7 @@ import { extractDocumentationExamples } from './readme-examples.mjs';
 import { loadDocumentation } from './documents.mjs';
 import { extractInstallRecipes } from './install-recipes.mjs';
 import { checkInstalledDocumentationLinks } from './documentation-links.mjs';
+import { guidePath } from './developer-guide.mjs';
 
 const fixtures = fileURLToPath(new URL('.', import.meta.url));
 const json = async file => JSON.parse(await readFile(file, 'utf8'));
@@ -54,7 +55,7 @@ async function installedPackages(directory) {
   return result;
 }
 
-async function compile({ directory, output, label, files, mode, boundary }) {
+async function compile({ directory, output, label, files, mode, boundary, allowImportingTsExtensions = false }) {
   const ts = createRequire(join(directory, 'package.json'))('typescript');
   const packages = await installedPackages(directory);
   const options = {
@@ -64,6 +65,7 @@ async function compile({ directory, output, label, files, mode, boundary }) {
     module: mode === 'bundler' ? ts.ModuleKind.ESNext : ts.ModuleKind.NodeNext,
     moduleResolution: mode === 'bundler' ? ts.ModuleResolutionKind.Bundler : ts.ModuleResolutionKind.NodeNext,
     traceResolution: true,
+    ...(allowImportingTsExtensions ? { allowImportingTsExtensions: true } : {}),
   };
   const retained = join(output, label, mode);
   await mkdir(retained, { recursive: true });
@@ -135,7 +137,7 @@ async function compileFixture(directory, output, name, boundary) {
   return result;
 }
 
-async function compileDocuments(directory, output, examples, label, boundary) {
+async function compileDocuments(directory, output, examples, label, boundary, allowImportingTsExtensions = false) {
   const result = {};
   for (const mode of ['esm', 'cjs', 'bundler']) {
     const folder = join(directory, `contract-${label}-${mode}`);
@@ -143,13 +145,14 @@ async function compileDocuments(directory, output, examples, label, boundary) {
     await save(join(folder, 'package.json'), { private: true, type: mode === 'cjs' ? 'commonjs' : 'module' });
     const files = [];
     for (const example of examples) {
-      const name = example.name.endsWith('.tsx') ? example.name
-        : example.name.replace(/\.ts$/, `.${{ esm: 'mts', cjs: 'cts', bundler: 'ts' }[mode]}`);
-      const file = join(folder, name);
+      // Keep literal relative imports working across the book's modules.
+      // The per-mode package.json selects real NodeNext ESM/CJS for .ts/.tsx;
+      // explicit .mts/.cts contract fixtures above remain separate gates.
+      const file = join(folder, example.name);
       await writeFile(file, example.code);
       files.push(file);
     }
-    result[mode] = await compile({ directory, output, label, files, mode, boundary });
+    result[mode] = await compile({ directory, output, label, files, mode, boundary, allowImportingTsExtensions });
   }
   return result;
 }
@@ -188,11 +191,16 @@ export async function checkPackedPublicContract({ coreOnly, app, output, include
   proof.documentation.links = await checkInstalledDocumentationLinks(packageRoot, documents);
   proof.documentation.files = Object.fromEntries(Object.entries(documents).map(([file, body]) =>
     [file, createHash('sha256').update(body).digest('hex')]));
-  proof.documentation.all = await compileDocuments(app, output, examples, 'documentation', 'package');
+  proof.documentation.all = await compileDocuments(app, output,
+    examples.filter(example => example.source !== guidePath), 'documentation', 'package');
+  proof.documentation.book = await compileDocuments(app, output,
+    examples.filter(example => example.source === guidePath), 'book', 'package', true);
   proof.documentation.headless = await compileDocuments(app, output,
     examples.filter(example => example.name === 'reduced-motion.tsx'), 'headless', 'react');
   if (includeCore) proof.documentation.core = await compileDocuments(coreOnly, output,
     examples.filter(example => ['client.ts', 'auth.ts'].includes(example.name)), 'core-docs', 'server-client');
+  if (includeCore) proof.documentation.applicationClient = await compileDocuments(coreOnly, output,
+    examples.filter(example => example.name === 'application-client.ts'), 'application-client', 'client');
   await save(join(output, 'proof.json'), proof);
   console.log(`Installed public contracts and ${examples.length} literal recipes passed on React ${proof.react}.`);
   return proof;

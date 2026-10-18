@@ -1,0 +1,126 @@
+# React public entrypoints
+
+[Learn with the React developer guide](../docs/developer-guide/README.md). This is the co-located lookup reference; edit this file, not its generated package copy.
+
+### Public symbol map
+
+The sections below specify the retained contracts. Server integration now has
+explicit entrypoints and is not re-exported by the generic root.
+
+| Entrypoint / group | Exported symbols |
+| --- | --- |
+| `@drasi/ui-core` runtime (also `/client`) | `DrasiError`, `asDrasiError`, `isAbortError`, `SSEClient`, `accumulateResult`, `readAdaptedResults`, `subscribeToQuery`, `observeQuery`, `initialQueryState`, `retainQueryBaseline`, `projectQueryRows`, `queryView`, `compareTableValues`, `sortTableRows`, `nextTableSort`, `trackRowChanges`, `mergeRowAnimations` |
+| Core connection/error types | `QueryClient`, `QueryConnection`, `QueryStream`, `SSEClientOptions`, `ReconnectOptions`, `ResultReconciliationOptions`, `ConnectionStatus`, `DrasiRequestContext`, `DrasiHeaders`, `DrasiHeadersProvider`, `EventSourceOptions`, `EventSourceFactory`, `EventSourceLike`, `JsonValue`, `DrasiErrorCode`, `DrasiErrorDetails`, `DrasiResourceKind` |
+| Core result/state types | `ResultRow`, `RowKey`, `ResultChange`, `QuerySnapshot`, `QueryDelta`, `QueryResult`, `ResultAdapter`, `ResultAdapterContext`, `QueryStatus`, `QueryErrorScope`, `QuerySubscription`, `QuerySubscriptionState`, `SubscriptionOptions`, `RawQueryState`, `QueryObservation`, `QueryProjectionOptions`, `QueryProjection`, `QueryView`, `AcceptedQueryView`, `SortConfig`, `AnimationDirection`, `RowAnimationState` |
+| `@drasi/ui-core/adapters/drasi-server` | `DrasiClient`, `DrasiSSEClient`, `sse034ResultAdapter`, `createLegacyResultAdapter`, `serverConfigurationKey`; client/initialize/SSE options, `ReactionReference`, all Server `Component`/query/reaction DTO types, `LegacyResultAdapterOptions`, `RouteUnidentified` |
+| `/react` runtime | `DrasiClientProvider`, `useDrasiClient`, `useDrasiQuery`, `useDrasiConnectionStatus`, `useRowAnimation`, `useTableSort`, `useReducedMotion` |
+| `/react` types | `DrasiContextValue`, `UseDrasiQueryOptions`, `UseDrasiQueryResult`, `AnimationDirection`, `UseRowAnimationOptions`, `UseRowAnimationResult`, `SortConfig`, `UseTableSortOptions`, `UseTableSortResult` |
+| `/adapters/drasi-server` | `DrasiProvider`, `DrasiServerClientProvider`, `useDrasiServerClient`, `useDrasiQueryDefinition`, `useDrasiServerUiUrl`, `DrasiProviderProps`, `DrasiServerContextValue`, `UseDrasiQueryDefinitionResult`, plus generic hooks/types |
+| `/components` runtime | `DataTable`, `QueryTable`, `queryTableState`, `Modal`, `CodeIcon`, `ExpandIcon`, `CollapseIcon` |
+| `/components` types | `DataTableProps`, `DataTableState`, `DataTableRenderContext`, `DataTableErrorContext`, `DataTableHeaderContext`, `QueryTableProps`, `QueryTableRenderContext`, `QueryTableErrorContext`, `ColumnDef`, `RowAction`, `SortConfig`, `ModalProps`, `TableHeight` |
+
+`SortConfig` is the same type through `/react` and `/components`. Client types
+such as `ConnectionStatus` and `QueryStatus` should be imported from `/client`,
+not assumed to be re-exported by `/react`. Private module helpers and icon
+implementation prop aliases are not additional named exports.
+
+| Import | Contents and dependencies |
+| --- | --- |
+| `@drasi/ui-core` | Structural `QueryClient`, normalized results, errors, state, explicit `SSEClient`, reconciliation and pure table algorithms. No React/Vue runtime or declarations. |
+| `@drasi/react/client` | Data-only compatibility re-export of core. Install core directly when React must not be installed. |
+| `@drasi/ui-core/adapters/drasi-server` | `DrasiClient`, Server-default `DrasiSSEClient`, Server DTOs, wire adapters and read-only resource validation. |
+| `@drasi/react/react` | `DrasiClientProvider`, data/status hooks, sort/motion hooks and their named types. No Server, components, Radix, React DOM or CSS. |
+| `@drasi/react/adapters/drasi-server` | Optional `DrasiProvider`, `DrasiServerClientProvider`, Server inspection helpers and re-exported generic hooks. |
+| `@drasi/react/components` | Provider-free `DataTable` and `Modal`, live `QueryTable`, pure `queryTableState`, optional icons and typed column/action/state/slot/props contracts, including `ModalProps` and `TableHeight`. The client-only modal layer uses pinned Radix Dialog **1.1.15** and `scroll-into-view-if-needed` **3.1.0**, including their portal/geometry dependencies. No tutorial/fullscreen implementation or implicit CSS. `SortConfig` is also re-exported here. |
+| `@drasi/react` | Generic core/binding/component convenience exports, never the Server adapters. This is **not** a React-free import. |
+| `@drasi/react/styles.css` | Explicit package-owned stylesheet, never imported by the JS modules. |
+
+All JS entrypoints ship real ESM/CommonJS exports and conditional `.d.ts`
+and `.d.cts` declarations. Import these paths, not `src`, `dist` or hashed
+shared chunks. Core is independently installable.
+
+Build output compacts whitespace only: syntax/identifiers are not minified,
+debug/component names are preserved, and source maps retain source content.
+Declarations, documentation, CSS and license notices remain in the package.
+
+React and React DOM are required peers of the React package. The matrix targets
+**18.3.1** and **19.3.1**; consult the repository compatibility evidence before
+claiming another configuration.
+The headless `/react` graph does not import React DOM or Radix. The
+`/components` and root graphs include the dialog primitive; use the narrower
+entrypoints for headless consumers. No React copy is bundled or hidden in
+another dependency. Core and styles have no renderer peers.
+
+The exported props/options and hook declarations include JSDoc for editor
+hover/completion. Import named types such as `ModalProps`, `TableHeight`,
+`DataTableProps` and `UseRowAnimationOptions` from their public entrypoints;
+do not depend on a private helper or hashed declaration filename.
+
+Import the component stylesheet once when using presentation:
+
+```ts
+import '@drasi/react/styles.css';
+```
+
+## Consumer and hosting responsibilities
+
+- Own provisioning, query definitions/languages, source/reaction deployment,
+  domain identity, validating projections and any explicit legacy routing.
+  The Server adapter is a **GET-only consumer**, not an authorization or management
+  boundary. Restrict server/proxy access to the intended instances/resources;
+  enforce authorization on both REST and SSE. Browser query IDs and disabled
+  action buttons do not enforce access control.
+- Use trusted HTTPS REST/SSE endpoints in production. Do not put service
+  credentials in a frontend bundle, query text, logs or token-bearing URLs.
+  Acquire browser credentials through your application's authentication flow
+  and the supported header/cookie transport contract. CORS is not authorization;
+  credentialed cross-origin use needs explicit allowed origins and credentials
+  support, not a wildcard-origin workaround.
+- Serve the built application and **all** its emitted shared/lazy chunks and
+  styles with correct MIME types and paths. The Modal client chunk must remain
+  reachable after initial load; an HTML SPA fallback is not a JavaScript
+  response. Importing `/react` does not require a package CSS/portal loader.
+  Configure an SSE proxy for streaming `text/event-stream` without response
+  buffering/caching and with suitable connection timeouts. REST redirects are
+  deliberately rejected, so expose the correct REST URL directly.
+- Set production security headers at the host/proxy: a
+  **Content-Security-Policy** with narrowly allowed script/style sources and
+  REST/SSE `connect-src` destinations (plus `frame-ancestors 'none'` when
+  embedding is not allowed), **Strict-Transport-Security** for the deployed
+  HTTPS origin after reviewing its scope, **X-Content-Type-Options: nosniff**,
+  and **X-Frame-Options: DENY** for non-embedded apps. Account for the
+  components' inline layout/portal styles in the actual CSP and test it;
+  this package neither sends HTTP headers nor supplies a universal CSP.
+- Treat result/config fields as untrusted application input. Validate
+  projections and action inputs; render text through React rather than
+  inserting unsanitized HTML. Applications own asynchronous action errors,
+  business mutations and error boundaries, including lazy import failures.
+- Own semantic markup, contrast, focus visibility and announcements in custom
+  rows/headers/slots and hooks-only UIs. Keep usable names and visible close
+  controls; don't turn every changing cell into an uncontrolled live region.
+  Verify themes and motion under the real host CSS and complete human AT
+  review, rather than assuming a component's automated checks approve an app.
+- Dispose owned clients/subscriptions on scope change and unmount. Bound the
+  server query's result size for your workload: `maxPendingChanges` does not
+  cap retained rows, and the package provides no pagination or virtualization.
+
+## SSR and import safety
+
+All entrypoints are safe to import/require without DOM/network activity.
+`DataTable` can server-render real non-Drasi rows and state slots **without a
+provider or browser/network globals**. Rendering providers and an initial
+QueryTable does not run effects or open streams. `Modal`, whether `open` or
+closed, renders only one hidden inline theme anchor during SSR and initial
+hydration, with no body-portal content. Focus, scroll ownership and interactive portals require a browser
+DOM. `useReducedMotion` has a deterministic `false` server snapshot.
+A direct client can perform REST-only reads in Node with native/injected fetch,
+including auth, without React or EventSource. **Default live execution is
+browser-only**: missing EventSource produces `INVALID_CONFIGURATION`.
+SSR is not a server-side live subscription or a preloaded query snapshot.
+
+Clean packed tests use DOM/network traps, ESM and CommonJS, NodeNext
+`.mts`/`.cts` and bundler resolution with `skipLibCheck: false`. Client-only
+tests omit peers and verify no React runtime or `@types/react` declaration graph;
+hooks do not load presentation, Radix, React DOM or CSS. Marked runnable snippets in the README and guides are
+extracted from the installed tarball and type-checked against its real exports.
+No source aliases or hidden React copies satisfy these contracts.

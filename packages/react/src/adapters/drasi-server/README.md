@@ -1,0 +1,201 @@
+# React Drasi Server provider reference
+
+[Learn with the React developer guide](../../../docs/developer-guide/README.md). This is the co-located lookup reference; edit this file, not its generated package copy.
+
+### Connection options
+
+The following options belong to the optional Server adapter, not the generic
+`QueryClient` binding.
+
+`DrasiProviderProps` extends `DrasiClientOptions` with required React `children`.
+`ReactionReference` contains only the existing `id` and absolute HTTP(S)
+browser `endpoint`. Relative URLs, URL user/password credentials, fragments,
+wildcard bind hosts, empty/dot identifiers and duplicate query IDs are rejected.
+
+| Option | Default / meaning |
+| --- | --- |
+| `serverUrl: string` | Required absolute HTTP(S) server base, no query/fragment/default. |
+| `instanceId: string` | Required explicit instance, never discovered. |
+| `queryIds: readonly string[]` | Required existing query references; no definitions. |
+| `reaction: ReactionReference` | Required existing SSE reaction and browser URL. |
+| `resultAdapter?: ResultAdapter` | Defaults to strict `sse034ResultAdapter`. Select `createLegacyResultAdapter(...)` or supply a validating custom adapter explicitly. |
+| `reconciliation?: ResultReconciliationOptions` | `maxPendingChanges: 10000`; a positive safe integer bounding changes observed during a pending snapshot, **not** result-set size. |
+| `fetch?: typeof fetch` | Defaults to global native fetch; GETs only. |
+| `headers?: DrasiHeaders` | No custom headers by default; static input or per-request provider. |
+| `credentials?: RequestCredentials` | `same-origin`; native SSE cannot implement `omit`. |
+| `eventSourceFactory?: EventSourceFactory` | Native browser EventSource by default. |
+| `requestTimeoutMs?: number` | 10000 ms; finite and positive, **per REST request**, including auth/body. Composite reads can make multiple requests. |
+| `reconnect?: ReconnectOptions` | Defaults below; normal stream and snapshot retry policy. A direct `initialize(options)` call can separately bound its pending opening. |
+
+| `ReconnectOptions` field | Default / allowed value |
+| --- | --- |
+| `maxReconnectAttempts?: number` | **10 retries after the first attempt**; nonnegative integer. `0` disables automatic retries, not the first attempt. |
+| `initialReconnectDelayMs?: number` | **1000** ms; finite, positive initial delay. |
+| `maxReconnectDelayMs?: number` | **30000** ms; finite, positive backoff cap. |
+| `connectionTimeoutMs?: number` | **10000** ms; finite, positive stream-open timeout. |
+
+Backoff is exponential; counts reset on a
+successful open/snapshot. Open timeout includes stream auth and waiting for
+open, not idle lifetime of an already-open stream. Permanent failures stop
+immediately; exhaustion retains the last typed error and stops timers/work.
+Concurrent resource validation drains its bounded batch before failure handoff
+so app recovery does not race an abort storm. Explicit cancellation aborts all.
+
+`DrasiInitializeOptions` belongs to `client.initialize(options?)`, not the
+provider/constructor options. Its only field is
+`maxInitialReconnectAttempts?: number`: a nonnegative safe integer counting
+retries after the first attempt. Omitted uses the configured reconnect limit;
+`0` allows no initialization retries. It applies only while initialization is
+pending. The first concurrent call's options win; a later initialization chooses
+fresh options. Reusing an already initialized, connected client does not change
+its policy. After the first open, normal reconnect behavior (default ten retries)
+resumes unchanged. See [lifecycle ownership](#ownership-and-reconfiguration).
+
+## Ownership and reconfiguration
+
+Generic `DrasiClientProvider` accepts the structural `QueryClient` contract from
+core: normalized subscriptions and connection observation, with no Server DTO,
+inspection, UI-link or administrative mutation requirements. Its owner starts,
+retries and disposes the connection. `instanceId` is optional diagnostic context.
+The following Server lifecycle details apply only when selecting the adapter.
+
+`DrasiProvider` owns a client, shared stream, initialization, retries and
+cleanup. Equivalent inline reference arrays, reaction/reconnect objects and
+headers do **not** bounce the connection. Query IDs compare as a set (duplicates
+remain invalid), header names/values are canonicalized, and omitted policy
+fields equal the documented defaults.
+
+Equivalent server-base spellings (including an optional trailing slash, host
+case or the standard explicit port) retain the same client/connection. Endpoint
+path/query differences, including trailing slashes, remain material:
+changing one closes the old stream and initializes the replacement.
+
+Material server, instance, reaction ID, endpoint, query-set, credential/header,
+timeout, retry-policy or reconciliation-limit changes replace the lifecycle. Old requests are aborted,
+the old stream closes, and late events/snapshots/definition reads cannot update
+the new scope. Rows/config from another scope are hidden while replacement
+work starts; last-good data is retained only within its own scope.
+
+**Callable options compare by identity:** `fetch`, `eventSourceFactory`,
+`resultAdapter` and a header-provider function. Memoize them when their
+meaning is unchanged. Replacing a function replaces the lifecycle; a stable
+auth function may return a fresh token on the next request. Query-hook
+`getKey`/`transform`/`postProcess` changes instead reproject retained raw rows
+immediately, without resubscribing or reopening the stream.
+
+`useDrasiClient().retry()` restarts that provider's **shared**, read-only
+connection/snapshot lifecycle. A retained retry from an obsolete configuration
+does not restart its replacement. `useDrasiQuery(...).retry()` and a direct
+subscription's `.retry()` refresh only that subscription's REST baseline.
+Automatic transient snapshot retries are also query-local and do not disconnect
+other queries. A query-local retry cannot repair a failed shared connection.
+A direct `DrasiClient` has immutable configuration: construct/disconnect a new
+client for material changes. `initialize(options?)` shares in-flight work and reuses a
+connected client. Its owner must dispose subscriptions and call `disconnect()`.
+
+The direct [initialization options](#connection-options) can limit
+pending retries with `maxInitialReconnectAttempts`, without changing reconnects
+after the first stream open. Concurrent callers share the first call's policy;
+later initialization can choose a fresh one. This is not a provider prop.
+
+`DrasiClientProvider` instead binds an **app-owned** lifecycle. The binding
+does not initialize/disconnect, retry, provision or open a second connection.
+Its owner supplies coherent state and scoped retry and disposes old clients on
+reconfiguration. Descendant hooks perform their own read-only
+subscriptions/snapshots once `initialized` is true.
+
+Use `DrasiServerClientProvider` and `DrasiServerContextValue` from the optional
+React adapter when an app-owned Server client also needs query-definition or
+Server UI inspection. Generic providers intentionally do not grant that contract.
+
+## Inspection and app-owned Server clients
+
+`DrasiServerContextValue` has required fields `client: DrasiClient | null`,
+`initialized: boolean`, `error: DrasiError | null`, and `retry: () => void`.
+`DrasiServerClientProvider` takes `value: DrasiServerContextValue` and required
+`children: ReactNode`; it supplies both the Server and generic bindings without
+initializing or disposing the app-owned client.
+
+| Hook | Return / contract |
+| --- | --- |
+| `useDrasiServerClient()` | `DrasiServerContextValue`; requires a Server provider, not merely the generic structural binding. |
+| `useDrasiQueryDefinition(queryId: string)` | `UseDrasiQueryDefinitionResult`: `{ config: QueryConfig \| null, loading: boolean, error: DrasiError \| null }`; optional cancellable read, not a result subscription. |
+| `useDrasiServerUiUrl()` | `string \| null`; initialized instance-scoped UI URL, built without probing that UI. |
+
+These hooks throw an ordinary provider-usage `Error` outside `DrasiProvider`
+or `DrasiServerClientProvider`. The definition hook has **no retry field**.
+Mount only when inspection is needed and unmount to cancel; rekey/remount for
+its local retry, or use shared retry when the provider itself failed.
+Old-scope definitions and late responses are hidden on replacement.
+
+## Quickstart
+
+This retained compact **Server binding recipe** is a lookup example, not a
+second learning path; use the [cold-storage guide](../../../docs/developer-guide/README.md#4-connect-to-an-existing-query)
+for the progressive application. Generic clients use `DrasiClientProvider`
+instead. Provision resources separately. This recipe requires instance `analytics`, a
+running `readings` query and a running `sse` reaction `events` whose query list
+includes `readings`. The SSE endpoint must be browser-reachable, including
+proxy routing and CORS. Server bind addresses/ports are not client options.
+
+```tsx
+// @drasi-docs: quickstart.tsx
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { useDrasiConnectionStatus } from '@drasi/react/react';
+import { QueryTable } from '@drasi/react/components';
+import type { ReactionReference } from '@drasi/ui-core/adapters/drasi-server';
+import '@drasi/react/styles.css';
+
+const QUERY_IDS = ['readings'];
+const REACTION: ReactionReference = {
+  id: 'events', endpoint: 'https://events.example/changes',
+};
+interface Reading { id: string; value: number }
+
+function Readings() {
+  return <QueryTable<Reading>
+    queryId="readings"
+    rowKey={row => row.id}
+    queryOptions={{
+      getKey: row => {
+        if (typeof row.id !== 'string' || !row.id) throw new Error('Expected a stable reading ID');
+        return row.id;
+      },
+      transform: row => {
+        if (typeof row.id !== 'string' || typeof row.value !== 'number') {
+          throw new Error('Expected a Reading');
+        }
+        return { id: row.id, value: row.value };
+      },
+    }}
+    columns={[
+      { key: 'id', label: 'Sensor' },
+      { key: 'value', label: 'Value', align: 'right', format: (_raw, row) => row.value.toFixed(2) },
+    ]}
+    animateOnChange="value"
+  />;
+}
+
+function ConnectionBadge() {
+  const status = useDrasiConnectionStatus();
+  return <span>{status.error?.message ?? (status.connected ? 'Stream open' : 'Connecting')}</span>;
+}
+
+export default function App() {
+  return <DrasiProvider
+    serverUrl="https://drasi.example" instanceId="analytics"
+    queryIds={QUERY_IDS} reaction={REACTION}
+  >
+    <ConnectionBadge />
+    <Readings />
+  </DrasiProvider>;
+}
+```
+
+Initialization reads the referenced queries concurrently, waits for the bounded
+batch to settle, then checks the reaction and opens **one** SSE connection.
+Initialization, subscriptions, reconnect and retry perform **GETs only**.
+There is no resource-management mode, implicit instance, query-language choice
+or deployment reconciler. Each subscription's `getQueryResults` also validates
+its query resource before fetching the snapshot. These required validation GETs
+are distinct from optional, app-triggered query-definition inspection.

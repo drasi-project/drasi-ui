@@ -27,5 +27,15 @@
     "css": "Exactly one additional canonical stylesheet archive alongside the byte-identical React compatibility stylesheet: 8658 bytes, not a CSS size reduction.",
     "maps": "Source content and mapping records for the additional shared helpers, adapter wrappers and entrypoints, including shifted client-directive lines."
   },
-  "policy": "Each metric is capped at original * 1.02 + the fixed, reviewable extraction allowance. Do not auto-refresh these allowances, exclude files, or compare only the React archive."
+  "documentationAllowance": {
+    "tarball": 32352
+  },
+  "documentationPackages": {
+    "@drasi/ui-core": { "before": 106092, "allowance": 225 },
+    "@drasi/ui-styles": { "before": 7348, "allowance": 179 },
+    "@drasi/react": { "before": 128247, "allowance": 31948 }
+  },
+  "documentationEvidence": "tests/contracts/developer-guide-artifacts.json",
+  "documentationReason": "The fixed one-time Markdown allowances remain core +225, styles +179, React +31,948 (32,352 total). The final qualified guide, including real Vite/Next lessons and accessibility corrections, measures core 106,317, styles 7,527, React 160,626, total 274,470 versus 241,687 at merged 81f2493879c17953080fb184c25c2a76e3788ef2 (+32,783). The additional 431 editorial bytes fit the existing 2% margin; no allowance was enlarged. developer-guide-artifacts.json binds the exact final archive/Markdown hashes and all 81 unchanged non-Markdown file inventories/hashes to the retained prepare-only baseline release-set SHA256 2c5d4e0f9b633c7b88abfc195d51a436cd9689c4c5a69510539b4ac6c8d8314e. Original/extraction baselines, runtime, CSS, maps and declarations remain untouched.",
+  "policy": "Each metric is capped at original * 1.02 + the fixed extraction allowance, plus the separately measured documentation allowance for tarball only. Each package archive additionally stays within its recorded pre-documentation size * 1.02 + its own fixed Markdown allowance; one package cannot spend another's allowance. Do not auto-refresh allowances, exclude files, or compare only the React archive."
 }

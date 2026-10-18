@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { checkDocumentationLinks, checkInstalledDocumentationLinks, markdownAnchors, relativeMarkdownLinks, repositoryLinkTarget } from './documentation-links.mjs';
 import { documentationFiles, loadDocumentation, repositorySourceRef } from './documents.mjs';
 
@@ -46,8 +46,10 @@ test('missing anchors or files fail instead of blessing stale evidence links', a
 test('installed guide links cannot rely on missing or escaped repository files', async context => {
   const root = await mkdtemp(join(tmpdir(), 'drasi-installed-docs-'));
   context.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(join(root, 'docs'));
-  for (const file of documentationFiles) await writeFile(join(root, file), '# Guide\n');
+  for (const file of documentationFiles) {
+    await mkdir(dirname(join(root, file)), { recursive: true });
+    await writeFile(join(root, file), '# Guide\n');
+  }
   let documents = await loadDocumentation(root);
   documents['README.md'] = '[Start](docs/getting-started.md#guide)';
   assert.equal((await checkInstalledDocumentationLinks(root, documents)).length, 1);

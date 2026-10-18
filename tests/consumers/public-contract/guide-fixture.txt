@@ -1,0 +1,33 @@
+import { StrictMode, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ApplicationConnection } from './application-connection.js';
+import { ColdStorageDashboard } from './cold-storage-dashboard.js';
+import { ColdStorageBoard } from './cold-storage-capstone.js';
+import { LiveColdStorage } from './live-cold-storage.js';
+import { ReviewLesson } from './review-readings.js';
+import { SortedColdStorage } from './sorted-cold-storage.js';
+import { ThemeScope } from './theme-scope.js';
+
+const lesson = new URLSearchParams(window.location.search).get('lesson');
+function Fixture() {
+  const [visible, setVisible] = useState(true);
+  const [scope, setScope] = useState(0);
+  return <>
+    <aside aria-label="Guide test controls">
+      <p>Deterministic installed-guide fixture. No Drasi backend is running.</p>
+      <button type="button" onClick={() => setVisible(false)}>Unmount lesson</button>
+      <button type="button" onClick={() => setScope(value => value + 1)}>Replace owner</button>
+    </aside>
+    {visible && <ThemeScope>
+      {lesson === 'sorting' ? <SortedColdStorage /> : lesson === 'review' ? <ReviewLesson />
+        : <ApplicationConnection key={scope} origin={window.location.origin}>
+          {lesson === 'query-table' ? <LiveColdStorage />
+            : lesson === 'capstone' ? <ColdStorageBoard /> : <ColdStorageDashboard />}
+        </ApplicationConnection>}
+    </ThemeScope>}
+  </>;
+}
+
+const root = document.getElementById('root');
+if (!root) throw new Error('Missing guide fixture root');
+createRoot(root).render(<StrictMode><Fixture /></StrictMode>);
