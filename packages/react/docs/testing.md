@@ -1,65 +1,19 @@
 # Testing and compatibility
 
-[Package overview](../README.md)
-
-<a id="verified-compatibility"></a>
-
-The [repository compatibility matrix](https://github.com/drasi-project/drasi-ui/blob/main/docs/compatibility.md)
-records exact versions, evidence and unresolved human gates. A historical pass in
-Drasi Server is not qualification of these new multi-package artifacts.
+The learning path is now the single [React developer guide](developer-guide/README.md). This compatibility page keeps existing bookmarks working; the links below go directly to their new homes.
 
 ## Package-owned checks
 
-Unit tests cover Server read validation, generic transport, bounded overlap/retry,
-raw identity and sparse deletes, projection failures, scoped errors, committed
-React callbacks, StrictMode, cancellation, table composition, sorting, modal focus,
-themes and reduced motion. The non-Server fixture implements `QueryClient`
-without Server DTOs or a concrete client superclass.
-
-Coverage includes every core/React product source file and preserves floors of
-**90% statements, lines and functions, and 85% branches** for core and each owning
-React subtree. Type-only barrels contribute no executable statements; no product
-source is excluded to reach a floor.
-
-Source-free npm consumers install the complete exact tarball set, including normal
-script-enabled and scripts-disabled installation. React 18.3.1 and React 19.3.1
-exercise ESM/CJS, strict NodeNext and bundler declarations, SSR/global traps,
-literal documented recipes, real Vite builds, and Next App Router. A separate
-pnpm consumer exercises ordinary installation. No source alias, peer override,
-directory-link workaround or install-time library rebuild is allowed.
-
-Core-only and native Vue consumers must not resolve React, React DOM, React
-declarations or Radix. Vue uses the same contract fixture and core query algorithms
-with native reactivity and disposal; shared CSS styles Vue-rendered markup.
-
-The portable browser suite retains provider-free keyboard/AX/axe, nested modal,
-focus/return/dismissal, zoom, host CSS, themes, RTL, native animation, clock replay
-and SSR/hydration assertions. Library defaults require zero automated violations.
-Trading's application-specific contrast exceptions and original financial images
-remain downstream.
+[Read this section](reference/validation.md#package-owned-checks).
 
 ## Running the gates
 
-Use the root lock and explicit builds described in the
-[contribution guide](https://github.com/drasi-project/drasi-ui/blob/main/CONTRIBUTING.md).
-Run `npm run build`, `npm run lint`, `npm run typecheck`,
-`npm run test:coverage`, then the exact-candidate package, consumer and browser
-commands. The package build never needs Rust, Python, a Server checkout or plugins.
-The optional real-backend example requires separately prepared running resources.
-
-Artifact accounting includes all packages, entries, shared/lazy chunks, ESM/CJS,
-both declarations, maps, CSS, emitted consumer assets and installed dependency
-graphs. Splitting an archive is not evidence of a bundle-size reduction.
-The 2% unexplained-growth policy is retained; extraction-specific wrappers and
-the extra canonical stylesheet must be accounted for explicitly.
+[Read this section](reference/validation.md#running-the-gates).
 
 ## Historical evidence and human acceptance
 
-[The pinned original test guide](https://github.com/drasi-project/drasi-server/blob/964016ddb7f2b45ad023b314c23ea140ed7703ef/dev-tools/react/docs/testing.md)
-retains the full engine/ABI history, recorded wire fixtures, regression provenance
-and downstream financial/CRUD qualification. New source links point to this
-repository; immutable historical links are not relabeled as current evidence.
+[Read this section](reference/validation.md#historical-evidence-and-human-acceptance).
 
-Human keyboard/screen-reader acceptance remains a separate publication gate.
-Automation does not stand in for a named reviewer, supported AT/browser versions,
-recorded findings and explicit acceptance of the candidate artifacts.
+<a id="verified-compatibility"></a>
+
+[Compatibility and evidence](reference/validation.md#verified-compatibility).

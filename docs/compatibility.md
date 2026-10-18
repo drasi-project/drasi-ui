@@ -15,12 +15,13 @@ separate gates.
 | Maintainer toolchain | Node 24.19.0, npm 11.17.0; release operations use npm 11.21.0 |
 | Browser automation | Playwright 1.56.1 Chromium, Firefox and WebKit; pinned Linux image in CI |
 
-The local core/React build, strict source types and 568 unit tests pass with all
-original coverage floors preserved. Both React versions pass the actual
+The merged extraction at `81f2493` passed the local core/React build, strict
+source types and 568 unit tests with all original coverage floors preserved.
+Both React versions passed the actual
 source-free runtime/SSR and declaration fixtures, all 17 installed documentation
 recipes, Vite builds, and the Next App Router build. Native Vue passes the same
 shared non-Server scenarios without React/Radix. The three-engine browser matrix
-passes 340 cases, with another 12 canonical showcase cases. Required CI results
+passed 340 cases, with another 12 canonical showcase cases. Required CI results
 at the final PR head, not historical assertions in a guide, determine readiness.
 
 One optional example test requires an explicitly configured real SSE/template
@@ -78,6 +79,63 @@ Complete package and consumer graph metrics include core/styles/React together,
 both JavaScript/declaration formats, shared/lazy chunks, source maps, duplicate
 compatibility CSS bytes and installed dependencies. The 2% unexplained-growth
 policy is not replaced by comparing only the smaller React archive.
+
+### Developer-guide artifact accounting
+
+The documentation follow-up adds a single book and generated offline reference
+copies, with 17 retained recipe contracts and 16 progressive book modules.
+The installed-book gate uses the book's own app manifest and code, not a
+separately maintained tutorial implementation. Its additional browser fixture
+is an explicitly test-only gateway, not live Drasi evidence.
+The original recipes and declaration fixtures retain their strict NodeNext,
+CJS, and bundler options. The book's application-source group additionally uses
+its documented `allowImportingTsExtensions` with `noEmit`, and a separate real
+Next build/prerender checks the literal App Router chapter. No package-source
+aliases, disabled peer checks, or relaxed declaration checks are used, and the
+extra Next lesson is accounted separately from the existing consumer metrics.
+
+A same-toolchain comparison against merged `81f2493` measured the qualified
+documentation candidate as follows:
+
+| Package | Before archive bytes | Documentation candidate bytes | Delta |
+| --- | ---: | ---: | ---: |
+| `@drasi/ui-core` | 106,092 | 106,317 | +225 |
+| `@drasi/ui-styles` | 7,348 | 7,527 | +179 |
+| `@drasi/react` | 128,247 | 160,626 | +32,379 |
+| **All packages** | **241,687** | **274,470** | **+32,783** |
+
+Every non-Markdown packed file was byte-identical, including manifests, both
+JavaScript formats, both declarations, maps, CSS, and notices. Uncompressed
+Markdown increased by 99,267 bytes across the set. A separate fixed
+**32,352-byte archive-only allowance** records this intentional learning-resource
+cost; the original and extraction allowances and all other metric limits stay
+unchanged. Each package also has its own archive bound using its pre-documentation
+size, its fixed initial allowance (**core +225, styles +179, React +31,948**),
+and the normal future 2% growth margin; core or styles cannot spend the React
+book's allowance. Final reader/accessibility corrections add 431 bytes above
+that initial measurement, within the existing 2% margin, not an enlarged
+allowance. Later editorial changes still use the retained 2% unexplained-growth
+bound; this is not an auto-refreshed baseline. Exact final candidate bytes and
+file inventories remain in the package/consumer proof for the reviewed head.
+Previously prepared release candidates are not relabeled with this evidence;
+shipped-document changes require fresh preparation after merge.
+
+The committed [per-file comparison](../tests/contracts/developer-guide-artifacts.json)
+records the exact baseline and qualified archive/Markdown hashes and all
+**81 unchanged non-Markdown files**. The rebuilt baseline matched the retained
+[prepare-only run](https://github.com/drasi-project/drasi-ui/actions/runs/39083451415)
+byte-for-byte; its release-set SHA256 remains
+`2c5d4e0f9b633c7b88abfc195d51a436cd9689c4c5a69510539b4ac6c8d8314e`.
+That retained evidence was read, not altered. To reproduce a documentation-only
+comparison with downloaded baseline archives and a fresh local candidate set:
+
+```sh
+node scripts/compare-documentation.mjs .artifacts/documentation-baseline .artifacts/documentation-review .artifacts/documentation-comparison.json
+```
+
+The command verifies archive identities and actual inventories, and fails if
+any non-Markdown file changes. The checked-in receipt is historical evidence
+for these exact bytes, not a hash pin on all future documentation edits.
 
 The [package baseline](../tests/contracts/artifact-baseline.json) retains the
 untouched import and adds fixed, explained multi-package wrapper/declaration/CSS

@@ -7,7 +7,7 @@ import ts from 'typescript';
 import { publint } from 'publint';
 import { checkArtifact } from '../tests/consumers/public-contract/artifact-graphs.mjs';
 import { candidateDirectory, json, releasePackages, root } from './packages.mjs';
-import { assertArtifactBudget } from './metrics-policy.mjs';
+import { assertArtifactBudget, assertDocumentationArchiveBudget } from './metrics-policy.mjs';
 
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert.equal(set.repository, 'drasi-project/drasi-ui');
@@ -106,7 +106,12 @@ for (const item of set.packages) {
 assert.equal(styles.length, 2);
 assert.deepEqual(styles[0], styles[1], 'React compatibility CSS must match the styles tarball exactly');
 assert.deepEqual(styles[0], await readFile(join(root, 'packages/styles/src/styles.css')));
-assertArtifactBudget(proof.totals, await json(join(root, 'tests/contracts/artifact-baseline.json')));
+const baseline = await json(join(root, 'tests/contracts/artifact-baseline.json'));
+assertArtifactBudget(proof.totals, baseline);
+assertDocumentationArchiveBudget(
+  Object.fromEntries(Object.entries(proof.packages).map(([name, item]) => [name, item.metrics.tarball])),
+  baseline,
+);
 await writeFile(join(candidateDirectory, 'package-proof.json'), JSON.stringify(proof, null, 2) + '\n');
 console.log(JSON.stringify(proof.totals));
 console.log('Exact candidate exports, declarations, maps, directives, notices, CSS and package linters passed.');

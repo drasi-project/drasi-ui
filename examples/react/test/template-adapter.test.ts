@@ -15,7 +15,7 @@ let template: string;
 const context = { receivedAt: 123, instanceId: 'cold-chain' };
 before(async () => {
   const packageRoot = dirname(dirname(fileURLToPath(import.meta.resolve('@drasi/react'))));
-  const document = await readFile(join(packageRoot, 'docs/reference.md'), 'utf8');
+  const document = await readFile(join(packageRoot, 'docs/reference/server-client.md'), 'utf8');
   const recipe = /```tsx\n(\/\/ @drasi-docs: templated-reaction\.tsx\n[\s\S]*?)\n```/.exec(document);
   assert(recipe, 'The literal documented template adapter must exist');
   const yaml = /```yaml\n# @drasi-docs: templated-reaction\.yaml\n([\s\S]*?)\n```/.exec(document);

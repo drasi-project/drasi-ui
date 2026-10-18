@@ -14,15 +14,45 @@ export const requiredReadmeExamples = [
   'templated-reaction.tsx',
 ];
 
+export const requiredGuideExamples = [
+  'cold-storage-main.tsx', 'cold-storage.tsx', 'reading-model.ts', 'sorted-cold-storage.tsx',
+  'live-cold-storage.tsx', 'live-main.tsx', 'cold-storage-dashboard.tsx', 'review-readings.tsx',
+  'application-client.ts', 'application-connection.tsx', 'authenticated-cold-storage.tsx',
+  'theme-scope.tsx', 'cold-storage-client.tsx', 'next-cold-storage-page.tsx',
+  'cold-storage-capstone.tsx', 'capstone-main.tsx',
+];
+
+export function markdownFences(markdown) {
+  const fences = [];
+  const lines = markdown.split(/\r?\n/);
+  let fence = null;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (fence) {
+      const closing = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+      if (closing && closing[1][0] === fence.delimiter[0] && closing[1].length >= fence.delimiter.length) {
+        fences.push({ ...fence, closed: true });
+        fence = null;
+      } else fence.lines.push(line);
+    } else {
+      const opening = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+      if (opening) fence = {
+        delimiter: opening[1], language: opening[2].trim().split(/[ \t]/)[0],
+        line: index + 2, previousLine: lines[index - 1] ?? '', lines: [],
+      };
+    }
+  }
+  if (fence) fences.push({ ...fence, closed: false });
+  return fences;
+}
+
 /** Only an explicit first-line marker opts a README fence into compilation. */
 export function extractReadmeExamples(markdown, required = requiredReadmeExamples) {
   const examples = new Map();
-  const lines = markdown.split(/\r?\n/);
-  let fence = null;
-  function collect(closed) {
+  for (const fence of markdownFences(markdown)) {
     const first = fence.lines[0] ?? '';
-    if (!first.startsWith('// @drasi-docs:')) return;
-    assert(closed, `Unclosed marked README fence at line ${fence.line}`);
+    if (!first.startsWith('// @drasi-docs:')) continue;
+    assert(fence.closed, `Unclosed marked README fence at line ${fence.line}`);
     const match = /^\/\/ @drasi-docs: ([a-z][a-z0-9-]*\.(?:ts|tsx))$/.exec(first);
     assert(match, `Invalid README example filename/marker at line ${fence.line}`);
     const name = match[1];
@@ -33,27 +63,6 @@ export function extractReadmeExamples(markdown, required = requiredReadmeExample
     assert(!/@ts-(?:ignore|expect-error|nocheck)\b/.test(code), `README ${name} suppresses compiler checks`);
     examples.set(name, { name, code, line: fence.line });
   }
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (fence) {
-      const closing = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
-      if (closing && closing[1][0] === fence.delimiter[0] && closing[1].length >= fence.delimiter.length) {
-        collect(true);
-        fence = null;
-      } else {
-        fence.lines.push(line);
-      }
-    } else {
-      const opening = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
-      if (opening) {
-        fence = {
-          delimiter: opening[1], language: opening[2].trim().split(/[ \t]/)[0],
-          line: index + 2, lines: [],
-        };
-      }
-    }
-  }
-  if (fence) collect(false);
   const missing = required.filter(name => !examples.has(name));
   assert.equal(missing.length, 0, `Missing marked README examples: ${missing.join(', ')}`);
   return [...examples.values()];
@@ -67,7 +76,7 @@ export function extractDocumentationExamples(documents) {
       examples.set(example.name, { ...example, source: file });
     }
   }
-  const missing = requiredReadmeExamples.filter(name => !examples.has(name));
+  const missing = [...requiredReadmeExamples, ...requiredGuideExamples].filter(name => !examples.has(name));
   assert.equal(missing.length, 0, `Missing marked documentation examples: ${missing.join(', ')}`);
   return [...examples.values()];
 }

@@ -4,10 +4,13 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { documentationFiles, repositorySourceRef } from './documents.mjs';
+import { referenceDocuments } from '../../../scripts/documentation.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const documents = [
   ...documentationFiles.map(file => `packages/react/${file}`),
+  ...referenceDocuments.map(({ source }) => source),
+  'packages/react/src/components/README.md',
   'README.md', 'CONTRIBUTING.md', 'SECURITY.md',
   'examples/react/README.md', 'examples/vue-canary/README.md',
   'packages/core/README.md', 'packages/styles/README.md',

@@ -8,15 +8,40 @@ import { createHash } from 'node:crypto';
 export function assertArtifactBudget(observed, baseline) {
   assert.deepEqual(Object.keys(observed).sort(), Object.keys(baseline.original).sort(), 'Artifact metric set changed');
   assert.deepEqual(Object.keys(baseline.extractionAllowance).sort(), Object.keys(baseline.original).sort());
+  const documentation = baseline.documentationAllowance ?? {};
+  assert.deepEqual(Object.keys(documentation), baseline.documentationAllowance ? ['tarball'] : [],
+    'Documentation allowance may change only the package archive metric');
+  if (baseline.documentationAllowance) {
+    assert(Number.isSafeInteger(documentation.tarball) && documentation.tarball >= 0 &&
+      typeof baseline.documentationReason === 'string' && baseline.documentationReason.trim(),
+    'Documentation allowance requires a measured, explained archive delta');
+  }
   for (const [metric, value] of Object.entries(observed)) {
     assert(Number.isSafeInteger(value) && value >= 0, `Invalid ${metric} size`);
     const original = baseline.original[metric];
     const allowance = baseline.extractionAllowance[metric];
     assert(Number.isSafeInteger(original) && original > 0);
     assert(Number.isSafeInteger(allowance) && allowance >= 0 && baseline.reason[metric]);
-    assert(value <= original * 1.02 + allowance,
-      `${metric} exceeds original * 1.02 + its documented extraction allowance; investigate rather than refreshing the baseline`);
+    assert(value <= original * 1.02 + allowance + (documentation[metric] ?? 0),
+      `${metric} exceeds original * 1.02 + its documented extraction/documentation allowances; investigate rather than refreshing the baseline`);
   }
+}
+
+export function assertDocumentationArchiveBudget(archives, baseline) {
+  const packages = baseline.documentationPackages;
+  assert.deepEqual(Object.keys(archives).sort(), Object.keys(packages).sort(),
+    'Documentation archive accounting must include each package');
+  let allowance = 0;
+  for (const [name, entry] of Object.entries(packages)) {
+    assert(Number.isSafeInteger(entry.before) && entry.before > 0);
+    assert(Number.isSafeInteger(entry.allowance) && entry.allowance >= 0);
+    assert(Number.isSafeInteger(archives[name]) && archives[name] >= 0);
+    assert(archives[name] <= entry.before * 1.02 + entry.allowance,
+      `${name} archive exceeds its own Markdown allowance and future 2% growth bound`);
+    allowance += entry.allowance;
+  }
+  assert.equal(allowance, baseline.documentationAllowance.tarball,
+    'Per-package documentation deltas must sum to the recorded total');
 }
 
 export async function measureEmittedAssets(directory) {

@@ -1,0 +1,463 @@
+# Drasi Server client and wire reference
+
+[Learn with the React developer guide](../../../../react/docs/developer-guide/README.md). This is the co-located lookup reference; edit this file, not its generated package copy.
+
+### Server wire adapters
+
+The default **`sse034ResultAdapter`** accepts the recorded **untemplated SSE**
+envelope `{ queryId, results, timestamp }`. Its name identifies the original
+0.3.4 contract. Historical 0.3.6 captures exercise the same observed
+ADD/DELETE/UPDATE/aggregation shapes without changing this API. This is not a
+claim about every plugin version, custom template or unobserved variant:
+
+- `ADD` with object `data` becomes an upsert; `DELETE` with object `data`
+  becomes a delete.
+- `UPDATE` requires object `before`, `after` and `data`, with optional string
+  array `grouping_keys`. Normalized updates retain both `before` and `after`.
+- `aggregation` requires `before` (an object or `null`) and object `after`.
+  A null `before` becomes an upsert; otherwise it becomes an update.
+- `noop` contributes no normalized changes. Noop-only and empty result batches
+  have empty `changes` and are ignored by the transport; they do not trigger
+  snapshot-overlap recovery. `{ type: 'heartbeat', ts }` produces no deltas.
+  Valid batches for queries with no subscribers are also ignored, not
+  classified as corruption.
+
+There is no field-shape guessing, lowercase-operation fallback, implicit
+`query_id` alias or custom-template interpretation in this default adapter.
+For JSON-emitting Handlebars templates, use the
+[custom adapter recipe](#handlebars-sse-to-querytable).
+Official `row_signature` values are JSON numbers representing upstream `u64`s:
+unsafe integers can already have lost precision in `JSON.parse`. They are
+ignored, not exposed as stable row identities or used to deduplicate results.
+
+For explicit compatibility, use
+`resultAdapter: createLegacyResultAdapter({ routeUnidentified })`.
+`createLegacyResultAdapter(options?: LegacyResultAdapterOptions): ResultAdapter`
+defaults to `{}`: without `routeUnidentified`, nonempty unidentified rows fail
+rather than acquiring a guessed query. `LegacyResultAdapterOptions` accepts
+that optional app-owned `RouteUnidentified` callback. This adapter accepts
+`query_id`, `results` entries with `op`
+`c`/`r`/`u`/`d` or lowercase operation `type`, keyed `data`/`_deleted` rows,
+and `addedResults`/`updatedResults`/`deletedResults` arrays with before/after
+wrappers or direct rows. It is a migration adapter, not another claim about
+the official plugin protocol. An explicit query ID is always honored before
+content routing; the callback cannot override it.
+
+`RouteUnidentified` is
+`(rows: ResultRow[], deliver: (queryId: string, rows: ResultRow[]) => void) => void`.
+Unidentified routing receives rows and `deliver(queryId, rows)`. It must
+**synchronously deliver every original row reference supplied to that callback**
+at least once, to a valid query ID. Fan-out is supported. Do not clone, replace,
+silently drop or asynchronously deliver those rows. Missing/failed routing
+raises `UNROUTABLE_RESULT`; an empty/no-op batch needs no route.
+The legacy row callback cannot retain a before/after update as one operation:
+an unidentified update is flattened into **delete-before, then upsert-after**.
+Route both halves correctly, or implement a `ResultAdapter` that preserves the
+normalized update. This compatibility path does not promise atomic routing of
+a key-changing update.
+
+### Handlebars SSE to QueryTable
+
+For the [cold-storage example](https://github.com/drasi-project/drasi-ui/blob/main/examples/react/README.md), replace its
+`cold-chain-events` entry under `instances[].reactions`; keep the `cold-chain`
+instance, two projection queries and HTTP source. Choose an available SSE port
+(here `8081`). This is **operator configuration**, not provider-side provisioning:
+
+```yaml
+# @drasi-docs: templated-reaction.yaml
+kind: sse
+id: cold-chain-events
+autoStart: true
+queries: [north-room, south-room]
+host: "127.0.0.1"
+port: 8081
+ssePath: /events
+heartbeatIntervalMs: 1000
+defaultTemplate:
+  added:
+    template: >-
+      {"queryId":{{json query_name}},"op":"upsert","after":{{json after}}}
+  updated:
+    template: >-
+      {"queryId":{{json query_name}},"op":"update","before":{{json before}},"after":{{json after}}}
+  deleted:
+    template: >-
+      {"queryId":{{json query_name}},"op":"delete","before":{"probeId":{{json before.probeId}}}}
+```
+
+SSE **0.3.8** supports `defaultTemplate` or per-query `routes`, with context
+fields `query_name`, `before`, `after`, `operation` and `timestamp`. Its
+[released `json` helper](https://github.com/drasi-project/drasi-core/blob/22125bf1d66062533b832a166fe4a51079a23d6e/components/reactions/sse/src/lib.rs#L42-L70)
+writes JSON directly, including quotes and escapes. Do **not** quote
+`{{json ...}}` or interpolate strings with triple braces: HTML escaping is
+not JSON escaping.
+
+**Output must be JSON**: parsing precedes `resultAdapter`, so it cannot repair
+HTML/plain text. All templates use `/events` (no custom `path`).
+**Multi-query streams need explicit routing**: emit `queryId` from `query_name`,
+then allowlist full IDs, never guess from row shapes. Standard heartbeats remain
+unchanged. This recipe covers projection queries; aggregation events without
+`before` need a separate explicit upsert/update mapping.
+
+Import `@drasi/react/styles.css` in your app entry. Supply absolute REST/SSE URLs
+to this component; it memoizes the adapter and displays raw query fields:
+
+```tsx
+// @drasi-docs: templated-reaction.tsx
+import { useMemo } from 'react';
+import { DrasiError, type ResultAdapter, type ResultChange, type ResultRow, type RowKey } from '@drasi/ui-core';
+import { DrasiProvider } from '@drasi/react/adapters/drasi-server';
+import { QueryTable } from '@drasi/react/components';
+
+const queryIds = ['north-room', 'south-room'];
+const object = (value: unknown): value is ResultRow =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+export const probeKey: RowKey = row => {
+  if (typeof row.probeId !== 'string' || !row.probeId.trim()) {
+    throw new DrasiError('INVALID_ROW_KEY');
+  }
+  return row.probeId;
+};
+
+export function createProbeAdapter(): ResultAdapter {
+  return (payload, context) => {
+    const invalid = () => new DrasiError('INVALID_PAYLOAD', context);
+    if (!object(payload)) throw invalid();
+    if (payload.type === 'heartbeat') {
+      if (typeof payload.ts !== 'number' || !Number.isFinite(payload.ts)) throw invalid();
+      return [];
+    }
+    if (typeof payload.queryId !== 'string' || !queryIds.includes(payload.queryId)) {
+      throw new DrasiError('UNROUTABLE_RESULT', context);
+    }
+    const row = (value: unknown): ResultRow => {
+      if (!object(value)) throw invalid();
+      probeKey(value);
+      return value;
+    };
+    let change: ResultChange;
+    switch (payload.op) {
+      case 'upsert': change = { kind: 'upsert', after: row(payload.after) }; break;
+      case 'update': change = { kind: 'update', before: row(payload.before), after: row(payload.after) }; break;
+      case 'delete': change = { kind: 'delete', before: row(payload.before) }; break;
+      default: throw invalid();
+    }
+    return [{ kind: 'delta', queryId: payload.queryId, changes: [change], receivedAt: context.receivedAt }];
+  };
+}
+
+export const readingOptions = {
+  getKey: probeKey,
+  transform: (raw: Readonly<ResultRow>) => raw,
+};
+
+export function ProbeTables({ serverUrl, eventsUrl }: { serverUrl: string; eventsUrl: string }) {
+  const resultAdapter = useMemo(createProbeAdapter, []);
+  return (
+    <DrasiProvider serverUrl={serverUrl} instanceId="cold-chain" queryIds={queryIds}
+      reaction={{ id: 'cold-chain-events', endpoint: eventsUrl }} resultAdapter={resultAdapter}>
+      {queryIds.map(queryId => (
+        <QueryTable key={queryId} queryId={queryId} title={queryId}
+          queryOptions={readingOptions} rowKey={probeKey}
+          columns={[{ key: 'probeId', label: 'Probe' }, { key: 'temperatureC', label: 'Temperature (C)' }]} />
+      ))}
+    </DrasiProvider>
+  );
+}
+```
+
+Alternatively call `useDrasiQuery(queryId, readingOptions)` under the same
+provider. REST snapshots remain ordinary query rows; only SSE uses the adapter.
+**Deletes and both update sides must retain all `getKey` fields**: this sparse
+delete keeps `before.probeId`; updates carry old/new keys so the reducer can
+remove a changed key. Composite keys need every component. Deletes bypass
+`transform`; add domain validation there when projecting raw rows.
+
+#### DrasiClient
+
+`new DrasiClient(options: DrasiClientOptions)` validates immutable connection
+configuration without opening a stream. The public instance surface is:
+
+| Member | Return / behavior |
+| --- | --- |
+| `readonly instanceId: string` | The configured instance ID, not a discovered/default instance. |
+| `initialize(options?: DrasiInitializeOptions)` | `Promise<void>`; validates references and resolves after the stream opens. Shares in-flight initialization using the first call's options and reuses an already initialized, connected client. `maxInitialReconnectAttempts` bounds only pending opening retries; later calls select fresh options and post-open reconnect policy is unchanged. It does not await each subscriber's snapshot. There is no signal parameter; `disconnect()` cancels pending initialization. |
+| `validateResources(signal?: AbortSignal)` | `Promise<void>`; bounded concurrent query reads, followed by the configured reaction read. Requires usable running resources, SSE kind and membership of all configured query IDs. Does not open a stream or set initialized state. |
+| `getQuery(queryId: string, signal?: AbortSignal)` | `Promise<Component<QueryConfig>>`; full-view DTO including lifecycle status. An inspection read need not be a subscribed/configured query and does not require it to be running. |
+| `getReaction(signal?: AbortSignal)` | `Promise<Component<ReactionConfig>>`; the **configured** reaction's full-view DTO. No reaction ID argument; the read alone does not enforce running status/SSE membership. |
+| `getQueryConfig(queryId: string, signal?: AbortSignal)` | `Promise<QueryConfig>`; optional definition inspection, extracting `config` from the full query read. Missing/failed reads throw, never return `null`. |
+| `getQueryResults(queryId: string, signal?: AbortSignal)` | `Promise<ResultRow[]>`; validates the query and requires running status before reading its snapshot. This direct read returns **rows**, not a `QuerySnapshot` wrapper, and does not coordinate overlap with an SSE subscription. |
+| `subscribe(queryId, onResult, onError?, onStateChange?)` | `QuerySubscription`; attaches to the shared stream before starting its own REST baseline. `queryId: string` must belong to `queryIds`. Callback shapes and handle methods are below. |
+| `getConnectionStatus()` | `ConnectionStatus`; a shallow status copy, not a live mutable object or per-query readiness result. |
+| `onConnectionStatusChange(callback: (status: ConnectionStatus) => void)` | `() => void`; immediately calls back with a status copy, then on transitions. Call the returned function to detach. |
+| `getServerUiUrl()` | `string`; the instance-scoped UI link. Does not read/discover that UI or require initialization. |
+| `isInitialized()` | `boolean`; whether initialization completed since the last disconnect. Not current stream health: use connection status and query state. |
+| `disconnect()` | `Promise<void>`; aborts initialization/subscription work, stops retries, closes the stream and clears subscriptions/status listeners. It does not stop or delete server resources. Reinitializing later requires reattaching listeners/subscriptions. |
+
+Direct reads perform one attempt and can run without `initialize()`, including
+in a REST-only Node process. Initialization and subscriptions own the documented
+bounded retry policy. Every resource read remains in `instanceId`, even when
+inspecting an ID outside the live `queryIds` set.
+
+The `subscribe` callbacks are synchronous:
+
+- `onResult: (result: QueryResult) => void` receives a normalized snapshot or
+  delta, **not an already accumulated or projected view**.
+- `onError?: (error: DrasiError) => void` receives query-local or shared
+  failures. Invalid subscription IDs throw synchronously when this is omitted;
+  with a handler they report the error and return a terminal handle instead.
+  Other unhandled subscription failures log only the safe error code.
+- `onStateChange?: (state: QuerySubscriptionState) => void` receives
+  `{ status, stale, error, errorScope }`. `status` excludes `'empty'` because
+  only an accumulated/projected view knows whether it has rows.
+
+Do not return unhandled promises from these callbacks; the client does not
+await them. Result-callback failures are classified as
+`RESULT_PROCESSING_FAILED` unless they are already `DrasiError` instances.
+
+The callable `QuerySubscription` handle has three operations:
+
+| Operation | Result |
+| --- | --- |
+| `subscription()` | `void`; unsubscribe and cancel this subscription's pending reads/timers. No shared disconnect. |
+| `subscription.retry()` | `void`; restart only this subscription's REST reconciliation and retry budget. It does not open a failed shared socket, and is inert after unsubscribe. |
+| `subscription.getState()` | `QuerySubscriptionState`; a copy of current work state, with `stale: boolean`, `error: DrasiError \| null`, `errorScope: QueryErrorScope \| null` and `status: Exclude<QueryStatus, 'empty'>`. |
+
+For direct ownership, initialize once, retain the handle and dispose it along
+with the client when that owner finishes:
+
+```ts
+// @drasi-docs: client.ts
+import { DrasiClient } from '@drasi/ui-core/adapters/drasi-server';
+import { accumulateResult, type DrasiError, type QuerySubscriptionState, type ResultRow, type RowKey } from '@drasi/ui-core';
+
+const readingKey: RowKey = raw => {
+  if (typeof raw.id !== 'string' || !raw.id) throw new Error('Expected a stable reading ID');
+  return raw.id;
+};
+
+// Execute in a browser, not while importing or server rendering.
+export async function monitorReadings(
+  onRows: (rows: ResultRow[]) => void,
+  onError: (error: DrasiError) => void,
+  onStateChange?: (state: QuerySubscriptionState) => void,
+) {
+  const client = new DrasiClient({
+    serverUrl: 'https://drasi.example', instanceId: 'analytics',
+    queryIds: ['readings'],
+    reaction: { id: 'events', endpoint: 'https://events.example/changes' },
+  });
+  try {
+    await client.initialize();
+  } catch (error) {
+    await client.disconnect();
+    throw error;
+  }
+  let rows: ResultRow[] = [];
+  const subscription = client.subscribe('readings', result => {
+    rows = accumulateResult(rows, result, readingKey, {
+      instanceId: 'analytics', resourceKind: 'query', resourceId: 'readings',
+    });
+    onRows(rows);
+  }, onError, onStateChange);
+  return {
+    retry: subscription.retry,
+    getState: subscription.getState,
+    dispose: async () => { subscription(); await client.disconnect(); },
+  };
+}
+```
+
+#### DrasiSSEClient
+
+`new DrasiSSEClient(options?: DrasiSSEClientOptions)` defaults to `{}` and is
+the lower-level stream multiplexer, not a replacement for reference validation
+or snapshot reconciliation. It accepts **flat** reconnect fields, unlike
+`DrasiClientOptions.reconnect`:
+
+| `DrasiSSEClientOptions` field | Default / contract |
+| --- | --- |
+| `maxReconnectAttempts`, `initialReconnectDelayMs`, `maxReconnectDelayMs`, `connectionTimeoutMs` | Optional numbers inherited from `ReconnectOptions`; the same **10 / 1000 / 30000 / 10000** defaults and constraints [above](../../../../react/src/adapters/drasi-server/README.md#connection-options). |
+| `resultAdapter?: ResultAdapter` | `sse034ResultAdapter`; normalized output is validated. |
+| `eventSourceFactory?: EventSourceFactory` | Native browser EventSource, with the [authentication limitations](#authentication-and-injected-transports) in the connection guide. |
+| `headers?: DrasiHeaders` | No custom headers; resolved afresh per attempt with the SSE Accept default. |
+| `credentials?: RequestCredentials` | `'same-origin'`; native streaming cannot implement `'omit'`. |
+| `validate?: (signal: AbortSignal) => Promise<void>` | Absent by default. Read-only validation before opening and after opaque stream errors; reject with a typed error to classify recovery. The owner must honor cancellation **and bound this callback itself**: the stream-open timer starts after pre-open validation. `DrasiClient` supplies validation with bounded REST reads. |
+| `errorDetails?: DrasiErrorDetails` | `{}`; safe instance/resource metadata for stream/auth failures and adapter context, not server authorization or resource discovery. |
+
+There is no `fetch`, REST timeout, reconciliation option, initialized flag or
+resource-management mode on this class. Without `validate` it does not read
+REST resources and cannot infer their absence. Unlike `DrasiClient`, direct
+use does not validate resource references/endpoint configuration for you;
+the owner must supply a trusted browser endpoint and enforce its routing policy.
+
+| Method | Return / behavior |
+| --- | --- |
+| `connect(queryIds: string[], endpoint: string, signal?: AbortSignal, maxInitialReconnectAttempts?: number)` | `Promise<void>`; replaces pending/current connection work and resolves when open, or rejects after permanent failure/exhaustion/cancellation. The fourth argument is a nonnegative safe integer, defaulting to the configured retry count; it bounds only retries before the first open. Subsequent reconnects use the normal policy. The signal cancels the **pending opening**; use `disconnect()` for lifetime cleanup after it resolves. `queryIds` is not a membership or authorization check at this layer: delivery is keyed by actual subscriptions and normalized result IDs. |
+| `subscribe(queryId: string, onResult: (result: QueryDelta) => void, onError?: (error: DrasiError) => void)` | `() => void`; attaches a delta-only subscriber and returns its plain cleanup function. No REST snapshot, accumulated rows, state callback or query-local refresh method. Provide `onError` for query-scoped protocol/callback failures. |
+| `getQueryError(queryId: string)` | `DrasiError \| null`; retained query-scoped fault, separate from shared status. A later valid batch for that query clears it; disconnect clears all faults. |
+| `getConnectionStatus()` | `ConnectionStatus`; a status copy. |
+| `onConnectionStatusChange(callback: (status: ConnectionStatus) => void)` | `() => void`; immediate status callback plus later transitions; returned function removes the listener. |
+| `isConnected()` | `boolean`; whether the stream is currently open, not a snapshot guarantee. |
+| `disconnect()` | `Promise<void>`; cancels open/retry work, closes the stream, publishes disconnected status and clears subscribers, query errors and status listeners. |
+
+Both clients close a failed native stream before managing their own bounded
+retries; do not add an independent reconnect loop inside an injected transport.
+Calling low-level `connect` again replaces connection work, but it is not a
+query refresh or a cross-instance subscription scope manager. For normal
+application use, prefer `DrasiClient` and its subscription lifecycle.
+
+## Server and read-only DTO contract
+
+Every REST operation uses
+`/api/v1/instances/{encodedInstanceId}/...`; there is no discovery-order
+fallback. Subscriptions must belong to the configured `queryIds`. Optional
+inspection may read another query within that same explicit instance.
+Validation checks lifecycle status, SSE reaction kind and query membership.
+It does not compare desired query text or overwrite deployment settings.
+
+Full-view responses contain
+`{ success: true, data: { id, status, links, config, error_message? }, error: null }`.
+The request is `GET .../queries/{id}?view=full` or
+`GET .../reactions/{id}?view=full`. The exported read types are:
+
+| Type | Validated fields |
+| --- | --- |
+| `Component<T>` | `{ id: string, status: ComponentStatus, links: ComponentLinks, config: T, error_message?: string }`; ID and links must match the requested instance/resource. |
+| `ComponentLinks` | `{ self: string, full: string }`; resource and `?view=full` links, normalized to encoded instance-scoped paths. |
+| `ComponentStatus` | `'Starting' \| 'Running' \| 'Stopping' \| 'Stopped' \| 'Error' \| 'Reconfiguring' \| 'Added' \| 'Removed'`. |
+| `QueryLanguage` | `'Cypher' \| 'GQL'`; the server must return an explicit value. |
+| `QueryConfig` | Required `id: string`, `autoStart: boolean`, `query: string`, `queryLanguage: QueryLanguage`, `middleware: readonly QueryMiddleware[]`, `sources: readonly QuerySource[]`, `enableBootstrap: boolean`, `bootstrapBufferSize: number`, `outboxCapacity: number`, `bootstrapTimeoutSecs: number`. |
+| Optional `QueryConfig` fields | `joins?: readonly QueryJoin[]`, `priorityQueueCapacity?: number`, `dispatchBufferCapacity?: number`, `dispatchMode?: 'Channel'`, `storageBackend?: JsonValue`. Capacities/timeouts are nonnegative safe integers; absent fields do not acquire client defaults. |
+| `QuerySource` | `{ sourceId: string, pipeline: readonly string[], nodes: readonly string[], relations: readonly string[] }`. |
+| `QueryJoin` / `QueryJoinKey` | `{ id: string, keys: readonly QueryJoinKey[] }` / `{ label: string, property: string }`. Source and join ordering is retained. |
+| `QueryMiddleware` | `{ kind: string, name: string, config: Readonly<Record<string, JsonValue>> }`; configuration belongs to its server plugin. |
+| `ReactionConfig` | Required `id: string`, `kind: string`, `queries: readonly string[]`; flattened plugin fields have type `JsonValue \| undefined`, not a nested creation body. |
+| `SseReactionConfig` | Extends `ReactionConfig` with `kind: 'sse'`, `host: string`, `port: number` (integer 1–65535), `ssePath: string` (starts with `/`) and `heartbeatIntervalMs: number` (nonnegative safe integer). `getReaction()` still returns the general reaction read type. |
+| `JsonValue` / `ResultRow` | JSON null/boolean/number/string/readonly arrays/readonly string-keyed objects, versus `Record<string, unknown>` object rows. Wire numbers must be finite; applications must narrow row fields themselves. |
+
+These are **read DTOs, not creation DTOs**. No pass-through creation fields,
+ignored deployment options or implicit Cypher selection are offered.
+Configuration/component DTO properties and nested configuration arrays are
+readonly in declarations; do not mutate them to try to change server resources.
+Storage backend JSON and other plugin-owned JSON are exposed for inspection,
+not interpreted/executed by this client. Unknown additive server fields are
+not advertised as writable options. Required fields, enums, integer ranges,
+nested shapes and snapshot object rows are checked at runtime from `unknown`.
+Malformed/incompatible bodies fail visibly with `INVALID_PAYLOAD`; missing
+reads throw rather than returning a success-shaped `null`.
+
+Server 0.2.3's `enableArchive` and `memoryBudgetMiB` settings belong to the
+server/instance configuration, not new fields in the unchanged v1 query read
+DTO. The client does not expose an instance-creation API. Per-query storage
+overrides remain opaque `storageBackend` JSON; no archive or memory-budget
+defaults are selected here.
+
+Current v1 links may spell identifiers literally. The client checks their
+identity and returns safely encoded, instance-scoped links. It never follows
+arbitrary response links, and refuses REST redirects into another path/origin.
+The UI helper returns `${serverUrl}/ui?instance={encodedInstanceId}`.
+
+The historical `test/fixtures/server-v1/contract.json` contains **unmodified actual response
+bodies** for a full query, full SSE reaction and snapshot, with backend
+revision/binary/lock/plugin provenance. They were captured by the real Trading
+harness, not inferred from synthetic fakes. Tests consume those records and
+separately mutate them to exercise malformed, unauthorized and cross-instance
+cases. The historical `test/fixtures/server-v1-0.2.3/contract.json` separately
+records the own rebuilt server 0.2.3 / SSE 0.3.6 / ABI 0.13 responses; the same public
+read tests consume both versions. New records are never substituted into the
+old provenance. See [verified compatibility](../../../../react/docs/reference/validation.md#verified-compatibility).
+
+## Authentication and injected transports
+
+`fetch` has the native fetch signature. Every request receives `method: 'GET'`,
+fresh headers, credentials, `redirect: 'manual'` and an `AbortSignal`.
+Native fetch is invoked with its global receiver, preserving browser binding.
+The default credentials are `same-origin`; REST defaults to
+`Accept: application/json`.
+
+`headers` accepts `HeadersInit` or an async/sync `DrasiHeadersProvider`.
+`DrasiHeaders` is the union of those two inputs. The provider receives a
+`DrasiRequestContext`: `{ url: string, transport: 'rest' | 'sse',
+signal: AbortSignal, instanceId?: string }`
+and has signature
+`(context: DrasiRequestContext) => HeadersInit | Promise<HeadersInit>`.
+It runs for **each** REST read and stream attempt. A stable function can
+refresh tokens without replacing the client. Static headers are copied at
+construction; a transport cannot mutate another request's headers. The library
+does not log credentials, token-bearing URLs, response bodies or user callback
+exception details. `DrasiClient` supplies the explicit instance; a direct
+`DrasiSSEClient` supplies it only when included in `errorDetails`.
+
+```ts
+// @drasi-docs: auth.ts
+import { DrasiClient } from '@drasi/ui-core/adapters/drasi-server';
+import { DrasiError, type DrasiHeadersProvider, type EventSourceFactory } from '@drasi/ui-core';
+
+export function authenticatedClient(
+  getAccessToken: (signal: AbortSignal) => Promise<string>,
+  openStream: EventSourceFactory,
+) {
+  const headers: DrasiHeadersProvider = async ({ signal }) => {
+    const token = await getAccessToken(signal);
+    if (!token) throw new DrasiError('UNAUTHENTICATED');
+    return { Authorization: `Bearer ${token}` };
+  };
+  return new DrasiClient({
+    serverUrl: 'https://drasi.example', instanceId: 'analytics',
+    queryIds: ['readings'],
+    reaction: { id: 'events', endpoint: 'https://events.example/changes' },
+    credentials: 'include', headers, eventSourceFactory: openStream,
+  });
+}
+```
+
+The synchronous custom factory receives
+`(url: string, options: EventSourceOptions)` and returns an
+`EventSourceLike`. It must apply these options, honor cancellation/`close()`
+and expose the declared callbacks/listener interface. SSE headers default to
+`Accept: text/event-stream`. A known `DrasiError` thrown by a factory/auth
+provider retains its identity and classification.
+
+`EventSourceOptions` contains readonly `headers: Headers`,
+`credentials: RequestCredentials` and `signal: AbortSignal`. The
+`EventSourceLike` interface requires writable nullable `onopen` and `onerror`
+callbacks `(event: Event) => void`, a nullable
+`onmessage: (event: MessageEvent<string>) => void`,
+`addEventListener(type: string, listener: EventListener): void`, and
+`close(): void`. The transport listens to ordinary messages and named
+`query-result` events. No `readyState` or `removeEventListener` member is
+required. A factory returns the stream object synchronously, **not a Promise**;
+perform asynchronous authentication in the headers provider.
+
+**Native EventSource limitations:** it cannot send custom headers, expose
+HTTP status or omit same-origin cookies. `include` maps to
+`withCredentials: true`; `same-origin` maps to `false`. Custom headers/header
+functions or `omit` therefore require a custom factory **when opening a
+stream**. Unsupported native authentication fails with `INVALID_CONFIGURATION`,
+not silently dropped auth. REST-only inspection does not require a factory.
+Do not wrap native EventSource and pretend it supports bearer headers.
+Cross-origin cookie use requires appropriate server/proxy credentials and CORS.
+
+The SSE endpoint is supplied by the operator, never inferred from bind settings.
+Shared HTTP(S) URL parsing and safety checks do not trim its path or query:
+`/proxy/events/` stays distinct from `/proxy/events`, and `?opaque=part/`
+retains the slash in the query value. The stream factory and its authentication
+context receive that complete serialized URL. Only the **server base** removes
+its final path delimiter before API/UI paths are appended.
+The supported plugin protocol cannot attest that a proxy routes to the declared
+reaction/instance or reveal native SSE redirect destinations. Use a trusted
+proxy or custom transport if enforcement is required. A generic stream error
+is **never** evidence that a query/reaction is missing: the client revalidates
+using read-only REST before choosing recovery.
+
+Callbacks should honor their signal. REST/open-auth timeouts also settle
+client-facing work when an injected fetch or headers provider ignores
+cancellation; late completions cannot open a stream or publish data. A
+standalone SSE `validate` callback must bound its own work as described
+in the [SSE client reference](#drasisseclient). Explicit read cancellation preserves the caller's
+original `signal.reason`. Malformed headers/options are permanent
+`INVALID_CONFIGURATION`; invalid JSON/DTOs are `INVALID_PAYLOAD`;
+REST network/body/timeouts are retryable `SERVER_UNAVAILABLE`. A 401/403 never
+authorizes provisioning.

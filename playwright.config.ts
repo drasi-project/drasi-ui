@@ -28,10 +28,16 @@ export default defineConfig({
   projects: [
     ...[18, 19].flatMap(react => browsers.map(browserName => ({
       name: `${browserName}-react${react}`,
-      testIgnore: react === 19 ? 'showcase-export.spec.ts' : undefined,
+      testIgnore: ['developer-guide.spec.ts', ...(react === 19 ? ['showcase-export.spec.ts'] : [])],
       metadata: { kind: 'react', react },
       use: { browserName, baseURL: `http://127.0.0.1:${react === 18 ? 15273 : 15274}` },
     }))),
+    ...browsers.map(browserName => ({
+      name: `${browserName}-guide`,
+      testMatch: 'developer-guide.spec.ts',
+      metadata: { kind: 'guide' },
+      use: { browserName, baseURL: 'http://127.0.0.1:15277' },
+    })),
     ...browsers.map(browserName => ({
       name: `${browserName}-vue`,
       testMatch: 'framework-contract.spec.ts',
@@ -57,6 +63,12 @@ export default defineConfig({
       url: 'http://127.0.0.1:15276',
       reuseExistingServer: false,
       timeout: 60_000,
+    },
+    {
+      command: 'node scripts/serve-consumer.mjs guide',
+      url: 'http://127.0.0.1:15277',
+      reuseExistingServer: false,
+      timeout: 30_000,
     },
   ],
 });
