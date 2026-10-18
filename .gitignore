@@ -20,3 +20,4 @@ packages/*/LICENSE
 packages/*/NOTICE
 .generated/
 .next/
+.cold-storage-backend/

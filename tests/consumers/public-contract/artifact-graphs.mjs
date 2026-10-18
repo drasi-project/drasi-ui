@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { guideAssets } from '../../../scripts/guide-assets.mjs';
 
 const entrypoints = {
   root: '.',
@@ -172,6 +173,18 @@ export async function checkArtifact(ts, packageRoot, manifest, packageKind = 're
     }
   }
   for (const file of await filesUnder(packageRoot)) {
+    const local = relative(packageRoot, file).replaceAll('\\', '/');
+    if (guideAssets.get(local) === 'lesson-tooling') {
+      assert.equal(packageKind, 'react', 'Only the React book carries the explicit executable lessons');
+      const source = ts.createSourceFile(file, await readFile(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+      for (const specifier of moduleReferences(ts, source)) {
+        assert(specifier.startsWith('node:') ||
+          (specifier.startsWith('.') && guideAssets.get(relative(packageRoot,
+            resolve(dirname(file), specifier)).replaceAll('\\', '/')) === 'lesson-tooling'),
+        `Lesson tooling has an undeclared import: ${specifier}`);
+      }
+      continue;
+    }
     const declaration = /\.d\.(?:ts|mts|cts)$/.test(file);
     if (!declaration && /\.[cm]?js$/.test(file)) {
       const source = ts.createSourceFile(file, await readFile(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);

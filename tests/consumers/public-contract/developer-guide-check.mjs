@@ -30,7 +30,8 @@ test('the complete book owns every progressive module and runnable project file'
   const config = JSON.parse(assets.get('tsconfig.json').code);
   assert.equal(config.compilerOptions.strict, true);
   assert.equal(config.compilerOptions.skipLibCheck, false);
-  assert.equal(config.compilerOptions.allowImportingTsExtensions, true);
+  assert.equal(config.compilerOptions.allowImportingTsExtensions, undefined);
+  assert.deepEqual(config.compilerOptions.types, ['vite/client']);
   assert.equal(config.compilerOptions.noUncheckedSideEffectImports, true);
   assert.match(assets.get('index.html').code, /src="\/src\/main\.tsx"/);
 });
@@ -53,13 +54,16 @@ test('all numbered chapters and appendices are reachable from the in-book conten
   const contents = book.slice(book.indexOf('## Contents'), book.indexOf('## Part I'));
   const links = relativeMarkdownLinks(contents);
   const chapters = book.match(/^### \d+\. .+$/gm);
-  assert.equal(chapters.length, 13);
+  assert.equal(chapters.length, 17);
   for (const heading of [...chapters, ...book.match(/^## Appendix .+$/gm)]) {
     const anchor = [...markdownAnchors(heading)][0];
     assert(links.includes(`#${anchor}`), `Chapter absent from contents: ${heading}`);
   }
   assert(book.indexOf('```mermaid') < book.indexOf('```tsx'), 'Explain data flow before code/import details');
-  assert(book.indexOf('### 1. Run your first screen') < book.indexOf('### 4. Connect to an existing query'));
+  assert(book.indexOf('### 1. Run your first screen') < book.indexOf('### 6. Connect your first live table'));
+  assert(book.indexOf('### 4. Theme an accessible screen') < book.indexOf('## Part II'));
+  assert(book.indexOf('### 5. Run the Cold storage backend') < book.indexOf('### 6. Connect your first live table'));
+  assert(!book.includes('blob/main'), 'The learner book must use stable external source references');
 });
 
 test('all packaged reference text and link mappings have one co-located authoring source', async () => {

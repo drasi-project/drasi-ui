@@ -6,7 +6,7 @@ import { resolve, sep } from 'node:path';
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
 
-export async function serveExample({ dist, rest = null, events = null, port = 5373 }) {
+export async function serveExample({ dist, rest = null, events = null, port = 5373, streamIdleTimeoutMs = 5000 }) {
   for (const target of [rest, events]) {
     assert(target === null || /^http:\/\/127\.0\.0\.1:\d+$/.test(target), 'Example proxy targets must be owned loopback services');
   }
@@ -44,6 +44,14 @@ export async function serveExample({ dist, rest = null, events = null, port = 53
           'Cache-Control': 'no-store',
         });
         response.flushHeaders();
+        if (url.pathname === '/events') {
+          incoming.on('aborted', () => response.destroy());
+          incoming.setTimeout(streamIdleTimeoutMs, () => {
+            console.warn('Example SSE missed its one-second heartbeat.');
+            incoming.destroy();
+            response.destroy();
+          });
+        }
         incoming.pipe(response);
         incoming.on('error', error => {
           console.error('Example upstream stream failed:', error.code ?? error.name);

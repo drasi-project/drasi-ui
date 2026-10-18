@@ -58,6 +58,9 @@ jobs:
       - run: npm run test:browser
         env:
           HOME: /root
+      - run: npm run test:backend && npm run test:guide-live
+        env:
+          HOME: /root
       - run: node scripts/seal-candidates.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

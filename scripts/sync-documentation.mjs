@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { packagedReference, referenceDocuments } from './documentation.mjs';
+import { packagedReference, referenceDocuments, runtimeDocuments } from './documentation.mjs';
 
 assert(process.argv.slice(2).every(argument => argument === '--check'), 'Usage: sync-documentation.mjs [--check]');
 const check = process.argv.includes('--check');
@@ -20,3 +20,13 @@ for (const { source, target } of referenceDocuments) {
   }
 }
 console.log(`${check ? 'Checked' : 'Generated'} ${referenceDocuments.length} co-located reference copies.`);
+for (const { source, target } of runtimeDocuments) {
+  const expected = await readFile(new URL(`../${source}`, import.meta.url));
+  const destination = new URL(`../${target}`, import.meta.url);
+  if (check) assert.deepEqual(await readFile(destination), expected, `${target} is stale; run npm run docs:sync.`);
+  else {
+    await mkdir(dirname(fileURLToPath(destination)), { recursive: true });
+    await writeFile(destination, expected);
+  }
+}
+console.log(`${check ? 'Checked' : 'Generated'} ${runtimeDocuments.length} executable lesson copies.`);

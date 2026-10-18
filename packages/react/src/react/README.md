@@ -51,6 +51,21 @@ does not remove or mutate the accumulated raw state. All three options reproject
 retained rows reactively without a new socket or subscription. Keep callbacks
 pure and do not mutate their read-only raw input.
 
+Stabilize unchanged callbacks at module scope or with `useMemo`/`useCallback`
+to avoid unnecessary projection work. The outer options object does not need
+stable identity: the hook memoizes by `getKey`, `transform`, and `postProcess`.
+Changing a callback intentionally reprojects the retained rows. Connection
+callbacks have a different lifecycle contract in the Server provider.
+
+Callback exception messages are sanitized to `INVALID_ROW_KEY` or
+`RESULT_PROCESSING_FAILED`, rather than forwarded or logged. The
+[failure lesson](../../docs/developer-guide/README.md#10-keep-failures-and-recovery-visible)
+shows development diagnostics limited to static field/reason values.
+For application notifications, React may batch snapshot/resync state changes;
+the [notification lesson](../../docs/developer-guide/README.md#11-react-to-change-in-application-code)
+uses the existing normalized subscription contract instead of inferring events
+from renders.
+
 Active stream batches use the **latest committed `getKey`**, never a callback
 from a suspended or abandoned render. During a `startTransition` that suspends,
 the current view and its subscription keep their committed identity policy.

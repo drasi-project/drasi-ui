@@ -14,6 +14,14 @@ export const referenceDocuments = [
   ['packages/styles/src/README.md', 'styles.md'],
 ].map(([source, name]) => ({ source, target: `packages/react/docs/reference/${name}` }));
 
+export const runtimeDocuments = [
+  'scripts/backend.mjs', 'scripts/config.mjs', 'scripts/auth-gateway.mjs',
+  'config/server.yaml', 'config/readings.jsonl', 'config/runtime-pins.json',
+].map(path => ({
+  source: `examples/react/${path}`,
+  target: `packages/react/docs/developer-guide/runtime/${path}`,
+}));
+
 export const repositorySourceRef = 'main';
 const repository = `https://github.com/drasi-project/drasi-ui/blob/${repositorySourceRef}/`;
 

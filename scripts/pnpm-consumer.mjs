@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { copyFile, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
@@ -36,6 +37,7 @@ const cli = join(root, 'node_modules/pnpm/bin/pnpm.mjs');
 const pnpm = args => run(process.execPath, [cli, ...args], directory, {
   env: { COREPACK_ENABLE_NETWORK: '0' },
 });
+let proof;
 try {
   await copyConsumer(source, directory);
   await copyFile(join(source, 'package-lock.json'), join(directory, 'package-lock.json'));
@@ -55,12 +57,39 @@ try {
     join(directory, 'render.cjs'), format, 'single-react',
   ], directory)));
   await copyFile(join(directory, 'pnpm-lock.yaml'), '.artifacts/pnpm-lock.yaml');
-  await writeFile('.artifacts/pnpm-proof.json', JSON.stringify({
+  proof = {
     pnpm: '12.14.0', source: set.source, artifacts: consumers.artifacts, renders,
     sourceLinks: false, peerOverrides: false, scriptsDisabled: true, tarballResolutions,
     verifiedCoreDependency: coreRange, registryInstallationQualified: false,
-  }, null, 2) + '\n');
+  };
   console.log('Fresh pnpm consumer built and rendered the exact candidate set with one React identity.');
 } finally {
   await rm(directory, { recursive: true, force: true });
 }
+
+const guideDirectory = await realpath(await mkdtemp(join(tmpdir(), 'drasi-pnpm-guide-')));
+const guidePnpm = args => run(process.execPath, [cli, ...args], guideDirectory, {
+  env: { COREPACK_ENABLE_NETWORK: '0' },
+});
+try {
+  const guide = consumers.consumers.guide.directory;
+  await copyConsumer(guide, guideDirectory);
+  await copyFile(join(guide, 'package-lock.json'), join(guideDirectory, 'package-lock.json'));
+  await writeFile(join(guideDirectory, 'pnpm-workspace.yaml'), `overrides:\n${Object.entries(tarballResolutions)
+    .map(([name, value]) => `  ${JSON.stringify(name)}: ${JSON.stringify(value)}`).join('\n')}\n`);
+  guidePnpm(['import', '--registry=https://registry.npmjs.org']);
+  guidePnpm(['install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org',
+    '--store-dir', join(guideDirectory, '.store')]);
+  await verifyInstalled(guideDirectory, set, true);
+  assert(!existsSync(join(guideDirectory, 'node_modules/@drasi/ui-styles')), 'The React-only lesson does not consume a separate styles package');
+  guidePnpm(['run', 'build']);
+  await copyFile(join(root, 'tests/consumers/public-contract/install-render.cjs'), join(guideDirectory, 'render.cjs'));
+  const renders = [];
+  for (const format of ['esm', 'cjs']) renders.push(JSON.parse(run(process.execPath,
+    [join(guideDirectory, 'render.cjs'), format, 'single-react'], guideDirectory)));
+  proof.guide = { bookSha256: consumers.consumers.guide.bookSha256, renders,
+    directDependencies: ['@drasi/react', '@drasi/ui-core'], unusedStylesInstalled: false };
+  await copyFile(join(guideDirectory, 'pnpm-lock.yaml'), '.artifacts/pnpm-guide-lock.yaml');
+  await writeFile('.artifacts/pnpm-proof.json', JSON.stringify(proof, null, 2) + '\n');
+  console.log('The literal book also builds with pnpm, declared direct imports and no unused styles dependency.');
+} finally { await rm(guideDirectory, { recursive: true, force: true }); }

@@ -1,0 +1,57 @@
+# Copyright 2026 The Drasi Authors. Licensed under the Apache License, Version 2.0.
+# Resources belong to this example, not to @drasi/react.
+# The launcher can allocate different local ports for automated runs.
+apiVersion: drasi.io/v1
+host: "127.0.0.1"
+port: 8080
+persistConfig: false
+enableUi: false
+verifyPlugins: true
+autoInstallPlugins: false
+logLevel: info
+instances:
+  - id: cold-chain
+    sources:
+      - kind: http
+        id: probe-feed
+        autoStart: true
+        host: "127.0.0.1"
+        port: 8082
+        timeoutMs: 10000
+        bootstrapProvider:
+          kind: scriptfile
+          filePaths: ["./readings.jsonl"]
+    queries:
+      - id: north-room
+        query: >
+          MATCH (p:Probe) WHERE p.room = 'North'
+          RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+        queryLanguage: Cypher
+        autoStart: true
+        sources:
+          - sourceId: probe-feed
+      - id: south-room
+        query: >
+          MATCH (p:Probe) WHERE p.room = 'South'
+          RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+        queryLanguage: Cypher
+        autoStart: true
+        sources:
+          - sourceId: probe-feed
+      - id: warm-probes
+        query: >
+          MATCH (p:Probe) WHERE p.temperatureC >= 8
+          RETURN p.probeId AS probeId, p.room AS room, p.temperatureC AS temperatureC
+        queryLanguage: Cypher
+        autoStart: true
+        sources:
+          - sourceId: probe-feed
+    reactions:
+      - kind: sse
+        id: cold-chain-events
+        autoStart: true
+        queries: [north-room, south-room, warm-probes]
+        host: "127.0.0.1"
+        port: 8081
+        ssePath: /events
+        heartbeatIntervalMs: 1000

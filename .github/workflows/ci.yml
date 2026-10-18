@@ -53,10 +53,24 @@ jobs:
       - run: npm install --global npm@11.17.0 --registry=https://registry.npmjs.org
       - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
       - run: npm run build && npm run typecheck && npm run test:coverage
+      - run: npm run pack:candidates && npm run check:packages
+      - run: npm run test:book-apps && npm run test:backend
+      - run: node --test scripts/test/launcher-entry.test.mjs scripts/test/preview.test.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: node22-book-evidence
+          include-hidden-files: true
+          path: |
+            .artifacts/book-apps.json
+            .artifacts/consumer-proofs/developer-guide/
+            .artifacts/consumer-proofs/developer-guide-next/
+            .artifacts/released-backend/run-*/
+          if-no-files-found: error
 
   consumers:
     name: Packed consumers
-    needs: quality
+    needs: [quality, node22, release-policy]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     container:
@@ -78,6 +92,19 @@ jobs:
       - run: npm run test:browser
         env:
           HOME: /root
+      - run: npm run test:backend && npm run test:guide-live
+        env:
+          HOME: /root
+      - run: node scripts/test-example-browser.mjs --live
+        env:
+          HOME: /root
+      - run: npm run preview:prepare
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: preview-download-candidate
+          path: .artifacts/preview/
+          if-no-files-found: error
+          retention-days: 90
       - run: node scripts/export-showcase.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -96,8 +123,11 @@ jobs:
             .artifacts/consumers.json
             .artifacts/pnpm-proof.json
             .artifacts/pnpm-lock.yaml
+            .artifacts/pnpm-guide-lock.yaml
             .artifacts/browser-report.json
             .artifacts/dependency-audit/
+            .artifacts/live-guide/
+            .artifacts/released-backend/run-*/
             test-results/
           if-no-files-found: error
 

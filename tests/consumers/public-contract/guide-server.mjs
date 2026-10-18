@@ -3,8 +3,15 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 const initial = {
-  'north-room': [{ probeId: 'probe-1001', room: 'North', temperatureC: 3 }],
-  'south-room': [{ probeId: 'probe-2001', room: 'South', temperatureC: 5 }],
+  'north-room': [
+    { probeId: 'probe-1001', room: 'North', temperatureC: 3 },
+    { probeId: 'probe-1002', room: 'North', temperatureC: 6 },
+  ],
+  'south-room': [
+    { probeId: 'probe-2001', room: 'South', temperatureC: 5 },
+    { probeId: 'probe-2002', room: 'South', temperatureC: 9 },
+  ],
+  'warm-probes': [{ probeId: 'probe-2002', room: 'South', temperatureC: 9 }],
 };
 const queryIds = Object.keys(initial);
 
@@ -58,18 +65,18 @@ export function createGuideFixture() {
         }
         const { action, queryId = 'north-room' } = JSON.parse(body);
         assert(queryIds.includes(queryId), 'Unknown fixture query');
-        if (action === 'warm') {
-          const before = state.rows[queryId][0] ?? initial[queryId][0];
-          const after = { ...before, temperatureC: 8 };
-          state.rows[queryId] = [after];
+        if (action === 'warm' || action === 'cool') {
+          const before = state.rows[queryId].find(row => row.probeId === initial[queryId][0].probeId) ?? initial[queryId][0];
+          const after = { ...before, temperatureC: action === 'warm' ? 8 : 4 };
+          state.rows[queryId] = [...state.rows[queryId].filter(row => row.probeId !== before.probeId), after];
           emit(state, { queryId, op: 'update', before, after });
         } else if (action === 'delete') {
           const before = { probeId: initial[queryId][0].probeId };
-          state.rows[queryId] = [];
+          state.rows[queryId] = state.rows[queryId].filter(row => row.probeId !== before.probeId);
           emit(state, { queryId, op: 'delete', before });
         } else if (action === 'restore') {
           state.rows[queryId] = structuredClone(initial[queryId]);
-          emit(state, { queryId, op: 'upsert', after: state.rows[queryId][0] });
+          for (const after of state.rows[queryId]) emit(state, { queryId, op: 'upsert', after });
         } else if (action === 'fail-query') state.failures[queryId] = 401;
         else if (action === 'repair-query') delete state.failures[queryId];
         else if (action === 'fail-stream') emit(state, { invalid: 'intentional unscoped protocol failure' });

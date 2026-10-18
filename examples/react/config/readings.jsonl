@@ -1,3 +1,5 @@
 {"kind":"Header","start_time":"2026-01-15T12:00:00Z","description":"Deterministic cold-storage bootstrap owned by the example"}
-{"kind":"Node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":3}}
+{"kind":"Node","id":"north-spare","labels":["Probe"],"properties":{"probeId":"probe-1002","room":"North","temperatureC":6}}
 {"kind":"Node","id":"south-probe","labels":["Probe"],"properties":{"probeId":"probe-2001","room":"South","temperatureC":5}}
+{"kind":"Node","id":"north-probe","labels":["Probe"],"properties":{"probeId":"probe-1001","room":"North","temperatureC":3}}
+{"kind":"Node","id":"south-spare","labels":["Probe"],"properties":{"probeId":"probe-2002","room":"South","temperatureC":9}}

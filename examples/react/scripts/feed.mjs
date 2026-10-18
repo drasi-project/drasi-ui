@@ -6,13 +6,15 @@ import { pathToFileURL } from 'node:url';
 export const probes = [
   { id: 'north-probe', probeId: 'probe-1001', room: 'North', temperatureC: 3 },
   { id: 'south-probe', probeId: 'probe-2001', room: 'South', temperatureC: 5 },
+  { id: 'north-spare', probeId: 'probe-1002', room: 'North', temperatureC: 6 },
+  { id: 'south-spare', probeId: 'probe-2002', room: 'South', temperatureC: 9 },
 ];
 
 export async function sendReading(endpoint, probe, operation = 'update') {
   assert(/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint), 'Use the owned loopback feed URL printed by npm start');
   assert(['insert', 'update', 'delete'].includes(operation), 'Unsupported feed operation');
   assert(probes.some(item => item.id === probe.id && item.probeId === probe.probeId && item.room === probe.room),
-    'Only this example owns these two probe identities');
+    'Only this example owns these four probe identities');
   assert(Number.isFinite(probe.temperatureC), 'Expected a finite temperature');
   const response = await fetch(`${endpoint}/sources/probe-feed/events`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

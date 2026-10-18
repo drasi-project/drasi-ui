@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { referenceDocuments } from '../../../scripts/documentation.mjs';
+import { guideAssets } from '../../../scripts/guide-assets.mjs';
 
 export { repositorySourceRef } from '../../../scripts/documentation.mjs';
 
@@ -19,7 +20,9 @@ export async function loadDocumentation(packageRoot) {
   const guides = (await readdir(join(packageRoot, 'docs'), { recursive: true, withFileTypes: true }))
     .filter(file => file.isFile())
     .map(file => relative(packageRoot, join(file.parentPath, file.name)).replaceAll('\\', '/')).sort();
-  assert.deepEqual(guides, documentationFiles.filter(file => file.startsWith('docs/')).sort(),
+  assert.deepEqual(guides, [
+    ...documentationFiles.filter(file => file.startsWith('docs/')), ...guideAssets.keys(),
+  ].sort(),
     'Every shipped guide must be included in the executable documentation contract');
   return Object.fromEntries(await Promise.all(documentationFiles.map(async file =>
     [file, await readFile(join(packageRoot, file), 'utf8')],

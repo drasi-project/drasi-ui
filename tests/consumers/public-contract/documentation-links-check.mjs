@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { checkDocumentationLinks, checkInstalledDocumentationLinks, markdownAnchors, relativeMarkdownLinks, repositoryLinkTarget } from './documentation-links.mjs';
 import { documentationFiles, loadDocumentation, repositorySourceRef } from './documents.mjs';
+import { guideAssets } from '../../../scripts/guide-assets.mjs';
 
 test('matches actual historical headings, punctuation, duplicate slugs and stable aliases', () => {
   const anchors = markdownAnchors([
@@ -46,7 +47,7 @@ test('missing anchors or files fail instead of blessing stale evidence links', a
 test('installed guide links cannot rely on missing or escaped repository files', async context => {
   const root = await mkdtemp(join(tmpdir(), 'drasi-installed-docs-'));
   context.after(() => rm(root, { recursive: true, force: true }));
-  for (const file of documentationFiles) {
+  for (const file of [...documentationFiles, ...guideAssets.keys()]) {
     await mkdir(dirname(join(root, file)), { recursive: true });
     await writeFile(join(root, file), '# Guide\n');
   }
@@ -54,6 +55,8 @@ test('installed guide links cannot rely on missing or escaped repository files',
   documents['README.md'] = '[Start](docs/getting-started.md#guide)';
   assert.equal((await checkInstalledDocumentationLinks(root, documents)).length, 1);
   documents['README.md'] = '[Missing local example](examples/README.md)';
+  await assert.rejects(checkInstalledDocumentationLinks(root, documents), /ENOENT/);
+  documents['README.md'] = '![Missing figure](docs/developer-guide/figures/missing.png)';
   await assert.rejects(checkInstalledDocumentationLinks(root, documents), /ENOENT/);
   documents['README.md'] = '[Repository alias](../README.md)';
   await assert.rejects(checkInstalledDocumentationLinks(root, documents), /escapes package/);

@@ -432,6 +432,18 @@ callbacks `(event: Event) => void`, a nullable
 required. A factory returns the stream object synchronously, **not a Promise**;
 perform asynchronous authentication in the headers provider.
 
+Unnamed `message` and named `query-result` events reach the result adapter.
+Other event names are ignored. The
+[authentication lesson](../developer-guide/README.md#12-authenticate-both-transports)
+contains a complete fetch-backed, cancellable factory and a working local
+authenticated gateway. It leaves reconnect ownership with the client.
+
+The opening timeout is not a heartbeat watchdog. A silent intermediary can
+retain an apparently open stream. Use a verified streaming/heartbeat policy
+at the proxy, as demonstrated in the
+[recovery lesson](../developer-guide/README.md#10-keep-failures-and-recovery-visible);
+quiet query results alone are not evidence of a dead connection.
+
 **Native EventSource limitations:** it cannot send custom headers, expose
 HTTP status or omit same-origin cookies. `include` maps to
 `withCredentials: true`; `same-origin` maps to `false`. Custom headers/header

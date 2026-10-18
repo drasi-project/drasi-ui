@@ -1,12 +1,14 @@
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ApplicationConnection } from './application-connection.js';
-import { ColdStorageDashboard } from './cold-storage-dashboard.js';
-import { ColdStorageBoard } from './cold-storage-capstone.js';
-import { LiveColdStorage } from './live-cold-storage.js';
-import { ReviewLesson } from './review-readings.js';
-import { SortedColdStorage } from './sorted-cold-storage.js';
-import { ThemeScope } from './theme-scope.js';
+import { ApplicationConnection } from './application-connection';
+import { ColdStorageDashboard } from './cold-storage-dashboard';
+import { ColdStorageBoard } from './cold-storage-capstone';
+import { LiveColdStorage } from './live-cold-storage';
+import { ReviewLesson } from './review-readings';
+import { SortedColdStorage } from './sorted-cold-storage';
+import { ThemeScope } from './theme-scope';
+import { FailureLesson } from './failure-lesson';
+import { NotificationLesson } from './notification-lesson';
 
 const lesson = new URLSearchParams(window.location.search).get('lesson');
 function Fixture() {
@@ -22,7 +24,8 @@ function Fixture() {
       {lesson === 'sorting' ? <SortedColdStorage /> : lesson === 'review' ? <ReviewLesson />
         : <ApplicationConnection key={scope} origin={window.location.origin}>
           {lesson === 'query-table' ? <LiveColdStorage />
-            : lesson === 'capstone' ? <ColdStorageBoard /> : <ColdStorageDashboard />}
+            : lesson === 'capstone' ? <ColdStorageBoard /> : lesson === 'failure' ? <FailureLesson />
+            : lesson === 'notifications' ? <NotificationLesson /> : <ColdStorageDashboard />}
         </ApplicationConnection>}
     </ThemeScope>}
   </>;

@@ -4,9 +4,22 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { candidateDirectory, json, releasePackages, root } from './packages.mjs';
+import { validateBuildOutputs } from './build-outputs.mjs';
 
 const relativeDirectory = relative(root, candidateDirectory);
 assert(relativeDirectory.startsWith('.artifacts/'), 'Candidate output must be an explicit directory under .artifacts/');
+const outputs = await validateBuildOutputs(root, releasePackages);
+for (const item of outputs) {
+  const result = spawnSync('npm', ['pack', '--dry-run', '--ignore-scripts', '--json', '--workspace', item.directory],
+    { cwd: root, encoding: 'utf8' });
+  if (result.error) throw result.error;
+  assert.equal(result.status, 0, result.stderr);
+  const [packed] = JSON.parse(result.stdout);
+  const files = new Map(packed.files.map(file => [file.path, file.size]));
+  for (const [path, { bytes }] of Object.entries(item.files)) {
+    assert.equal(files.get(path), bytes, `${item.name}: required build output excluded from archive: ${path}`);
+  }
+}
 await mkdir(join(root, '.artifacts'), { recursive: true });
 await mkdir(candidateDirectory);
 const git = ['-c', `safe.directory=${await realpath(root)}`];

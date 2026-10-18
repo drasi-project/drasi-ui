@@ -1,0 +1,150 @@
+{
+  "generator": "scripts/test-live-guide.mjs --capture",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "viewport": {
+    "width": 1100,
+    "height": 880
+  },
+  "bookSha256": "7e84fe488c615d13f550f43621448b7e1d7cdccf88809f70759e14ed99c9db51",
+  "moduleSha256": {
+    "readings.ts": "2bca0f7d64c52db051a294a2d2a955d5ac6fbfa5785c2c4b11c2ab10eed5d2af",
+    "cold-storage.tsx": "bde22c5c36878f650ee890fcbaca4dca71ff9a14d83b845d25661abe604dbfb5",
+    "cold-storage-main.tsx": "503d214770c3c521dc3df173f56ea6cb0a60e6075b0bb7b983ec7db29609f048",
+    "sorted-cold-storage.tsx": "38c38ec8db7840e2322ee949389b8c403f00a3ad0f68e14ab2294446b787447f",
+    "sorted-main.tsx": "53da579896b4e65d6d509e9ea63cb8f7145fc25bc6de0d64c5b8ccc53c3c8037",
+    "review-readings.tsx": "eff907db49c0024392cc352dcb9ad8b8ef1c5a13b2a3864d290eb850cb63d1f8",
+    "review-main.tsx": "8497bd18db48289111992a29b5a93872b59f66dfed399cd76e929e03796d838c",
+    "theme-scope.tsx": "a34cdc80855f6da797ba779fbf429d11ae705a50e1be475d7d12930db9fc0ea5",
+    "theme-main.tsx": "34088aaea2c7921389f80840dbb13c5c642bd1f4f07dc79b31177d2b8eb1776e",
+    "reading-model.ts": "98c9bd75f06b2a3d7f62e6ba8e25eeb25c2062462d384ea69e2a58dcea2b81ae",
+    "live-cold-storage.tsx": "0c1c2e1605b01b61695a5330f3ec7898720790a1d9e8fa00e55413f093cceea3",
+    "live-main.tsx": "6d6d301b3d37370233adf74ded910ec4417aa6b426d47fab320cb83e4a60c107",
+    "warm-queries.tsx": "e23f3dcf2fe6abf8391e5c8bc870a4ee7a93d8d8d7fb8e4103877e5f1a2e7104",
+    "warm-main.tsx": "474f005d834c0ad617bde13aaa9c62a42c9878f0d718667b8f9631c59420a7fb",
+    "cold-storage-dashboard.tsx": "37ac6c00241c7e17e75be69493f974e3b7393ebfd02936c01d86100ce44139ea",
+    "dashboard-main.tsx": "f935889fb1877cd58afcdb452c0d365c9eaa92ff43c75e1882d39cda51d334eb",
+    "connection-notice.tsx": "d6d448b8ba3cd5bbb7c942e263d8029973c3aa82ef7e65987808d2f513d83f96",
+    "failure-lesson.tsx": "3be791076e65e255c9a01c586c8f0fbeea32d7addaaf79e14e3911c89642eca0",
+    "failure-main.tsx": "fcd8aee5fc629cfdc01d772591ffe83ab11fb1c0688f359d80c11d1185afd061",
+    "threshold-alerts.ts": "35fb552f8e0ca549fc44b15752055667606d061bdbb0ceffb55fe886be0e0f54",
+    "notification-lesson.tsx": "377c9153f1d48281612d815a83c7ad72be650b3690a8d210235154758db5016b",
+    "notification-main.tsx": "7db9d8922373137d7d3dce415fc8968f15f4dcf22224dbc834535be5ae119c26",
+    "fetch-event-source.ts": "e97a1231b177320195fea24aaac9a7f8ce248076a1a368dd9f22e802e0123887",
+    "authenticated-cold-storage.tsx": "f4fff0d8f85805ac4e6efcdbd8e2ce70fe0c0376e03dbd9baa5fa596d1fa9640",
+    "authenticated-main.tsx": "4a42a68e62347303922c94078f393e84b48f33e533d9a720ef76de8f5e1fa542",
+    "cold-storage-client.tsx": "93ff40001c8431be08ff752425533d93115fa6b72b316ab1e88e14946721449f",
+    "next-cold-storage-page.tsx": "c67662a9ae5a1d02c5dfcc8ca63a8e8bb4fc07ac755c0b6e5a63ed90f2d64571",
+    "next-layout.tsx": "f095afd26bef63a1c084ba6ee46b36737f700756611e38e017e5efe203f116a2",
+    "cold-storage-capstone.tsx": "ed0caf9c4fb7f5e1573cfa9f8ccd12737e0871593d769348658f8c5366ad6c86",
+    "capstone-main.tsx": "47dbd5fc1419717ca4c075db0c23e11497fca7df584805fae44ca5ad8534cd1f",
+    "application-client.ts": "90d8356460607f56ec9784ea8f7bfc19b7f7591142307b1ccee1a593be06414b",
+    "application-connection.tsx": "ee857020b7984b56e2ca0c3751816e481ae0876bd062b0b89a190a7bb3417756",
+    "application-main.tsx": "64e321a6c5176cd68ad9e2cc4178b184fbb2698b2f9671f4fe1ae3c7d20b9150"
+  },
+  "server": {
+    "version": "0.2.4",
+    "source": "a977b6125395f9abbbee4a1f271ca6f84d17daed",
+    "pluginsSource": "22125bf1d66062533b832a166fe4a51079a23d6e",
+    "platform": {
+      "platform": "darwin/arm64",
+      "binary": "drasi-server-aarch64-apple-darwin",
+      "sha256": "6907be1155ebf2798402beb960e2a72b035d5b595f234d3309422fc22fc20b85",
+      "plugins": [
+        {
+          "kind": "source/http",
+          "version": "0.2.13",
+          "digest": "66f9536df8003169b6c88ce4f99be6095c68d6aa896ce838807aacd1073215f5",
+          "filename": "libdrasi_source_http.dylib",
+          "sha256": "cbf1fb950f053419d793b2cfeae2930c3c8d6adfd0ad19ba098c57fed550b7a8"
+        },
+        {
+          "kind": "bootstrap/scriptfile",
+          "version": "0.2.15",
+          "digest": "58582c8d0eac4c830f87480420d3e90ff739588d97bd6fe9f4a8e31d7c7eee18",
+          "filename": "libdrasi_bootstrap_scriptfile.dylib",
+          "sha256": "6fb5563114a97bc663c1d729ff2fd5c26ec5196e817e5e99fa8bb65672ef1b74"
+        },
+        {
+          "kind": "reaction/sse",
+          "version": "0.3.8",
+          "digest": "60c70c051c53c423caa9e60d55f09d01fbdea853ff202450412bdc06cf262ad5",
+          "filename": "libdrasi_reaction_sse.dylib",
+          "sha256": "75c6e1433afdc573b02091fd9b2c768fe0f1b227ec8221a9ab02ac612348b733"
+        }
+      ]
+    }
+  },
+  "figures": {
+    "02-first-screen.png": {
+      "bytes": 38833,
+      "sha256": "bd1fc6550d53a05097876ebd8608573b5e831001db961f6b878fe511e8965efb",
+      "entry": "cold-storage-main.tsx"
+    },
+    "03-sorting.png": {
+      "bytes": 34391,
+      "sha256": "6b1e77ee38a398eadb9785429026ea0aeafcf2fcc97a0363d91675cd0db8f57e",
+      "entry": "sorted-main.tsx"
+    },
+    "04-dialog.png": {
+      "bytes": 42283,
+      "sha256": "3e47fd30bf7b78626d710013a713d22149cee3f6474d81f6aa204e29213273cb",
+      "entry": "review-main.tsx"
+    },
+    "05-theme.png": {
+      "bytes": 49275,
+      "sha256": "09890f2868e126e7ac271ccde639f3a30fe20a8700731849859fbcc1b9fa10c5",
+      "entry": "theme-main.tsx"
+    },
+    "06-live.png": {
+      "bytes": 20433,
+      "sha256": "3f52af3b972139bbdfb712c329b17579ad2c38ea211d66c87cac4af659fda004",
+      "entry": "live-main.tsx"
+    },
+    "07-identity.png": {
+      "bytes": 24041,
+      "sha256": "31fbccb0b298e92ff3ecfbdf1493d634e9f7b7c89214b00daceffcb491bef8b5",
+      "entry": "live-main.tsx"
+    },
+    "08-membership.png": {
+      "bytes": 52506,
+      "sha256": "2fb03aa078f32e5762630c1b5bd4e8eb84b99d9b18470fbee4f97e47a53229af",
+      "entry": "warm-main.tsx"
+    },
+    "09-shared-view.png": {
+      "bytes": 71291,
+      "sha256": "c97b71b82d96d1faa0ea1badbf8078b0b5c92692af9cd2d2e5349d5f7af1bcdf",
+      "entry": "dashboard-main.tsx"
+    },
+    "10-projection-error.png": {
+      "bytes": 103761,
+      "sha256": "74c3d7cadedf3fc6307dbe91cc39af172cef4a2ee68a04e55d48687eeaa0c035",
+      "entry": "failure-main.tsx"
+    },
+    "11-reconnecting.png": {
+      "bytes": 30598,
+      "sha256": "3057e1822fcd73a6df18f91ccbc1a72364987c2bcf2d45cc4ea7ea1d2f62e581",
+      "entry": "real-backend-silence"
+    },
+    "14-notification.png": {
+      "bytes": 85199,
+      "sha256": "a9e9cebc134be6ba2533f4fe90953cf7b0c96f0a2f9f20dd49adfe655ca479ba",
+      "entry": "notification-main.tsx"
+    },
+    "15-authentication.png": {
+      "bytes": 94710,
+      "sha256": "8ce5fdca3c90b5c5f209cd0d68eb0591fc868fb8fd93bcb68251fd7cb8592e8a",
+      "entry": "authenticated-main.tsx"
+    },
+    "16-next.png": {
+      "bytes": 80475,
+      "sha256": "78df80d10d74fae83a9db2e1f6bf7eb45e0287708aa7382d929b4756f6aa9925",
+      "entry": "next-cold-storage-page.tsx"
+    },
+    "17-capstone.png": {
+      "bytes": 61319,
+      "sha256": "0fcb1744825dd64d353a3e21971a106fefdc468d3c2d2039394feab4881a0ded",
+      "entry": "capstone-main.tsx"
+    }
+  }
+}

@@ -12,9 +12,12 @@ export async function prepareGuideConsumer({ packageRoot, directory, set }) {
   const { examples, assets } = extractGuide(book);
   const manifest = JSON.parse(assets.get('package.json').code);
   for (const item of set.packages) {
-    assert.equal(manifest.dependencies[item.name], item.version, 'Book manifest has a stale package version');
+    if (item.name !== '@drasi/ui-styles') {
+      assert.equal(manifest.dependencies[item.name], item.version, 'Book manifest has a stale package version');
+    }
     assert(book.includes(item.filename), 'Book tarball install command has a stale filename');
   }
+  assert.equal(manifest.dependencies['@drasi/ui-styles'], undefined, 'React-only book should use its included CSS');
   await installConsumer({ directory, manifest, set });
   await mkdir(join(directory, 'src'));
   for (const asset of assets.values()) {
@@ -30,13 +33,17 @@ export async function prepareGuideConsumer({ packageRoot, directory, set }) {
 
   const fixtures = new URL('../tests/consumers/public-contract/', import.meta.url);
   await copyFile(new URL('guide-runtime.test.mjs', fixtures), join(directory, 'guide-runtime.test.mjs'));
+  for (const name of ['application-client', 'reading-model', 'threshold-alerts', 'fetch-event-source']) {
+    run(join(directory, 'node_modules/.bin/esbuild'), [`src/${name}.ts`, '--bundle', '--platform=node',
+      '--format=esm', '--packages=external', `--outfile=compiled/${name}.mjs`], directory);
+  }
+  await copyFile(new URL('guide-recipes.test.mjs', fixtures), join(directory, 'guide-recipes.test.mjs'));
   await writeFile(new URL('runtime-tests.log', evidence),
-    run(process.execPath, ['--test', 'identity.test.mjs', 'guide-runtime.test.mjs'], directory));
+    run(process.execPath, ['--test', 'identity.test.mjs', 'guide-runtime.test.mjs', 'guide-recipes.test.mjs'], directory));
 
   await copyFile(new URL('guide-fixture.txt', fixtures), join(directory, 'src/guide-fixture.tsx'));
   await writeFile(join(directory, 'fixture.html'), assets.get('index.html').code
-    .replace('/src/main.tsx', '/src/guide-fixture.tsx')
-    .replace('</head>', '  <link rel="stylesheet" href="/src/cold-storage.css" />\n  </head>'));
+    .replace('/src/main.tsx', '/src/guide-fixture.tsx'));
   await writeFile(join(directory, 'fixture-vite.config.mjs'),
     "export default { base: '/fixture/', build: { outDir: 'fixture-dist', rollupOptions: { input: 'fixture.html' } } };\n");
   await writeFile(new URL('fixture-types.log', evidence), run(join(directory, 'node_modules/.bin/tsc'), ['--noEmit'], directory));
@@ -67,12 +74,15 @@ export async function prepareNextGuideConsumer({ packageRoot, directory, set }) 
   });
   const route = join(directory, 'app/cold-storage');
   await mkdir(route, { recursive: true });
-  await copyFile(new URL('app/layout.tsx', framework), join(directory, 'app/layout.tsx'));
+  const byName = new Map(examples.map(example => [example.name, example.code]));
+  await writeFile(join(directory, 'app/layout.tsx'), byName.get('next-layout.tsx'));
   const config = JSON.parse(await readFile(new URL('tsconfig.json', framework), 'utf8'));
-  config.compilerOptions.allowImportingTsExtensions = true;
   await writeFile(join(directory, 'tsconfig.json'), JSON.stringify(config, null, 2) + '\n');
-  for (const example of examples) await writeFile(join(route, example.name), example.code);
-  await copyFile(join(route, 'next-cold-storage-page.tsx'), join(route, 'page.tsx'));
+  for (const name of ['readings.ts', 'reading-model.ts', 'live-cold-storage.tsx', 'connection-notice.tsx',
+    'cold-storage-dashboard.tsx', 'cold-storage-client.tsx']) {
+    await writeFile(join(route, name), byName.get(name));
+  }
+  await writeFile(join(route, 'page.tsx'), byName.get('next-cold-storage-page.tsx'));
   const evidence = new URL('../.artifacts/consumer-proofs/developer-guide-next/', import.meta.url);
   await mkdir(evidence, { recursive: true });
   await writeFile(new URL('build.log', evidence), run('npm', ['run', 'build'], directory));
