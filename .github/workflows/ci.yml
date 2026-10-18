@@ -95,10 +95,9 @@ jobs:
       - run: npm run test:backend && npm run test:guide-live
         env:
           HOME: /root
-      - run: npm run test:live -w drasi-react-cold-storage-example -- --project=chromium
+      - run: node scripts/test-example-browser.mjs --live
         env:
           HOME: /root
-          DRASI_BACKEND_CACHE: ${{ github.workspace }}/.artifacts/released-backend
       - run: npm run preview:prepare
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
