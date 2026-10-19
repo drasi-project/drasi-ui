@@ -27,7 +27,7 @@ try {
     }
     $shellNode = & node --version
     if ($LASTEXITCODE) { throw 'Cannot read the documented Node toolchain' }
-    $shellNpm = & npm --version
+    $shellNpm = npm --version
     if ($LASTEXITCODE) { throw 'Cannot read the documented npm toolchain' }
     @{
         source = $source.Trim()
@@ -48,9 +48,9 @@ try {
     & node verify-preview.mjs --kit .
     if ($LASTEXITCODE) { throw 'Generated kit failed verification' }
     Set-Location starter
-    & npm ci
+    npm ci
     if ($LASTEXITCODE) { throw 'Documented starter install failed' }
-    & npm run build
+    npm run build
     if ($LASTEXITCODE) { throw 'Documented starter build failed' }
     & node --test identity.test.mjs
     if ($LASTEXITCODE) { throw 'Installed identity test failed' }

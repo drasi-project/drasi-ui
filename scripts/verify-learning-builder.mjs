@@ -27,7 +27,7 @@ assert.equal(existsSync(join(root, 'node_modules')), false, 'Builder installed t
 const builderManifest = JSON.parse(await readFile(join(root, '.artifacts/learning-build/source/package.json')));
 assert.deepEqual(Object.keys(builderManifest.devDependencies).sort(),
   ['tsup', 'typescript', 'marked', '@types/node', '@types/react', '@types/react-dom', 'react', 'react-dom'].sort());
-const app = join(kitDirectory, 'starter');
+const app = await realpath(join(kitDirectory, 'starter'));
 const lock = JSON.parse(await readFile(join(app, 'package-lock.json')));
 assert(!Object.keys(lock.packages).some(path => /node_modules\/(?:next|vue|playwright|@playwright\/|@vue\/)/.test(path)));
 assert.equal(existsSync(join(app, 'node_modules/@drasi/ui-styles')), false);
@@ -67,9 +67,27 @@ try {
   const response = await fetch('http://127.0.0.1:15483');
   assert.equal(response.status, 200);
   assert((await response.text()).includes('/src/main.tsx'));
-  const module = await fetch('http://127.0.0.1:15483/src/main.tsx');
+  const transformed = await server.transformRequest('/src/main.tsx');
+  assert(transformed?.code.includes('ColdStorage'));
+  await server.waitForRequestsIdle();
+  const module = await fetch('http://127.0.0.1:15483/src/main.tsx', {
+    headers: { 'Sec-Fetch-Dest': 'script' }, signal: AbortSignal.timeout(30_000),
+  });
   assert.equal(module.status, 200);
-  assert((await module.text()).includes('ColdStorage'));
+  const code = await module.text();
+  assert(code.includes('ColdStorage'));
+  await server.waitForRequestsIdle();
+  const dependencies = [...code.matchAll(/from\s*["']([^"']+)["']/g)]
+    .map(match => match[1]).filter(path => path.startsWith('/'));
+  assert(dependencies.length >= 2, 'The actual starter must load its optimized React dependencies');
+  for (const path of dependencies) {
+    const dependency = await fetch(new URL(path, 'http://127.0.0.1:15483'), {
+      headers: { 'Sec-Fetch-Dest': 'script' }, signal: AbortSignal.timeout(30_000),
+    });
+    assert.equal(dependency.status, 200, `Development dependency did not load: ${path}`);
+    assert((await dependency.text()).length > 0);
+  }
+  await server.waitForRequestsIdle();
 } finally { await server.close(); }
 assert(!existsSync(join(app, '.cold-storage-backend')), 'Builder unexpectedly launched a backend');
 const proof = {
