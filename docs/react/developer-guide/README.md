@@ -19,8 +19,9 @@ changes with curl, and let continuous queries maintain the answers. Finish with
 notifications, authentication, and a deployable application.
 
 You need basic React and TypeScript knowledge and a terminal. **Part I needs no
-backend.** Part II includes a released-backend launcher for macOS Apple Silicon
-and Linux x64; it downloads Server and signed plugins, without a Rust build.
+backend.** Part II includes a released-backend launcher for macOS (Apple Silicon
+or Intel) and Linux (x64 or arm64 with glibc); it downloads Server and signed
+plugins, without a Rust build.
 
 <a id="understand-what-runs-where"></a>
 ```mermaid
@@ -683,9 +684,13 @@ accessibility work.
 
 **Goal:** start a real query engine and initialize four probes.
 **Prerequisites:** the installed app from Part I; internet access to GitHub and
-GHCR; **macOS Apple Silicon** or **Linux x64 with glibc**. Windows readers can
-run this backend in a Linux x64 WSL2 environment and use its localhost ports.
-Other release platforms exist but are outside this launcher's tested matrix.
+GHCR; **macOS Apple Silicon or Intel**, or **Linux x64 or arm64 with glibc**.
+Ubuntu 24.04 is the tested Linux environment; the
+[compatibility reference](../reference/validation.md#verified-compatibility)
+records the tested host versions and native backend checks.
+Native Windows, WSL2, musl and containers are outside this backend matrix.
+Windows readers can still use backend-free Part I; use a supported macOS or
+Linux environment for the live chapters.
 
 Choose the integration that fits your application:
 
@@ -2761,8 +2766,9 @@ connection ownership explicit.
     [0.2.4 release](https://github.com/drasi-project/drasi-server/releases/tag/0.2.4)
     supplies
     [macOS arm64](https://github.com/drasi-project/drasi-server/releases/download/0.2.4/drasi-server-aarch64-apple-darwin)
-    and
+    and [macOS Intel](https://github.com/drasi-project/drasi-server/releases/download/0.2.4/drasi-server-x86_64-apple-darwin),
     [Linux x64 glibc](https://github.com/drasi-project/drasi-server/releases/download/0.2.4/drasi-server-x86_64-linux-gnu)
+    and [Linux arm64 glibc](https://github.com/drasi-project/drasi-server/releases/download/0.2.4/drasi-server-aarch64-linux-gnu)
     binaries. Server source is `a977b6125395f9abbbee4a1f271ca6f84d17daed`.
     The Apple Silicon and Linux x64 plugins are built from
     `22125bf1d66062533b832a166fe4a51079a23d6e`;

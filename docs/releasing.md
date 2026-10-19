@@ -21,11 +21,18 @@ publish npm packages, configure npm accounts, deploy Pages, or merge anything.
 live/auth/notification/HMR/Next lessons, and canonical real examples.
 `Node 22 compatibility` builds both literal book applications and runs the
 released backend on Node 22 with its bundled npm 10, including the minimal
-source-build fallback. The four required check names are unchanged.
-`Backend / macOS Intel` and `Backend / Linux arm64` are additional stable native
-qualification contexts. `Packed consumers` waits for both, and the preview
-promotion check requires both. Require them alongside the existing checks and
-DCO; no branch protection or permissions are changed by this implementation.
+source-build fallback. Main requires these six GitHub Actions contexts, bound
+to Actions app **15368**: **Quality**, **Node 22 compatibility**, **Packed
+consumers**, **Release policy**, **Backend / macOS Intel**, and **Backend /
+Linux arm64**. The four original checks and strict/up-to-date policy are
+retained; the maintainer added the two native checks after their jobs passed.
+Preserve DCO sign-offs and the DCO check alongside this policy.
+
+`Packed consumers` waits for both native jobs, and the preview promotion check
+requires both. The native checks must remain independently required: a skipped
+downstream job is not a non-skippable aggregate and is not a substitute for
+their successful results. This implementation does not change protections or
+permissions itself.
 
 After its checks, CI runs `npm run preview:prepare`. This reads the already
 packed candidate set and identity-bound package, dependency, npm/pnpm,
@@ -43,7 +50,7 @@ a clean committed source and the same completed qualification evidence.
 
 After reviewed merge, let UI CI complete on protected `main`. Run **Preview
 downloads** with that successful main-push CI run ID. The workflow checks the
-exact source, the four original job results and both native-platform results, downloads the previously
+exact source and all six required job results, downloads the previously
 prepared files, verifies them again, and retains `github-preview-downloads`.
 It has only read permissions and **cannot publish a release or tag**.
 The authorized maintainer then attaches those unchanged files to a clearly
