@@ -58,7 +58,7 @@ jobs:
       - run: npm run test:browser
         env:
           HOME: /root
-      - run: npm run test:backend && npm run test:guide-live
+      - run: npm run test:backend && npm run test:guide-live && node scripts/test-live-guide.mjs --non-default-ports
         env:
           HOME: /root
       - run: node scripts/seal-candidates.mjs

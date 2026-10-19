@@ -8,7 +8,7 @@ import { publint } from 'publint';
 import { checkArtifact } from '../tests/consumers/public-contract/artifact-graphs.mjs';
 import { candidateDirectory, json, releasePackages, root } from './packages.mjs';
 import { assertArtifactBudget, assertDocumentationArchiveBudget } from './metrics-policy.mjs';
-import { applyGuideArchiveAllowance, guideAssets, inspectGuideAssets } from './guide-assets.mjs';
+import { leanArchiveBudget, inspectProductionAssets } from './guide-assets.mjs';
 
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert.equal(set.repository, 'drasi-project/drasi-ui');
@@ -53,15 +53,11 @@ for (const item of set.packages) {
     if (name.startsWith('@drasi/')) assert.equal(version, set.packages.find(pkg => pkg.name === name)?.version);
   }
   const metrics = { tarball: bytes.length, esm: 0, cjs: 0, declarations: 0, css: 0, maps: 0 };
-  const lessons = await inspectGuideAssets(packageRoot, item.name, entries.map(entry => entry.slice('package/'.length)));
+  const distribution = await inspectProductionAssets(packageRoot, item.name, entries.map(entry => entry.slice('package/'.length)));
   for (const entry of entries) {
     const file = entry.slice('package/'.length);
     assert(!/^(?:src|test|tests|examples|node_modules|scripts)\//.test(file), `Unintended packed source: ${file}`);
     assert(!/(?:^|\/)(?:\.npmrc|\.env(?:\..*)?|package-lock\.json)$/.test(file), `Unintended configuration: ${file}`);
-    if (Object.hasOwn(lessons.assets, file)) {
-      assert(item.name === '@drasi/react' && guideAssets.has(file), 'Unclassified documentation asset');
-      continue; // Accounted below as an explicit lesson asset, never as product JavaScript/CSS.
-    }
     let kind;
     if (/\.d\.(?:ts|cts|mts)$/.test(file)) kind = 'declarations';
     else if (/\.(?:js|mjs)$/.test(file)) kind = 'esm';
@@ -106,21 +102,18 @@ for (const item of set.packages) {
     }
     styles.push(await readFile(join(packageRoot, style.import.default)));
   }
-  proof.packages[item.name] = { version: item.version, sha256: item.sha256, metrics, graph, publint: messages, lessons };
+  proof.packages[item.name] = { version: item.version, sha256: item.sha256, metrics, graph, publint: messages, distribution };
   for (const metric of Object.keys(metrics)) proof.totals[metric] += metrics[metric];
 }
 assert.equal(styles.length, 2);
 assert.deepEqual(styles[0], styles[1], 'React compatibility CSS must match the styles tarball exactly');
 assert.deepEqual(styles[0], await readFile(join(root, 'packages/styles/src/styles.css')));
-const baseline = await json(join(root, 'tests/contracts/artifact-baseline.json'));
-const revision = await json(join(root, 'tests/contracts/guide-usability-assets.json'));
-assert.deepEqual(proof.packages['@drasi/react'].lessons.assets, revision.assets,
-  'Lesson asset identities changed; measure/classify the intentional delta rather than silently excluding it');
-const adjusted = applyGuideArchiveAllowance(proof.totals,
-  Object.fromEntries(Object.entries(proof.packages).map(([name, item]) => [name, item.metrics.tarball])), revision);
-assertArtifactBudget(adjusted.totals, baseline);
-assertDocumentationArchiveBudget(adjusted.archives, baseline);
-proof.guideArchiveAllowance = revision.archiveAllowance;
+const baseline = leanArchiveBudget(await json(join(root, 'tests/contracts/artifact-baseline.json')),
+  await json(join(root, 'tests/contracts/learning-distribution.json')));
+assertArtifactBudget(proof.totals, baseline);
+assertDocumentationArchiveBudget(
+  Object.fromEntries(Object.entries(proof.packages).map(([name, item]) => [name, item.metrics.tarball])), baseline);
+proof.activeDocumentationBudget = baseline.documentationPackages;
 await writeFile(join(candidateDirectory, 'package-proof.json'), JSON.stringify(proof, null, 2) + '\n');
 console.log(JSON.stringify(proof.totals));
 console.log('Exact candidate exports, declarations, maps, directives, notices, CSS and package linters passed.');

@@ -1,7 +1,7 @@
 # Canonical React examples
 
 **Learning the controls? Start with the single
-[React developer guide](../../packages/react/docs/developer-guide/README.md).**
+[React developer guide](../../docs/react/developer-guide/README.md).**
 It builds this cold-storage domain progressively, beginning with a complete
 provider-free screen. This README is the workspace's run reference,
 not another tutorial to piece together with package docs.

@@ -2,16 +2,13 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-import { packagedReference, referenceDocuments } from '../../../scripts/documentation.mjs';
-import { extractGuide, guideAssetLanguages, guidePath } from './developer-guide.mjs';
-import { loadDocumentation } from './documents.mjs';
+import { packagedReference, referenceDocuments, learningReferenceDocuments } from '../../../scripts/documentation.mjs';
+import { extractGuide, guideAssetLanguages, guideSource } from './developer-guide.mjs';
 import { markdownAnchors, relativeMarkdownLinks } from './documentation-links.mjs';
 import { markdownFences, requiredGuideExamples } from './readme-examples.mjs';
 
 const root = new URL('../../../', import.meta.url);
-const documents = await loadDocumentation(fileURLToPath(new URL('packages/react/', root)));
-const book = documents[guidePath];
+const book = await readFile(new URL(guideSource, root), 'utf8');
 
 test('the complete book owns every progressive module and runnable project file', () => {
   const { examples, assets } = extractGuide(book);
@@ -26,7 +23,7 @@ test('the complete book owns every progressive module and runnable project file'
   const manifest = JSON.parse(assets.get('package.json').code);
   assert.equal(manifest.private, true);
   assert.equal(manifest.scripts.build, 'tsc --noEmit && vite build');
-  assert.equal(manifest.scripts.dev, 'vite --host 127.0.0.1');
+  assert.equal(manifest.scripts.dev, 'vite --host 127.0.0.1 --strictPort');
   const config = JSON.parse(assets.get('tsconfig.json').code);
   assert.equal(config.compilerOptions.strict, true);
   assert.equal(config.compilerOptions.skipLibCheck, false);
@@ -67,7 +64,7 @@ test('all numbered chapters and appendices are reachable from the in-book conten
 });
 
 test('all packaged reference text and link mappings have one co-located authoring source', async () => {
-  for (const { source, target } of referenceDocuments) {
+  for (const { source, target } of [...referenceDocuments, ...learningReferenceDocuments]) {
     const expected = packagedReference(await readFile(new URL(source, root), 'utf8'), source, target);
     assert.equal(await readFile(new URL(target, root), 'utf8'), expected, `Stale reference copy: ${target}`);
   }

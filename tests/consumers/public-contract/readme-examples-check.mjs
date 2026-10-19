@@ -84,12 +84,10 @@ test('rejects diagnostic suppression in runnable documentation', () => {
 test('checks every original recipe across the intended package-owned guides with source locations', async () => {
   const documents = await loadDocumentation(fileURLToPath(new URL('../../../packages/react/', import.meta.url)));
   const examples = extractDocumentationExamples(documents);
-  assert.deepEqual(examples.map(example => example.name).sort(), [...requiredReadmeExamples, ...requiredGuideExamples].sort());
+  assert.deepEqual(examples.map(example => example.name).sort(), [...requiredReadmeExamples].sort());
   assert.equal(examples.find(example => example.name === 'data-table.tsx').source, 'docs/reference/data-table.md');
   assert.equal(examples.find(example => example.name === 'quickstart.tsx').source, 'docs/reference/server-provider.md');
-  for (const name of requiredGuideExamples) {
-    assert.equal(examples.find(example => example.name === name).source, 'docs/developer-guide/README.md');
-  }
+  assert(!examples.some(example => requiredGuideExamples.includes(example.name)));
   assert(examples.every(example => example.line > 0 && documents[example.source].includes(example.code.trim())));
 });
 

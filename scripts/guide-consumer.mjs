@@ -1,14 +1,20 @@
 // Copyright 2026 The Drasi Authors. Licensed under the Apache License, Version 2.0.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { extractGuide, guidePath } from '../tests/consumers/public-contract/developer-guide.mjs';
-import { installConsumer, run } from './consumer-install.mjs';
+import { run, verifyInstalled } from './consumer-install.mjs';
 import { measureEmittedAssets } from './metrics-policy.mjs';
+import { npmRun } from './learning-kit.mjs';
+import { verifyLearningDirectory } from './verify-preview.mjs';
 
-export async function prepareGuideConsumer({ packageRoot, directory, set }) {
-  const book = await readFile(join(packageRoot, guidePath), 'utf8');
+export async function prepareGuideConsumer({ kitRoot, directory, set }) {
+  await cp(kitRoot, directory, { recursive: true, errorOnExist: true, force: false });
+  const kitDirectory = directory;
+  const kit = await verifyLearningDirectory(kitDirectory, set.source, { allowDirty: set.dirty });
+  directory = join(kitDirectory, 'starter');
+  const book = await readFile(join(kitDirectory, guidePath), 'utf8');
   const { examples, assets } = extractGuide(book);
   const manifest = JSON.parse(assets.get('package.json').code);
   for (const item of set.packages) {
@@ -18,22 +24,25 @@ export async function prepareGuideConsumer({ packageRoot, directory, set }) {
     assert(book.includes(item.filename), 'Book tarball install command has a stale filename');
   }
   assert.equal(manifest.dependencies['@drasi/ui-styles'], undefined, 'React-only book should use its included CSS');
-  await installConsumer({ directory, manifest, set });
-  await mkdir(join(directory, 'src'));
-  for (const asset of assets.values()) {
-    if (asset.name === 'package.json') continue; // npm records the documented tarball installation.
-    await writeFile(join(directory, asset.name.endsWith('.css') ? 'src' : '', asset.name), asset.code);
-  }
-  for (const example of examples) await writeFile(join(directory, 'src', example.name), example.code);
-  await copyFile(join(directory, 'src/cold-storage-main.tsx'), join(directory, 'src/main.tsx'));
   const evidence = new URL('../.artifacts/consumer-proofs/developer-guide/', import.meta.url);
   await mkdir(evidence, { recursive: true });
+  await writeFile(new URL('install.log', evidence), npmRun(['ci', '--no-audit', '--no-fund'], directory));
+  await verifyInstalled(directory, set);
   await writeFile(new URL('starter-build.log', evidence), run('npm', ['run', 'build'], directory));
   const starter = await measureEmittedAssets(join(directory, 'dist'));
 
+  // Add later lessons only after the untouched, minimal starter has built.
+  for (const asset of assets.values()) {
+    if (!['cold-storage.css', 'vite-live.config.mjs', 'vite-auth.config.mjs'].includes(asset.name)) continue;
+    await writeFile(join(directory, asset.name.endsWith('.css') ? 'src' : '', asset.name), asset.code);
+  }
+  for (const example of examples) {
+    if (['cold-storage-client.tsx', 'next-cold-storage-page.tsx', 'next-layout.tsx'].includes(example.name)) continue;
+    await writeFile(join(directory, 'src', example.name), example.code);
+  }
   const fixtures = new URL('../tests/consumers/public-contract/', import.meta.url);
   await copyFile(new URL('guide-runtime.test.mjs', fixtures), join(directory, 'guide-runtime.test.mjs'));
-  for (const name of ['application-client', 'reading-model', 'threshold-alerts', 'fetch-event-source']) {
+  for (const name of ['application-client', 'reading-model', 'threshold-alerts', 'fetch-event-source', 'session-auth']) {
     run(join(directory, 'node_modules/.bin/esbuild'), [`src/${name}.ts`, '--bundle', '--platform=node',
       '--format=esm', '--packages=external', `--outfile=compiled/${name}.mjs`], directory);
   }
@@ -51,40 +60,30 @@ export async function prepareGuideConsumer({ packageRoot, directory, set }) {
     run(join(directory, 'node_modules/.bin/vite'), ['build', '--config', 'fixture-vite.config.mjs'], directory));
   const proof = {
     directory,
+    kitDirectory,
+    learningKitSha256: createHash('sha256').update(await readFile(join(kitDirectory, 'learning-kit.json'))).digest('hex'),
+    starterPackages: kit.starterPackages,
     bookSha256: createHash('sha256').update(book).digest('hex'),
     inputs: [...examples, ...assets.values()].map(({ name, code, line }) => ({
       name, line, sha256: createHash('sha256').update(code).digest('hex'),
     })),
     starter,
     fixture: await measureEmittedAssets(join(directory, 'fixture-dist')),
-    note: 'Fresh app manifest and source extracted literally from the installed guide. Runtime fixture is a test gateway, not a real Drasi backend.',
+    note: 'Fresh minimal starter installed from the self-contained kit; later modules extracted literally from that same book. No Next modules/dependencies in the Vite compilation graph. Runtime fixture is a test gateway, not a real Drasi backend.',
   };
   await writeFile(new URL('proof.json', evidence), JSON.stringify(proof, null, 2) + '\n');
   return proof;
 }
 
-export async function prepareNextGuideConsumer({ packageRoot, directory, set }) {
-  const book = await readFile(join(packageRoot, guidePath), 'utf8');
-  const { examples } = extractGuide(book);
-  const framework = new URL('../tests/consumers/react-19/', import.meta.url);
-  const manifest = JSON.parse(await readFile(new URL('package.json', framework), 'utf8'));
-  await installConsumer({
-    directory, set,
-    manifest: { ...manifest, name: 'drasi-installed-guide-next', scripts: { build: 'next build' } },
-  });
-  const route = join(directory, 'app/cold-storage');
-  await mkdir(route, { recursive: true });
-  const byName = new Map(examples.map(example => [example.name, example.code]));
-  await writeFile(join(directory, 'app/layout.tsx'), byName.get('next-layout.tsx'));
-  const config = JSON.parse(await readFile(new URL('tsconfig.json', framework), 'utf8'));
-  await writeFile(join(directory, 'tsconfig.json'), JSON.stringify(config, null, 2) + '\n');
-  for (const name of ['readings.ts', 'reading-model.ts', 'live-cold-storage.tsx', 'connection-notice.tsx',
-    'cold-storage-dashboard.tsx', 'cold-storage-client.tsx']) {
-    await writeFile(join(route, name), byName.get(name));
-  }
-  await writeFile(join(route, 'page.tsx'), byName.get('next-cold-storage-page.tsx'));
+export async function prepareNextGuideConsumer({ kitRoot, directory, set }) {
+  await cp(kitRoot, directory, { recursive: true, errorOnExist: true, force: false });
+  await verifyLearningDirectory(directory, set.source, { allowDirty: set.dirty });
+  const book = await readFile(join(directory, guidePath), 'utf8');
+  directory = join(directory, 'next');
   const evidence = new URL('../.artifacts/consumer-proofs/developer-guide-next/', import.meta.url);
   await mkdir(evidence, { recursive: true });
+  await writeFile(new URL('install.log', evidence), npmRun(['ci', '--ignore-scripts', '--no-audit', '--no-fund'], directory));
+  await verifyInstalled(directory, set);
   await writeFile(new URL('build.log', evidence), run('npm', ['run', 'build'], directory));
   const html = await readFile(join(directory, '.next/server/app/cold-storage.html'), 'utf8');
   assert(html.includes('Cold storage') && html.includes('North room') && html.includes('initial-loading'),

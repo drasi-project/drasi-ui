@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { createServer, request as httpRequest } from 'node:http';
+import { lessonArguments, lessonUrls, portHelp, saveLessonPorts } from './lesson-config.mjs';
 
 assert.equal(typeof import.meta.main, 'boolean', 'Use a supported launcher toolchain: Node 22.20.0 or 24.19.0');
 
@@ -9,13 +10,16 @@ assert.equal(typeof import.meta.main, 'boolean', 'Use a supported launcher toolc
 export async function serveAuthGateway({
   rest = 'http://127.0.0.1:8080', events = 'http://127.0.0.1:8081', port = 8083,
   streamIdleTimeoutMs = 5000,
+  tokenLifetimeMs = 30_000,
 } = {}) {
+  assert(Number.isSafeInteger(port) && port >= 0 && port <= 65535, 'Invalid gateway port');
+  assert(Number.isSafeInteger(tokenLifetimeMs) && tokenLifetimeMs > 0, 'Invalid token lifetime');
   for (const target of [rest, events]) {
     assert(/^http:\/\/127\.0\.0\.1:\d+$/.test(target), 'Auth lesson targets must be explicit loopback services');
   }
   const tokens = new Map(), connections = new Map();
-  const stats = { issued: 0, acceptedReads: 0, acceptedStreams: 0, rejected: 0, cancelledStreams: 0 };
-  let accepting = true;
+  const stats = { sessionRequests: 0, issued: 0, acceptedReads: 0, acceptedStreams: 0, rejected: 0, cancelledStreams: 0 };
+  let sessionStatus = 200, resourceStatus = 200, closed = false;
   const server = createServer((request, response) => {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
@@ -24,18 +28,25 @@ export async function serveAuthGateway({
       response.writeHead(405, { Allow: 'GET' }).end('This lesson gateway accepts reads only.');
       return;
     }
-    if (path === '/lesson-session' && accepting) {
+    if (path === '/lesson-session') {
+      stats.sessionRequests += 1;
+      if (sessionStatus !== 200) {
+        response.writeHead(sessionStatus, { 'Content-Type': 'application/json' }).end('{"error":"Session unavailable"}');
+        return;
+      }
       for (const [token, expires] of tokens) if (expires <= Date.now()) tokens.delete(token);
       const token = randomBytes(32).toString('base64url');
-      tokens.set(token, Date.now() + 30_000);
+      const expiresAt = Date.now() + tokenLifetimeMs;
+      tokens.set(token, expiresAt);
       stats.issued += 1;
-      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ accessToken: token }));
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ accessToken: token, expiresAt }));
       return;
     }
     const token = request.headers.authorization?.replace(/^Bearer /, '');
-    if (!accepting || !token || (tokens.get(token) ?? 0) <= Date.now()) {
+    if (resourceStatus !== 200 || !token || (tokens.get(token) ?? 0) <= Date.now()) {
       stats.rejected += 1;
-      response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"UNAUTHENTICATED"}');
+      response.writeHead(resourceStatus === 200 ? 401 : resourceStatus,
+        { 'Content-Type': 'application/json' }).end('{"error":"Access denied"}');
       return;
     }
     const stream = path === '/secured/events';
@@ -87,8 +98,26 @@ export async function serveAuthGateway({
   };
   return {
     url: `http://127.0.0.1:${address.port}`, stats, closeStreams,
-    setAccepting(value) { accepting = value; tokens.clear(); if (!value) closeStreams(); },
+    setAccepting(value) {
+      sessionStatus = value ? 200 : 401;
+      resourceStatus = value ? 200 : 401;
+      tokens.clear();
+      if (!value) closeStreams();
+    },
+    setSessionStatus(status) {
+      assert([200, 401, 403, 503].includes(status), 'Unsupported lesson session status');
+      sessionStatus = status;
+      tokens.clear();
+      closeStreams();
+    },
+    setResourceStatus(status) {
+      assert([200, 401, 403].includes(status), 'Unsupported lesson resource status');
+      resourceStatus = status;
+      closeStreams();
+    },
     async close() {
+      if (closed) return;
+      closed = true;
       for (const [response, { upstream }] of connections) { upstream.destroy(); response.end(); }
       connections.clear();
       tokens.clear();
@@ -98,15 +127,18 @@ export async function serveAuthGateway({
   };
 }
 
-if (import.meta.main && process.argv.includes('--help')) {
-  assert.deepEqual(process.argv.slice(2), ['--help'], 'Usage: node auth-gateway.mjs [--help]');
-  console.log('Usage: node auth-gateway.mjs\nStarts the local authentication lesson on 8083; requires the backend on 8080/8081.');
-} else if (import.meta.main) {
-  assert.equal(process.argv.length, 2, 'Usage: node auth-gateway.mjs [--help]');
-  const gateway = await serveAuthGateway();
-  console.log(`Local authentication exercise: ${gateway.url}. Real Drasi backend required on 8080/8081.\n` +
-    'The gateway issues short-lived in-memory lesson tokens. Ctrl+C stops only this gateway.');
-  for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
-    void gateway.close().catch(error => { console.error(error); process.exitCode = 1; });
-  });
+if (import.meta.main) {
+  const options = lessonArguments(process.argv.slice(2));
+  if (options.help) console.log(`Usage: node auth-gateway.mjs ${portHelp}\n` +
+    'Uses lesson-ports.json (gateway default 8083). Explicit port flags update the shared app configuration.');
+  else {
+    const urls = lessonUrls(options.ports);
+    const gateway = await serveAuthGateway({ rest: urls.rest, events: urls.sse, port: options.ports.authPort });
+    if (options.changed) saveLessonPorts(options.ports);
+    console.log(`Local authentication exercise: ${gateway.url}. Backend: ${urls.rest}, stream: ${urls.sse}/events.\n` +
+      'Short-lived in-memory lesson tokens; Ctrl+C stops only this gateway.');
+    for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
+      void gateway.close().catch(error => { console.error(error); process.exitCode = 1; });
+    });
+  }
 }

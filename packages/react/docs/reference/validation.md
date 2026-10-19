@@ -29,8 +29,8 @@ pnpm consumer exercises ordinary installation. No source alias, peer override,
 directory-link workaround or install-time library rebuild is allowed.
 
 The single developer guide adds a fresh source-free app built from its literal
-manifest, configuration, HTML, and modules, extracted from the installed
-tarball. Its first screen runs unchanged; advanced lesson fixtures import
+manifest, configuration, HTML, and modules, extracted from the separate
+learning bundle. Its first screen runs unchanged; advanced lesson fixtures import
 those same modules rather than parallel implementations. The guide's
 application-owned client is exercised over a deterministic test transport
 and a browser SSE gateway, including sparse deletes, local/shared recovery,
@@ -38,7 +38,7 @@ projection failure, disposal, and replacement. The gateway is a test fixture,
 not a Drasi runtime or new backend compatibility evidence.
 A separate source-free Next app builds and prerenders the literal App Router
 chapter. The original 17 portable recipes retain their strict compiler options;
-the book's source modules use their documented TypeScript-extension/no-emit
+the book's source modules use their documented bundler/no-emit
 configuration in addition to those checks. No package source is resolved.
 
 Core-only and native Vue consumers must not resolve React, React DOM, React

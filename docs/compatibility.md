@@ -85,7 +85,23 @@ policy is not replaced by comparing only the smaller React archive.
 
 ### Developer-guide artifact accounting
 
-The usability revision expands the book to 33 literal application modules and
+The learning-kit revision retains one canonical 17-chapter book outside the
+production packages. The unused duplicate `cold-storage-main.tsx` checkpoint
+is removed; the real `main.tsx` is extracted directly, and the authentication
+recipe adds a session-scoped cache. The minimal Vite starter and optional
+Next app have separate manifests/locks and compilation graphs.
+
+Production archives accept only the original 81 non-Markdown paths, with a
+narrow exception for React's published-file allowlist. Runtime, declarations,
+maps, CSS and dependency invariants remain byte-checked. The active
+reference-only archive bounds are recorded in `learning-distribution.json`;
+the older full-book and illustrated allowances below are historical and no
+longer applied to current packages. `learning-kit.json` separately inventories
+the complete learning distribution and its identical three package archives.
+
+### Historical illustrated-book accounting
+
+The preceding usability revision expanded the book to 33 literal application modules and
 17 chapters. The original 17 portable recipes and public declarations retain
 strict ESM/CJS/bundler checks. The application source now uses Vite client types
 and extensionless imports with strict bundler resolution, plus an actual strict
@@ -94,8 +110,8 @@ tooling without claiming that extensionless browser source is NodeNext ESM.
 The new lesson scripts/configuration and actual screenshots are explicitly
 classified non-Markdown assets; they are not charged to runtime, declaration,
 CSS or dependency budgets. The historical Markdown-only comparison below stays
-immutable, including its 81 unchanged non-Markdown hashes. The current guard
-checks those same files and a closed list of separately accounted lesson assets.
+immutable, including its 81 unchanged non-Markdown hashes. At that time the
+guard checked those files plus a closed list of separately accounted lesson assets.
 
 The original documentation follow-up added a single book and generated offline reference
 copies, with 17 retained recipe contracts and 16 progressive book modules.

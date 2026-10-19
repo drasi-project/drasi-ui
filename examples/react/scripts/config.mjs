@@ -10,15 +10,15 @@ export function verifyRuntimeVersion(output, expected) {
 }
 
 export function renderServerConfig(template, { restPort, feedPort, ssePort }) {
-  for (const [name, port] of Object.entries({
+  const ports = {
     8080: restPort, 8082: feedPort, 8081: ssePort,
-  })) {
+  };
+  for (const [name, port] of Object.entries(ports)) {
     assert(Number.isInteger(port) && port >= 1024 && port <= 65535, `Invalid allocated ${name}`);
     const token = `port: ${name}\n`;
     assert.equal(template.split(token).length, 2, `Expected exactly one ${name} template field`);
-    // Full-view REST config preserves plugin expressions; install concrete numeric ports.
-    template = template.replace(token, `port: ${port}\n`);
   }
+  template = template.replace(/port: (8080|8081|8082)\n/g, (_, original) => `port: ${ports[original]}\n`);
   assert(!template.includes('${'), 'Unexpected unresolved example configuration field');
   return template;
 }

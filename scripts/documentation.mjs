@@ -15,12 +15,20 @@ export const referenceDocuments = [
 ].map(([source, name]) => ({ source, target: `packages/react/docs/reference/${name}` }));
 
 export const runtimeDocuments = [
-  'scripts/backend.mjs', 'scripts/config.mjs', 'scripts/auth-gateway.mjs',
+  'scripts/backend.mjs', 'scripts/config.mjs', 'scripts/lesson-config.mjs', 'scripts/auth-gateway.mjs',
   'config/server.yaml', 'config/readings.jsonl', 'config/runtime-pins.json',
 ].map(path => ({
   source: `examples/react/${path}`,
-  target: `packages/react/docs/developer-guide/runtime/${path}`,
+  target: `docs/react/developer-guide/runtime/${path}`,
 }));
+
+export const learningReferenceDocuments = [
+  ...referenceDocuments.map(({ source, target }) => ({ source,
+    target: target.replace('packages/react/docs/', 'docs/react/') })),
+  ...['README.md', 'migration.md', 'validation.md', 'installation.md'].map(name => ({
+    source: `packages/react/docs/reference/${name}`, target: `docs/react/reference/${name}`,
+  })),
+];
 
 export const repositorySourceRef = 'main';
 const repository = `https://github.com/drasi-project/drasi-ui/blob/${repositorySourceRef}/`;
@@ -45,18 +53,28 @@ export function mapMarkdownLinks(markdown, map) {
 }
 
 export function packagedReference(markdown, source, target) {
-  assert(referenceDocuments.some(item => item.source === source && item.target === target),
+  const documents = target.startsWith('docs/react/') ? learningReferenceDocuments : referenceDocuments;
+  assert(documents.some(item => item.source === source && item.target === target),
     'Unregistered reference copy');
   const root = resolve('/');
-  const sources = new Map(referenceDocuments.map(item => [resolve(root, item.source), item.target]));
+  const sources = new Map(documents.map(item => [resolve(root, item.source), item.target]));
+  if (target.startsWith('docs/react/')) for (const item of referenceDocuments) {
+    sources.set(resolve(root, item.target), item.target.replace('packages/react/docs/', 'docs/react/'));
+  }
   const content = mapMarkdownLinks(markdown, link => {
+    const learningBook = 'https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md';
+    if (target.startsWith('docs/react/') && link.startsWith(learningBook)) {
+      return `../developer-guide/README.md${link.slice(learningBook.length)}`;
+    }
     if (/^[a-z][a-z0-9+.-]*:/i.test(link) || link.startsWith('//') || link.startsWith('#')) return link;
     const [path, fragment] = link.split('#');
     const file = resolve(root, dirname(source), decodeURIComponent(path));
     const local = relative(root, file).replaceAll('\\', '/');
     const destination = sources.get(file) ??
-      (local.startsWith('packages/react/docs/') ||
-       /^packages\/react\/(?:README\.md|CHANGELOG\.md|LICENSE|NOTICE)$/.test(local) ? local : null);
+      (target.startsWith('docs/react/') && local === 'packages/react/docs/developer-guide/README.md'
+        ? 'docs/react/developer-guide/README.md' : null) ??
+      (!target.startsWith('docs/react/') && (local.startsWith('packages/react/docs/') ||
+       /^packages\/react\/(?:README\.md|CHANGELOG\.md|LICENSE|NOTICE)$/.test(local)) ? local : null);
     const suffix = fragment ? `#${fragment}` : '';
     return destination
       ? `${relative(dirname(target), destination).replaceAll('\\', '/')}${suffix}`

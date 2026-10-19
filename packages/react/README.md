@@ -4,7 +4,7 @@ Tables for data you own, live-query bindings, accessible dialog composition,
 and scoped styles. Your application owns its data sources, authentication,
 provisioning, layout, and business actions.
 
-**Start with [The React developer guide](docs/developer-guide/README.md).**
+**Start with [The React developer guide](https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md).**
 Build one evolving cold-storage application: first a complete provider-free
 screen, then live results, shared tables/cards, actions/dialogs, themes,
 connection ownership, recovery, and deployment. No prior Drasi knowledge is
@@ -16,25 +16,27 @@ You do not need a Server checkout or Rust build to display your own rows.
 
 ## Installation and entrypoints
 
-Use the [complete copy/run/change lesson](docs/developer-guide/README.md#1-run-your-first-screen),
-then the [public import map](docs/developer-guide/README.md#appendix-b-imports-and-reference)
+Use the [complete copy/run/change lesson](https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md#1-run-your-first-screen),
+then the [public import map](docs/reference/exports.md)
 when choosing a narrower entrypoint. Keep CSS explicit.
 
 ## Your first table
 
-[Run Cold storage and change a reading](docs/developer-guide/README.md#1-run-your-first-screen).
+[Run Cold storage and change a reading](https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md#1-run-your-first-screen).
 `DataTable` needs rows, columns, and a stable render key, not a provider.
 
 ## Choose your connection and composition
 
-Continue the same guide to [connect an existing query](docs/developer-guide/README.md#4-connect-to-an-existing-query)
-or [bind an app-owned client](docs/developer-guide/README.md#8-own-a-client-without-drasi-server).
+Continue the same guide to [connect an existing query](https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md#6-connect-your-first-live-table)
+or [bind an app-owned client](https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md#appendix-d-bring-your-own-gateway).
 The optional Server adapter is not the generic client's superclass.
 
 The [reference index](docs/reference/README.md) links exact props, defaults,
 callbacks, state, accessibility, core, and adapter contracts. References are
 authored beside the implementations and copied with checked link rewriting;
-the guide and essential references work offline in this installed package.
+the essential references work offline in this installed package. The full
+book, starter, checkpoints, figures, print edition and explicitly run backend
+helpers live in the separate GitHub learning kit, not this production archive.
 Old guide URLs and headings remain as compatibility pointers, not parallel
 tutorials.
 
@@ -43,7 +45,7 @@ tutorials.
 The [canonical example workspace](https://github.com/drasi-project/drasi-ui/blob/main/examples/react/README.md)
 contains the cold-storage presentations and a clearly labeled server-free
 showcase. Runnable private example/test sources are repository-owned, not
-shipped in this tarball. The guide itself contains complete runnable code.
+shipped in this tarball. The learning kit contains complete runnable code.
 
 [Compatibility and validation](docs/reference/validation.md) records technical
 qualification separately from pending human accessibility acceptance.

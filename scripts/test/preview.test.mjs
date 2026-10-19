@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { gzipSync } from 'node:zlib';
-import { readArchive, verifyCandidateFiles, verifyPreview } from '../verify-preview.mjs';
+import { assertProductionFile, readArchive, verifyCandidateFiles, verifyLearningFiles, verifyPreview } from '../verify-preview.mjs';
 
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(bytes).digest(encoding);
@@ -46,18 +46,47 @@ async function fixture(context, missingBuild = false) {
     });
   }
   await writeFile(join(directory, 'release-set.json'), JSON.stringify(set));
+  const learningFiles = Object.fromEntries([
+    'README.md', 'LICENSE', 'NOTICE', 'verify-preview.mjs',
+    'docs/developer-guide/README.md', 'docs/developer-guide/print.html', 'docs/reference/README.md',
+    'docs/developer-guide/runtime/scripts/backend.mjs', 'docs/developer-guide/runtime/scripts/auth-gateway.mjs',
+    'docs/developer-guide/runtime/scripts/lesson-config.mjs',
+    'starter/src/main.tsx', 'next/package.json', 'next/package-lock.json', 'next/app/cold-storage/page.tsx',
+    'checkpoints/12-authentication/src/session-auth.ts', 'checkpoints/11-notifications/src/threshold-alerts.ts',
+  ].map(path => [path, 'Synthetic verifier fixture; never executable.']));
+  learningFiles['starter/package.json'] = JSON.stringify({
+    dependencies: { '@drasi/react': 'file:../artifacts/react.tgz', '@drasi/ui-core': 'file:../artifacts/core.tgz',
+      react: '18.3.1', 'react-dom': '18.3.1' },
+  });
+  learningFiles['starter/package-lock.json'] = JSON.stringify({ packages: {} });
+  learningFiles['artifacts/release-set.json'] = JSON.stringify(set);
+  for (const item of set.packages) {
+    learningFiles[`artifacts/${item.filename}`] = await readFile(join(directory, item.filename));
+  }
+  learningFiles['learning-kit.json'] = JSON.stringify({
+    schema: 1, kind: 'react-learning-kit', source: set.source, dirty: false, version: '0.1.0-beta.1',
+    releaseSetSha256: hash(JSON.stringify(set)), bookSha256: hash(learningFiles['docs/developer-guide/README.md']),
+    files: Object.fromEntries(Object.entries(learningFiles).map(([path, bytes]) =>
+      [path, { bytes: Buffer.byteLength(bytes), sha256: hash(bytes) }])),
+  });
+  const bundle = tarball(learningFiles);
+  const learning = {
+    filename: 'drasi-react-learning-0.1.0-beta.1-aaaaaaaaaaaa.tgz', bytes: bundle.length, sha256: hash(bundle),
+    bookSha256: hash(learningFiles['docs/developer-guide/README.md']),
+  };
+  await writeFile(join(directory, learning.filename), bundle);
   await writeFile(join(directory, 'preview.json'), JSON.stringify({
     kind: 'github-prerelease-candidate', source: set.source,
     releaseSetSha256: hash(await readFile(join(directory, 'release-set.json'))),
+    learning,
   }));
   await writeFile(join(directory, 'README.md'), 'Synthetic verifier fixture, not a published package.');
   await writeFile(join(directory, 'verify-preview.mjs'), '// Synthetic download fixture\n');
-  await writeFile(join(directory, 'developer-guide.html'), '<!doctype html><title>Synthetic print fixture</title>');
   const names = [...set.packages.map(item => item.filename), 'release-set.json', 'preview.json',
-    'README.md', 'verify-preview.mjs', 'developer-guide.html'];
+    'README.md', 'verify-preview.mjs', learning.filename];
   await writeFile(join(directory, 'SHA256SUMS'), (await Promise.all(names.map(async name =>
     `${hash(await readFile(join(directory, name)))}  ${name}`))).join('\n') + '\n');
-  return { directory, set };
+  return { directory, set, bundle };
 }
 
 test('a complete exact set verifies without installing dependencies or executing archives', async context => {
@@ -95,4 +124,25 @@ test('tar parser rejects unsafe paths, links and corrupt headers', () => {
   assert.throws(() => readArchive(tarball({ link: 'target' }, '2')), /regular files/);
   const bytes = Buffer.alloc(1024, 1);
   assert.throws(() => readArchive(gzipSync(bytes)), /checksum mismatch/);
+});
+
+test('production package allowlists reject inert downloaders, lesson servers, PNGs and print editions', () => {
+  for (const path of ['docs/developer-guide/runtime/scripts/backend.mjs', 'docs/download.mjs',
+    'docs/developer-guide/figures/02-first-screen.png', 'docs/developer-guide/print.html']) {
+    assert.throws(() => assertProductionFile('@drasi/react', path), /learning\/server\/downloader/);
+  }
+  assertProductionFile('@drasi/react', 'docs/reference/query-table.md');
+  assertProductionFile('@drasi/react', 'dist/components/index.js');
+});
+
+test('learning verification rejects mixed package sets, missing helpers and altered book bytes', async context => {
+  const { bundle, set } = await fixture(context);
+  const files = readArchive(bundle);
+  assert.equal(verifyLearningFiles(files, set).source, set.source);
+  await assert.rejects(async () => verifyLearningFiles(files, { ...set, source: 'b'.repeat(40) }), /different source/);
+  files.delete('docs/developer-guide/runtime/scripts/backend.mjs');
+  assert.throws(() => verifyLearningFiles(files, set), /inventory mismatch/);
+  const altered = readArchive(bundle);
+  altered.set('docs/developer-guide/README.md', Buffer.from('Different book'));
+  assert.throws(() => verifyLearningFiles(altered, set), /Learning file size mismatch|Learning file checksum mismatch/);
 });

@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { packagedReference, referenceDocuments, runtimeDocuments } from './documentation.mjs';
+import { packagedReference, referenceDocuments, learningReferenceDocuments, runtimeDocuments } from './documentation.mjs';
 
 assert(process.argv.slice(2).every(argument => argument === '--check'), 'Usage: sync-documentation.mjs [--check]');
 const check = process.argv.includes('--check');
-for (const { source, target } of referenceDocuments) {
+for (const { source, target } of [...referenceDocuments, ...learningReferenceDocuments]) {
   const sourceUrl = new URL(`../${source}`, import.meta.url);
   const targetUrl = new URL(`../${target}`, import.meta.url);
   const expected = packagedReference(await readFile(sourceUrl, 'utf8'), source, target);
@@ -19,7 +19,7 @@ for (const { source, target } of referenceDocuments) {
     await writeFile(targetUrl, expected);
   }
 }
-console.log(`${check ? 'Checked' : 'Generated'} ${referenceDocuments.length} co-located reference copies.`);
+console.log(`${check ? 'Checked' : 'Generated'} ${referenceDocuments.length + learningReferenceDocuments.length} reference copies.`);
 for (const { source, target } of runtimeDocuments) {
   const expected = await readFile(new URL(`../${source}`, import.meta.url));
   const destination = new URL(`../${target}`, import.meta.url);
