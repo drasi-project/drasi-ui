@@ -11,6 +11,7 @@ import { pipeline } from 'node:stream/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
 import { renderServerConfig, verifyRuntimeVersion } from './config.mjs';
+import { lessonArguments, portHelp, saveLessonPorts } from './lesson-config.mjs';
 
 assert.equal(typeof import.meta.main, 'boolean', 'Use a supported launcher toolchain: Node 22.20.0 or 24.19.0');
 export const pins = JSON.parse(await readFile(new URL('../config/runtime-pins.json', import.meta.url), 'utf8'));
@@ -38,7 +39,7 @@ async function verifyFile(file, expected) {
 
 async function prepareRuntime(directory) {
   const platform = pins.platforms[`${process.platform}-${process.arch}`];
-  assert(platform, 'This launcher supports macOS Apple Silicon and Linux x64 (glibc). See the backend lesson.');
+  assert(platform, 'No pinned backend for this platform. See the tested native-platform matrix in the backend lesson.');
   await mkdir(directory, { recursive: true });
   assert((await lstat(directory)).isDirectory(), 'Runtime directory must not be a symlink');
   const binary = join(directory, platform.binary);
@@ -98,9 +99,10 @@ async function assertFreePort(port) {
 export async function startBackend({
   directory = resolve('.cold-storage-backend'),
   ports = { restPort: 8080, ssePort: 8081, feedPort: 8082 },
+  configFile,
 } = {}) {
   directory = resolve(directory);
-  const template = await readFile(new URL('../config/server.yaml', import.meta.url), 'utf8');
+  const template = await readFile(configFile ?? new URL('../config/server.yaml', import.meta.url), 'utf8');
   const config = renderServerConfig(template, ports);
   assert.equal(new Set(Object.values(ports)).size, 3, 'Backend ports must be distinct');
   for (const port of Object.values(ports)) await assertFreePort(port);
@@ -167,7 +169,7 @@ export async function startBackend({
     }
     const evidence = {
       serverVersion: pins.serverVersion, sseVersion: '0.3.8', binarySha256: runtime.platform.sha256,
-      serverSource: pins.serverSource, pluginSource: pins.pluginSource,
+      serverSource: pins.serverSource, pluginSource: runtime.platform.pluginSource ?? pins.pluginSource,
       platform: runtime.platform.platform, loaded, snapshots, rest, events, feed, pid: child.pid,
     };
     await writeFile(join(run, 'provenance.json'), JSON.stringify(evidence, null, 2) + '\n');
@@ -177,13 +179,16 @@ export async function startBackend({
   } catch (error) { await close(); throw error; }
 }
 
-if (import.meta.main && process.argv.includes('--help')) {
-  assert.deepEqual(process.argv.slice(2), ['--help'], 'Usage: node backend.mjs [--help]');
-  console.log('Usage: node backend.mjs\nStarts the verified local Cold storage backend on 8080/8081/8082. Ctrl+C stops it.');
-} else if (import.meta.main) {
-  assert.equal(process.argv.length, 2, 'Usage: node backend.mjs [--help]');
-  const backend = await startBackend();
-  for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
-    void backend.close().catch(error => { console.error(error); process.exitCode = 1; });
-  });
+if (import.meta.main) {
+  const options = lessonArguments(process.argv.slice(2), { config: true });
+  if (options.help) console.log(`Usage: node backend.mjs [--config server.yaml] ${portHelp}\n` +
+    'Uses lesson-ports.json (defaults 8080/8081/8082). Explicit port flags update that shared app configuration. Ctrl+C stops only this server.');
+  else {
+    const { restPort, ssePort, feedPort } = options.ports;
+    const backend = await startBackend({ ports: { restPort, ssePort, feedPort }, configFile: options.config });
+    if (options.changed) saveLessonPorts(options.ports);
+    for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
+      void backend.close().catch(error => { console.error(error); process.exitCode = 1; });
+    });
+  }
 }

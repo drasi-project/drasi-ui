@@ -37,6 +37,31 @@ The historical Node 22.20.0/React 18.3.1 Server evidence remains in the immutabl
 [source test guide](https://github.com/drasi-project/drasi-server/blob/964016ddb7f2b45ad023b314c23ea140ed7703ef/dev-tools/react/docs/testing.md).
 Source-only simulations are not proof of a live Server/plugin version.
 
+## Native backend matrix
+
+The learning launcher uses the same Server 0.2.4, HTTP 0.2.13, scriptfile 0.2.15
+and SSE 0.3.8 contracts on all four targets. These are execution results, not
+claims inferred from release-asset availability:
+
+| Target | Exercised environment | Evidence |
+| --- | --- | --- |
+| macOS arm64 | macOS 27.0.1, Node 24.19.0 | Local real backend, default/non-default live guide, gateway-process restart, and browser lessons |
+| macOS x64 | GitHub `macos-15-intel` runner | `Backend / macOS Intel`: verified native binary/plugin loading, health, resource reads, source writes, query membership and normalized SSE |
+| Linux x64 | Ubuntu 24.04, Node 22.20.0 and 24.19.0 | Node 22 compatibility and Packed consumers: backend contracts, actual live guide and canonical example |
+| Linux arm64 | GitHub `ubuntu-24.04-arm` runner | `Backend / Linux arm64`: the same native loading, API, source-write, membership and SSE contract checks |
+
+The two additional native jobs first passed at
+`0c036cbcb84a394ccbb518207a1bbe9db65612d6` in
+[UI CI run 39280527938](https://github.com/drasi-project/drasi-ui/actions/runs/39280527938).
+That run and its artifacts retain their original source identities. Every
+later candidate still needs its own complete qualification; these records do
+not relabel a new learning bundle or qualify arbitrary operating-system versions.
+The macOS x64/Linux arm64 signed plugin builds identify source
+`294db7631f0c1b77ac18eac833c0320115b5ae3a`; the existing macOS arm64/Linux x64
+builds identify `22125bf1d66062533b832a166fe4a51079a23d6e`.
+The launcher retains signature, digest, file-hash and loaded ABI/version checks.
+Native Windows, WSL2, musl and container routes have not been qualified here.
+
 ## Deliberate tooling scope
 
 Product code and installed consumer declarations use `skipLibCheck: false`.
@@ -85,7 +110,23 @@ policy is not replaced by comparing only the smaller React archive.
 
 ### Developer-guide artifact accounting
 
-The usability revision expands the book to 33 literal application modules and
+The learning-kit revision retains one canonical 17-chapter book outside the
+production packages. The unused duplicate `cold-storage-main.tsx` checkpoint
+is removed; the real `main.tsx` is extracted directly, and the authentication
+recipe adds a session-scoped cache. The minimal Vite starter and optional
+Next app have separate manifests/locks and compilation graphs.
+
+Production archives accept only the original 81 non-Markdown paths, with a
+narrow exception for React's published-file allowlist. Runtime, declarations,
+maps, CSS and dependency invariants remain byte-checked. The active
+reference-only archive bounds are recorded in `learning-distribution.json`;
+the older full-book and illustrated allowances below are historical and no
+longer applied to current packages. `learning-kit.json` separately inventories
+the complete learning distribution and its identical three package archives.
+
+### Historical illustrated-book accounting
+
+The preceding usability revision expanded the book to 33 literal application modules and
 17 chapters. The original 17 portable recipes and public declarations retain
 strict ESM/CJS/bundler checks. The application source now uses Vite client types
 and extensionless imports with strict bundler resolution, plus an actual strict
@@ -94,8 +135,8 @@ tooling without claiming that extensionless browser source is NodeNext ESM.
 The new lesson scripts/configuration and actual screenshots are explicitly
 classified non-Markdown assets; they are not charged to runtime, declaration,
 CSS or dependency budgets. The historical Markdown-only comparison below stays
-immutable, including its 81 unchanged non-Markdown hashes. The current guard
-checks those same files and a closed list of separately accounted lesson assets.
+immutable, including its 81 unchanged non-Markdown hashes. At that time the
+guard checked those files plus a closed list of separately accounted lesson assets.
 
 The original documentation follow-up added a single book and generated offline reference
 copies, with 17 retained recipe contracts and 16 progressive book modules.

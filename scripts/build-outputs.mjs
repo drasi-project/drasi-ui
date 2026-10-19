@@ -26,7 +26,7 @@ async function builtFiles(root, item) {
   }));
   for (const path of await readdir(join(directory, 'dist'), { recursive: true })) {
     if ((await lstat(join(directory, 'dist', path))).isDirectory()) continue;
-    files.add(`dist/${path}`);
+    files.add(`dist/${path.replaceAll('\\', '/')}`);
   }
   const inventory = {};
   for (const path of [...files].sort()) {
@@ -63,6 +63,6 @@ export async function validateBuildOutputs(root, packages) {
   }
   return recorded.packages.map((item, index) => ({
     ...item,
-    directory: relative(root, join(root, packages[index].directory)),
+    directory: relative(root, join(root, packages[index].directory)).replaceAll('\\', '/'),
   }));
 }

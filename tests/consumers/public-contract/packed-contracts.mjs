@@ -13,7 +13,7 @@ import { extractDocumentationExamples } from './readme-examples.mjs';
 import { loadDocumentation } from './documents.mjs';
 import { extractInstallRecipes } from './install-recipes.mjs';
 import { checkInstalledDocumentationLinks } from './documentation-links.mjs';
-import { guidePath } from './developer-guide.mjs';
+import { extractGuide } from './developer-guide.mjs';
 
 const fixtures = fileURLToPath(new URL('.', import.meta.url));
 const json = async file => JSON.parse(await readFile(file, 'utf8'));
@@ -157,7 +157,7 @@ async function compileDocuments(directory, output, examples, label, boundary, ap
   return result;
 }
 
-export async function checkPackedPublicContract({ coreOnly, app, output, includeCore = true }) {
+export async function checkPackedPublicContract({ coreOnly, app, output, includeCore = true, learningBook }) {
   await mkdir(output, { recursive: true });
   const proof = { node: process.version, types: {}, documentation: {} };
   const require = createRequire(join(app, 'package.json'));
@@ -192,15 +192,13 @@ export async function checkPackedPublicContract({ coreOnly, app, output, include
   proof.documentation.files = Object.fromEntries(Object.entries(documents).map(([file, body]) =>
     [file, createHash('sha256').update(body).digest('hex')]));
   proof.documentation.all = await compileDocuments(app, output,
-    examples.filter(example => example.source !== guidePath), 'documentation', 'package');
-  proof.documentation.book = await compileDocuments(app, output,
-    examples.filter(example => example.source === guidePath), 'book', 'package', true);
+    examples, 'documentation', 'package');
   proof.documentation.headless = await compileDocuments(app, output,
     examples.filter(example => example.name === 'reduced-motion.tsx'), 'headless', 'react');
   if (includeCore) proof.documentation.core = await compileDocuments(coreOnly, output,
     examples.filter(example => ['client.ts', 'auth.ts'].includes(example.name)), 'core-docs', 'server-client');
   if (includeCore) proof.documentation.applicationClient = await compileDocuments(coreOnly, output,
-    examples.filter(example => example.name === 'application-client.ts'), 'application-client', 'client');
+    extractGuide(learningBook).examples.filter(example => example.name === 'application-client.ts'), 'application-client', 'client');
   await save(join(output, 'proof.json'), proof);
   console.log(`Installed public contracts and ${examples.length} literal recipes passed on React ${proof.react}.`);
   return proof;

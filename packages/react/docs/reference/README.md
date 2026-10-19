@@ -1,6 +1,6 @@
 # React reference
 
-Learning the controls? Read the single [React developer guide](../developer-guide/README.md).
+Learning the controls? Read the single [React developer guide](https://github.com/drasi-project/drasi-ui/blob/main/docs/react/developer-guide/README.md).
 This index is for looking up an exact contract after a lesson.
 
 | Reference | Contents |
@@ -16,6 +16,7 @@ This index is for looking up an exact contract after a lesson.
 | [Public entrypoints](exports.md) | Complete symbol/import map, hosting responsibilities, SSR/import boundaries |
 | [Migration history](migration.md) | Earlier import and behavior changes, explicitly historical |
 | [Validation](validation.md) | Package/consumer/browser gates, compatibility evidence, pending human acceptance |
+| [Installation](installation.md) | Learning distribution, preview availability, optional pnpm setup |
 
 The first nine references have **one authoring source beside the implementation**.
 `DataTable.md`, `QueryTable.md`, and `Modal.md` sit beside their `.tsx` files.
@@ -26,5 +27,6 @@ Each generated copy links its authoring source.
 To edit a reference in a checkout, change that source, run `npm run docs:sync`,
 and commit both source and generated Markdown. `npm run docs:check`, the build,
 and installed-document checks reject stale copies or broken local links.
-All guide/reference links here stay within the installed React package;
-repository examples and historical provenance are explicitly external.
+The references stay within the installed React package. The complete guide
+and runnable helpers are in the separate learning kit; it includes its own
+generated reference copies for offline reading.

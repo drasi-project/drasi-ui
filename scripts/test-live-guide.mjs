@@ -1,6 +1,6 @@
 // Copyright 2026 The Drasi Authors. Licensed under the Apache License, Version 2.0.
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFileSync, fork, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
@@ -17,32 +17,111 @@ import { candidateDirectory } from './packages.mjs';
 import { renderPrintGuide } from './print-guide.mjs';
 
 const args = process.argv.slice(2);
-assert(args.every(arg => ['--iteration', '--capture'].includes(arg)), 'Usage: test-live-guide.mjs [--iteration] [--capture]');
+assert(args.every(arg => ['--iteration', '--capture', '--non-default-ports'].includes(arg)),
+  'Usage: test-live-guide.mjs [--iteration] [--capture] [--non-default-ports]');
 const iteration = args.includes('--iteration');
 const capturing = args.includes('--capture');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const output = resolve('.artifacts/live-guide');
+const output = resolve(args.includes('--non-default-ports') ? '.artifacts/live-guide/non-default' : '.artifacts/live-guide');
 await mkdir(join(output, 'figures'), { recursive: true });
 const selection = JSON.parse(await readFile(iteration ? '.artifacts/guide-iteration.json' : '.artifacts/consumers.json', 'utf8'));
-const app = iteration ? join(selection.directory, 'vite') : selection.consumers.guide.directory;
-const nextApp = iteration ? join(selection.directory, 'next') : selection.consumers.guideNext.directory;
-const runtime = iteration ? resolve('examples/react') : join(app, 'node_modules/@drasi/react/docs/developer-guide/runtime');
+const app = selection.consumers.guide.directory;
+const nextApp = selection.consumers.guideNext.directory;
+const kit = selection.consumers.guide.kitDirectory;
+const runtime = join(kit, 'docs/developer-guide/runtime');
 const { startBackend, pins } = await import(pathToFileURL(join(runtime, 'scripts/backend.mjs')).href);
-const { serveAuthGateway } = await import(pathToFileURL(join(runtime, 'scripts/auth-gateway.mjs')).href);
-const book = await readFile(iteration ? 'packages/react/docs/developer-guide/README.md'
-  : join(app, 'node_modules/@drasi/react/docs/developer-guide/README.md'), 'utf8');
-const { examples } = extractGuide(book);
+const { readLessonPorts } = await import(pathToFileURL(join(runtime, 'scripts/lesson-config.mjs')).href);
+execFileSync(process.execPath, [join(runtime, 'scripts/lesson-config.mjs'),
+  ...(args.includes('--non-default-ports')
+    ? ['--rest-port', '18080', '--sse-port', '18081', '--feed-port', '18082', '--auth-port', '18083', '--vite-port', '15173'] : [])],
+{ cwd: app, stdio: 'pipe' });
+const ports = readLessonPorts(app);
+const backendPorts = { restPort: ports.restPort, ssePort: ports.ssePort, feedPort: ports.feedPort };
+const book = await readFile(join(kit, 'docs/developer-guide/README.md'), 'utf8');
+const { examples, assets } = extractGuide(book);
 const modules = new Map(examples.map(example => [example.name, example.code]));
-const set = JSON.parse(await readFile(join(iteration ? '.artifacts/qualified-baseline' : candidateDirectory, 'release-set.json'), 'utf8'));
+const set = JSON.parse(await readFile(join(iteration ? selection.candidates : candidateDirectory, 'release-set.json'), 'utf8'));
 const proof = {
   source: set.source, iteration, artifacts: set.packages.map(({ name, sha256 }) => ({ name, sha256 })),
   bookSha256: hash(book), moduleSha256: Object.fromEntries(examples.map(item => [item.name, hash(item.code)])),
-  server: { version: pins.serverVersion, source: pins.serverSource, pluginsSource: pins.pluginSource,
+  server: { version: pins.serverVersion, source: pins.serverSource,
+    pluginsSource: pins.platforms[`${process.platform}-${process.arch}`]?.pluginSource ?? pins.pluginSource,
     platform: pins.platforms[`${process.platform}-${process.arch}`] },
   checks: [], figures: {}, browser: null, pageErrors: [], consoleErrors: [], requests: [],
+  ports, learningKitSha256: selection.consumers.guide.learningKitSha256,
 };
 let backend, gateway, vite, browser, next, nextExit, nextLog, frozen = false, phase = 'setup';
+let currentConfig = 'vite.config.mjs';
 const cache = resolve(process.env.DRASI_BACKEND_CACHE ?? '.artifacts/released-backend');
+const changedFigures = new Set(['04-dialog.png', '07-identity.png', '14-notification.png', '15-authentication.png']);
+const previousCaptures = capturing ? JSON.parse(await readFile('tests/contracts/guide-screenshots.json', 'utf8')) : null;
+async function startVite(config) {
+  await vite?.close();
+  await writeFile(join(app, 'vite.config.mjs'), assets.get(config).code);
+  currentConfig = config;
+  vite = await createServer({
+    root: app, configFile: join(app, 'vite.config.mjs'),
+    server: {
+      host: '127.0.0.1', port: ports.vitePort, strictPort: true,
+      ...(config === 'vite.config.mjs' ? {} : { proxy: { '/unmonitored-events': {
+        target: backend.events, rewrite: path => path.replace('/unmonitored-events', '/events'),
+      } } }),
+    },
+  });
+  await vite.listen();
+}
+async function startGateway(options = {}) {
+  const child = fork(new URL('../tests/consumers/public-contract/auth-gateway-process.mjs', import.meta.url),
+    [runtime, JSON.stringify({ rest: backend.rest, events: backend.events, port: ports.authPort, ...options })],
+    { stdio: ['ignore', 'pipe', 'pipe', 'ipc'], execArgv: [] });
+  const log = createWriteStream(join(output, `auth-gateway-${child.pid}.log`));
+  child.stdout.pipe(log); child.stderr.pipe(log);
+  let stats, sequence = 0, closed = false, exited = false;
+  const pending = new Map();
+  const exit = new Promise(accept => child.once('exit', code => {
+    exited = true; log.end();
+    for (const request of pending.values()) request.reject(new Error(`Owned gateway exited: ${code}`));
+    pending.clear();
+    accept(code);
+  }));
+  const url = await new Promise((accept, reject) => {
+    const timer = setTimeout(() => { child.kill('SIGTERM'); reject(new Error('Gateway startup timed out')); }, 10_000);
+    child.once('error', error => { clearTimeout(timer); reject(error); });
+    child.once('exit', code => { clearTimeout(timer); reject(new Error(`Gateway startup exited: ${code}`)); });
+    child.on('message', message => {
+      if (message.stats) stats = message.stats;
+      if (message.ready) { clearTimeout(timer); accept(message.url); }
+      const request = pending.get(message.id);
+      if (request) {
+        pending.delete(message.id);
+        if (message.error) request.reject(new Error(message.error));
+        else request.accept();
+      }
+    });
+  });
+  const command = (operation, value) => new Promise((accept, reject) => {
+    if (exited) { reject(new Error('Gateway is no longer running')); return; }
+    const id = ++sequence;
+    pending.set(id, { accept, reject });
+    child.send({ id, operation, value });
+  });
+  return {
+    url, pid: child.pid, get stats() { return stats; },
+    closeStreams: () => command('closeStreams'),
+    setAccepting: value => command('setAccepting', value),
+    setSessionStatus: value => command('setSessionStatus', value),
+    setResourceStatus: value => command('setResourceStatus', value),
+    async close() {
+      if (closed) return;
+      closed = true;
+      const timer = setTimeout(() => child.kill('SIGTERM'), 5000);
+      try {
+        if (!exited) await command('close');
+        assert.equal(await exit, 0, 'Owned gateway did not stop cleanly');
+      } finally { clearTimeout(timer); }
+    },
+  };
+}
 
 async function freePort(port) {
   const server = createNetServer();
@@ -50,21 +129,11 @@ async function freePort(port) {
   await new Promise((accept, reject) => server.close(error => error ? reject(error) : accept()));
 }
 try {
-  backend = await startBackend({ directory: cache });
-  gateway = await serveAuthGateway();
-  await writeFile(join(app, 'src/main.tsx'), modules.get('cold-storage-main.tsx'));
-  vite = await createServer({
-    root: app, configFile: join(app, 'vite.config.mjs'),
-    server: {
-      host: '127.0.0.1', port: 18473, strictPort: true,
-      // Deliberately unmonitored control, only for reproducing the silent-stream limitation.
-      proxy: { '/unmonitored-events': {
-        target: backend.events, rewrite: path => path.replace('/unmonitored-events', '/events'),
-      } },
-    },
-  });
-  await vite.listen();
-  const origin = 'http://127.0.0.1:18473';
+  backend = await startBackend({ directory: cache, ports: backendPorts });
+  gateway = await startGateway();
+  await writeFile(join(app, 'src/main.tsx'), modules.get('main.tsx'));
+  await startVite('vite.config.mjs');
+  const origin = `http://127.0.0.1:${ports.vitePort}`;
   assert.equal((await fetch(origin)).status, 200);
   browser = await chromium.launch({ headless: true });
   proof.browser = browser.version();
@@ -83,6 +152,15 @@ try {
   const streams = () => proof.requests.filter(request => request.path === '/events').length;
   async function entry(name) {
     phase = name;
+    const config = ['main.tsx', 'sorted-main.tsx', 'review-main.tsx', 'theme-main.tsx'].includes(name)
+      ? 'vite.config.mjs' : name === 'authenticated-main.tsx' ? 'vite-auth.config.mjs' : 'vite-live.config.mjs';
+    if (config !== currentConfig) {
+      await page.goto('about:blank');
+      await writeFile(join(app, 'src/main.tsx'), modules.get(name));
+      await startVite(config);
+      await page.goto(origin);
+      return;
+    }
     const loaded = page.url() === 'about:blank' ? null : page.waitForEvent('load', { timeout: 20_000 });
     if (loaded) {
       await writeFile(join(app, 'src/.main-next.tmp'), modules.get(name));
@@ -101,8 +179,8 @@ try {
     }
     const bytes = await readFile(file);
     proof.figures[name] = { bytes: bytes.length, sha256: hash(bytes), entry: phase };
-    if (capturing) {
-      const directory = resolve('packages/react/docs/developer-guide/figures');
+    if (capturing && changedFigures.has(name)) {
+      const directory = resolve('docs/react/developer-guide/figures');
       await mkdir(directory, { recursive: true });
       await copyFile(file, join(directory, name));
     }
@@ -119,7 +197,7 @@ try {
     { probeId: 'probe-1001', room: 'North', temperatureC: value });
   const probe = (table, id = 'probe-1001') => table.getByRole('row').filter({ hasText: id });
   const northTable = () => page.getByRole('table', { name: 'North room', exact: true });
-  await entry('cold-storage-main.tsx');
+  await entry('main.tsx');
   await expect(probe(page.getByRole('table'))).toContainText('3.0');
   await page.getByRole('button', { name: 'Warm North', exact: true }).click();
   await expect(probe(page.getByRole('table'))).toContainText('8.0');
@@ -153,6 +231,18 @@ try {
   await capture('04-dialog.png');
   await page.keyboard.press('Escape');
   await expect(reviewButton).toBeFocused();
+  const scheduledAt = Date.now();
+  await page.getByRole('button', { name: 'Remove probe-1001 in 8 seconds', exact: true }).click();
+  await reviewButton.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toContainText('no longer in the current view', { timeout: 12_000 });
+  assert(Date.now() - scheduledAt >= 7900, 'The local dialog exercise did not wait for its scheduled timer');
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Record local review' })).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading', { name: 'Local probe reviews', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Reset readings', exact: true }).click();
+  await expect(probe(page.getByRole('table'))).toContainText('3.0');
+  proof.checks.push('Backend-free scheduled removal fires with dialog open after eight seconds; unavailable row, disabled review and heading focus fallback');
   await entry('theme-main.tsx');
   await page.getByRole('button', { name: 'Dark theme', exact: true }).click();
   await probe(page.getByRole('table')).getByRole('button', { name: 'Review probe' }).click();
@@ -166,6 +256,9 @@ try {
   await temperature(8);
   await expect(probe(northTable())).toContainText('8.0');
   await capture('06-live.png');
+  await backend.close();
+  backend = await startBackend({ directory: cache, ports: backendPorts });
+  await expect(probe(northTable())).toContainText('3.0', { timeout: 25_000 });
   await feed('insert', 'new-probe', { probeId: 'probe-3001', room: 'North', temperatureC: 2 });
   await expect(probe(northTable(), 'probe-3001')).toContainText('2.0');
   await capture('07-identity.png');
@@ -186,6 +279,32 @@ try {
   await expect(probe(warm)).toHaveCount(0);
   await expect(probe(northTable())).toContainText('4.0');
   proof.checks.push('Warm query entry at 8 C, update while present at 9 C, and exit at 4 C');
+
+  phase = 'configuration-client-query-set';
+  await writeFile(join(app, 'src/live-cold-storage.tsx'), modules.get('live-cold-storage.tsx')
+    .replace("const queryIds = ['north-room', 'south-room', 'warm-probes'];",
+      "const queryIds = ['north-room', 'south-room'];"));
+  await expect(page.getByRole('alert').filter({ hasText: 'INVALID_CONFIGURATION' })).toHaveCount(1);
+  await expect(probe(northTable())).toContainText('4.0');
+  await expect(page.getByRole('table', { name: 'South room', exact: true })).toContainText('5.0');
+  await writeFile(join(app, 'src/live-cold-storage.tsx'), modules.get('live-cold-storage.tsx'));
+  await expect(page.getByRole('alert').filter({ hasText: 'INVALID_CONFIGURATION' })).toHaveCount(0);
+  phase = 'configuration-reaction-query-set';
+  const template = await readFile(join(runtime, 'config/server.yaml'), 'utf8');
+  const editedConfig = join(app, 'lesson-server.yaml');
+  await writeFile(editedConfig, template.replace('queries: [north-room, south-room, warm-probes]',
+    'queries: [north-room, south-room]'));
+  await backend.close();
+  backend = await startBackend({ directory: cache, ports: backendPorts, configFile: editedConfig });
+  await expect(page.getByRole('alert').filter({ hasText: 'INCOMPATIBLE_RESOURCE' })).toHaveCount(3, { timeout: 25_000 });
+  await backend.close();
+  await writeFile(editedConfig, template);
+  backend = await startBackend({ directory: cache, ports: backendPorts, configFile: editedConfig });
+  await page.reload();
+  await expect(probe(northTable())).toContainText('3.0');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await temperature(4);
+  proof.checks.push('Both configuration exercises: one query-local INVALID_CONFIGURATION card, shared INCOMPATIBLE_RESOURCE for missing reaction membership, explicit restore/reload');
 
   await entry('dashboard-main.tsx');
   const north = page.getByRole('region', { name: 'North room', exact: true });
@@ -242,7 +361,7 @@ try {
   proof.checks.push('Real backend paused: unmonitored stream stayed OPEN; heartbeat-aware Vite proxy detected silence');
   await backend.close();
   await expect(page.getByRole('alert')).toBeVisible();
-  backend = await startBackend({ directory: cache });
+  backend = await startBackend({ directory: cache, ports: backendPorts });
   await expect(probe(northTable())).toContainText('3.0', { timeout: 25_000 });
   await expect(page.getByRole('alert')).toHaveCount(0);
   proof.checks.push('Real backend stop/restart recovers automatically to fresh initialization');
@@ -268,35 +387,136 @@ try {
   await expect(probe(north.getByRole('table'))).toHaveCount(0);
   await feed('insert', 'north-probe', { probeId: 'probe-1001', room: 'North', temperatureC: 8 });
   await expect(notifications.getByRole('listitem')).toHaveCount(2);
-  proof.checks.push('Actual StrictMode app: quiet initial/resync snapshots, one crossing toast, no rerender duplicates, delete/reinsert entry');
+  const southTemperature = value => feed('update', 'south-probe',
+    { probeId: 'probe-2001', room: 'South', temperatureC: value });
+  await southTemperature(8);
+  await expect(notifications.getByRole('listitem')).toHaveCount(3);
+  await expect(notifications.getByRole('listitem').last()).toContainText('South: probe-2001');
+  await southTemperature(9);
+  await expect(probe(page.getByRole('table', { name: 'Warm probes', exact: true }), 'probe-2001')).toContainText('9.0');
+  await expect(notifications.getByRole('listitem')).toHaveCount(3);
+  await southTemperature(4);
+  await expect(probe(page.getByRole('table', { name: 'Warm probes', exact: true }), 'probe-2001')).toHaveCount(0);
+  await southTemperature(8);
+  await expect(notifications.getByRole('listitem')).toHaveCount(4);
+  const beforeWarmRefresh = { reads: reads('warm-probes'), streams: streams() };
+  await page.getByRole('button', { name: 'Refresh warm result', exact: true }).click();
+  await expect.poll(() => reads('warm-probes')).toBe(beforeWarmRefresh.reads + 1);
+  await expect(notifications.getByRole('listitem')).toHaveCount(4);
+  assert.equal(streams(), beforeWarmRefresh.streams);
+  await backend.close();
+  backend = await startBackend({ directory: cache, ports: backendPorts });
+  await expect(north.getByRole('table')).toContainText('3.0', { timeout: 25_000 });
+  await expect(notifications.getByRole('listitem')).toHaveCount(4);
+  await page.reload();
+  await expect(north.getByRole('table')).toContainText('3.0');
+  await expect(notifications.getByRole('listitem')).toHaveCount(0);
+  proof.checks.push('Actual StrictMode membership notifications: both rooms, quiet already-warm baseline, within-membership updates, exit/reentry, Warm refresh without extra transport, quiet reconnect/resync and reload');
 
+  await temperature(8);
   await entry('authenticated-main.tsx');
   await expect(north.getByRole('table')).toContainText('8.0');
+  await expect(north.locator('.drasi-query-table')).toHaveCSS('border-top-width', '1px');
+  await expect.poll(() => gateway.stats.acceptedStreams).toBeGreaterThan(0);
   assert.equal((await fetch(`${gateway.url}/secured/api/v1/instances/cold-chain/queries/north-room/results`)).status, 401);
   assert.equal((await fetch(`${gateway.url}/secured/events`)).status, 401);
   const authenticated = { ...gateway.stats };
+  assert(authenticated.issued <= 2, `Expected a shared session token, not ${authenticated.issued} issued tokens`);
   await temperature(9);
   await expect(north.getByRole('table')).toContainText('9.0');
   await north.getByRole('button', { name: 'Refresh query', exact: true }).click();
-  await expect.poll(() => gateway.stats.issued).toBeGreaterThan(authenticated.issued);
-  gateway.closeStreams();
+  await expect.poll(() => gateway.stats.acceptedReads).toBeGreaterThan(authenticated.acceptedReads);
+  assert.equal(gateway.stats.issued, authenticated.issued, 'Fresh cached token was not reused on refresh');
+  await gateway.closeStreams();
   await expect.poll(() => gateway.stats.acceptedStreams).toBeGreaterThan(authenticated.acceptedStreams);
   await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: open.');
-  gateway.setAccepting(false);
-  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('alert')).toContainText('UNAUTHENTICATED');
-  gateway.setAccepting(true);
-  await page.getByRole('region', { name: 'Connection' }).getByRole('button', { name: 'Retry connection' }).click();
+  phase = 'auth-gateway-restart-cached-token';
+  const previousGatewayPid = gateway.pid;
+  await gateway.close();
+  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: reconnecting.');
+  gateway = await startGateway();
+  assert.notEqual(gateway.pid, previousGatewayPid, 'The restart must create a new gateway process');
+  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: open.', { timeout: 25_000 });
+  assert(gateway.stats.rejected > 0, 'Restart did not exercise a still-unexpired cached token rejected by the new gateway');
+  assert.equal(gateway.stats.issued, 1, 'Concurrent stale-token revalidation must share one refresh');
+  await temperature(7);
+  await expect(north.getByRole('table')).toContainText('7.0');
+  proof.authentication = { initial: authenticated, cachedTokenRestart: {
+    ...gateway.stats, previousPid: previousGatewayPid, newPid: gateway.pid, automatic: true,
+  } };
+
+  phase = 'auth-session-service-503';
+  await gateway.setSessionStatus(503);
+  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: reconnecting.');
+  await gateway.setSessionStatus(200);
+  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: open.', { timeout: 25_000 });
+  await temperature(6);
+  await expect(north.getByRole('table')).toContainText('6.0');
+  proof.authentication.service503 = { recoveredAutomatically: true, sessionRequests: gateway.stats.sessionRequests };
+
+  phase = 'auth-gateway-down-expired-token';
+  const tokenRequests = () => proof.requests.filter(request => request.phase === phase && request.path === '/lesson-session').length;
+  await gateway.close();
+  await expect.poll(tokenRequests, { timeout: 45_000 }).toBeGreaterThan(0);
+  gateway = await startGateway();
+  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: open.', { timeout: 45_000 });
+  await temperature(5);
+  await expect(north.getByRole('table')).toContainText('5.0');
+  proof.authentication.expiredTokenRestart = { ...gateway.stats, automatic: true };
+
+  for (const [status, code] of [[401, 'UNAUTHENTICATED'], [403, 'FORBIDDEN']]) {
+    phase = `auth-token-endpoint-${status}`;
+    await gateway.setSessionStatus(status);
+    await expect(page.getByRole('region', { name: 'Connection' }).getByRole('alert')).toContainText(code, { timeout: 25_000 });
+    const stopped = gateway.stats.sessionRequests;
+    await delay(1500);
+    assert.equal(gateway.stats.sessionRequests, stopped, 'A terminal session denial started an automatic retry loop');
+    await gateway.setSessionStatus(200);
+    await page.getByRole('region', { name: 'Connection' }).getByRole('button', { name: 'Retry connection' }).click();
+    await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: open.');
+    proof.authentication[`session${status}`] = { terminal: true, repairedSessionManualRetry: true };
+  }
+  for (const [status, code] of [[401, 'UNAUTHENTICATED'], [403, 'FORBIDDEN']]) {
+    phase = `auth-protected-resource-${status}`;
+    const issued = gateway.stats.issued;
+    await gateway.setResourceStatus(status);
+    await expect(page.getByRole('region', { name: 'Connection' }).getByRole('alert')).toContainText(code, { timeout: 25_000 });
+    assert(gateway.stats.issued - issued <= (status === 401 ? 1 : 0), 'Protected resource denial caused unbounded token refresh');
+    const stopped = gateway.stats.sessionRequests;
+    await delay(1500);
+    assert.equal(gateway.stats.sessionRequests, stopped);
+    await gateway.setResourceStatus(200);
+    await page.getByRole('region', { name: 'Connection' }).getByRole('button', { name: 'Retry connection' }).click();
+    await expect(page.getByRole('region', { name: 'Connection' }).getByRole('status')).toHaveText('Stream: open.');
+    proof.authentication[`resource${status}`] = { terminal: true, boundedRefresh: true };
+  }
+  phase = 'auth-logout';
+  await page.getByRole('button', { name: 'End lesson session', exact: true }).click();
+  await expect.poll(() => gateway.stats.acceptedStreams - gateway.stats.cancelledStreams).toBe(0);
+  const stopped = gateway.stats.sessionRequests;
+  await delay(1500);
+  assert.equal(gateway.stats.sessionRequests, stopped);
+  await page.getByRole('button', { name: 'Start new lesson session', exact: true }).click();
+  await expect(north.getByRole('table')).toContainText('5.0');
+  assert(gateway.stats.sessionRequests > stopped, 'New session reused a logged-out owner cache');
+  await temperature(9);
   await expect(north.getByRole('table')).toContainText('9.0');
-  await expect(page.getByRole('region', { name: 'Connection' }).getByRole('alert')).toHaveCount(0);
   await capture('15-authentication.png');
-  proof.authentication = { ...gateway.stats };
-  proof.checks.push('Real authenticated stream/reads, rejected unauthenticated access, fresh credentials, EOF recovery and repaired-session retry');
+  proof.authentication.final = { ...gateway.stats };
+  proof.checks.push('Real gateway process stopped/restarted with cached and expired tokens; live updates resumed without Retry connection; shared refresh, token-service 503 recovery, terminal session/resource 401/403 and logout cancellation');
 
   await freePort(18474);
+  if (args.includes('--non-default-ports')) {
+    const buildLog = execFileSync('npm', ['run', 'build'], { cwd: nextApp, encoding: 'utf8',
+      timeout: 180_000, env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1',
+        DRASI_REST_URL: backend.rest, DRASI_SSE_URL: backend.events } });
+    await writeFile(join(output, 'next-non-default-build.log'), buildLog);
+  }
   nextLog = createWriteStream(join(output, 'next.log'));
   next = spawn(process.execPath, [join(nextApp, 'node_modules/next/dist/bin/next'),
     'start', '--hostname', '127.0.0.1', '--port', '18474'], {
-    cwd: nextApp, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
+    cwd: nextApp, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1',
+      DRASI_REST_URL: backend.rest, DRASI_SSE_URL: backend.events },
   });
   next.stdout.pipe(nextLog);
   next.stderr.pipe(nextLog);
@@ -356,8 +576,7 @@ try {
 
   const printPage = await browser.newPage({ viewport: { width: 674, height: 960 } });
   await printPage.emulateMedia({ media: 'print' });
-  await printPage.setContent(await renderPrintGuide(iteration ? resolve('packages/react')
-    : join(app, 'node_modules/@drasi/react'), set.source));
+  await printPage.setContent(await renderPrintGuide(join(kit, 'docs'), set.source));
   proof.print = await printPage.evaluate(() => ({
     chapters: [...document.querySelectorAll('h3')].filter(heading => /^\d+-/.test(heading.id)).length,
     images: document.images.length,
@@ -365,8 +584,11 @@ try {
     clippedCode: [...document.querySelectorAll('pre')].filter(element => element.scrollWidth > element.clientWidth + 1).length,
     bodyOverflow: document.body.scrollWidth > 674,
     diagrams: document.querySelectorAll('table.diagram').length,
+    brokenLinks: [...document.querySelectorAll('a[href^="#"]')].map(link => link.getAttribute('href'))
+      .filter(href => !document.getElementById(decodeURIComponent(href.slice(1)))),
   }));
-  assert.deepEqual(proof.print, { chapters: 17, images: 14, loadedImages: true, clippedCode: 0, bodyOverflow: false, diagrams: 3 });
+  assert.deepEqual(proof.print, { chapters: 17, images: 14, loadedImages: true, clippedCode: 0,
+    bodyOverflow: false, diagrams: 3, brokenLinks: [] });
   await printPage.pdf({ path: join(output, 'developer-guide.pdf'), preferCSSPageSize: true, printBackground: true });
   await printPage.close();
   proof.checks.push('Actual print layout: 17 chapters, 14 embedded figures, three diagram alternatives, no horizontal code clipping');
@@ -379,7 +601,10 @@ try {
     generator: 'scripts/test-live-guide.mjs --capture',
     browser: proof.browser, platform: process.platform, viewport: { width: 1100, height: 880 },
     bookSha256: proof.bookSha256, moduleSha256: proof.moduleSha256, server: proof.server,
-    figures: proof.figures,
+    figures: Object.fromEntries(guideFigures.map(name => [name, changedFigures.has(name)
+      ? { ...proof.figures[name], captureBookSha256: proof.bookSha256 }
+      : { ...previousCaptures.figures[name], captureBookSha256:
+        previousCaptures.figures[name].captureBookSha256 ?? previousCaptures.bookSha256 }])),
   }, null, 2) + '\n');
   proof.success = true;
   console.log(`Live guide passed ${proof.checks.length} checks; ${Object.keys(proof.figures).length} real screenshots captured.`);

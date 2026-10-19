@@ -52,17 +52,20 @@ export function printDiagram(source) {
   return table(['Sender / condition', 'Receiver / branch', 'Action in order'], rows);
 }
 
-export async function renderPrintGuide(packageRoot, source) {
+export async function renderPrintGuide(documentsRoot, source) {
   assert(/^[a-f0-9]{40}$/.test(source), 'Printable references require an exact source commit');
-  const book = await readFile(resolve(packageRoot, 'docs/developer-guide/README.md'), 'utf8');
+  const book = await readFile(resolve(documentsRoot, 'developer-guide/README.md'), 'utf8');
   const images = new Map();
   for (const name of guideFigures) {
-    const bytes = await readFile(resolve(packageRoot, 'docs/developer-guide/figures', name));
+    const bytes = await readFile(resolve(documentsRoot, 'developer-guide/figures', name));
     images.set(`figures/${name}`, `data:image/png;base64,${bytes.toString('base64')}`);
   }
   const renderer = new Renderer(), headings = new Map();
+  const references = ['README', 'data-table', 'query-table', 'modal', 'bindings', 'styles', 'core',
+    'server-client', 'server-provider', 'exports', 'migration', 'validation', 'installation'];
+  let reference = '';
   renderer.heading = (text, depth, raw) => {
-    const slug = [...markdownAnchors(`${'#'.repeat(depth)} ${raw}`)][0];
+    const slug = `${reference ? `reference-${reference}--` : ''}${[...markdownAnchors(`${'#'.repeat(depth)} ${raw}`)][0]}`;
     const count = headings.get(slug) ?? 0;
     headings.set(slug, count + 1);
     return `<h${depth} id="${slug}${count ? `-${count}` : ''}">${text}</h${depth}>\n`;
@@ -83,8 +86,14 @@ export async function renderPrintGuide(packageRoot, source) {
     return `<img src="${images.get(href)}" alt="${escape(alt)}"${title ? ` title="${escape(title)}"` : ''}>`;
   };
   renderer.link = (href, title, text) => {
-    const target = href.startsWith('#') || /^https?:/.test(href) ? href
-      : new URL(href, `https://github.com/drasi-project/drasi-ui/blob/${source}/packages/react/docs/developer-guide/`).href;
+    let target;
+    const local = /^(?:\.\.\/reference\/)?([a-z-]+|README)\.md(?:#(.+))?$/.exec(href);
+    const bookLink = /^(?:\.\.\/developer-guide\/README\.md|https:\/\/github\.com\/drasi-project\/drasi-ui\/blob\/main\/docs\/react\/developer-guide\/README\.md)(?:#(.*))?$/.exec(href);
+    if (local && references.includes(local[1])) target = `#reference-${local[1]}${local[2] ? `--${local[2]}` : ''}`;
+    else if (bookLink) target = `#${bookLink[1] ?? 'the-react-developer-guide'}`;
+    else if (href.startsWith('#')) target = reference ? `#reference-${reference}--${href.slice(1)}` : href;
+    else target = /^https?:/.test(href) ? href.replace('/drasi-ui/blob/main/', `/drasi-ui/blob/${source}/`)
+      : new URL(href, `https://github.com/drasi-project/drasi-ui/blob/${source}/docs/react/${reference ? 'reference' : 'developer-guide'}/`).href;
     assert(target.startsWith('#') || target.startsWith('https://'), 'Unsafe print link');
     return `<a href="${escape(target)}"${title ? ` title="${escape(title)}"` : ''}>${text}</a>`;
   };
@@ -97,6 +106,17 @@ export async function renderPrintGuide(packageRoot, source) {
   let html = marked.parse(markdown, { renderer, gfm: true });
   html = html.replace(/<p>(<img[\s\S]*?>)<\/p>\s*<p><em>(Figure [\s\S]*?)<\/em><\/p>/g,
     '<figure>$1<figcaption>$2</figcaption></figure>');
+  for (const name of references) {
+    reference = name;
+    const text = await readFile(resolve(documentsRoot, `reference/${name}.md`), 'utf8');
+    // Reference prose may use ordinary HTML (for example details); it is escaped, not executed.
+    renderer.html = value => {
+      if (/^\s*<!--[\s\S]*-->\s*$/.test(value)) return '';
+      return /^\s*(?:<a id="[a-z0-9-]+">|<\/a>|<a id="[a-z0-9-]+"><\/a>)\s*$/.test(value)
+        ? value.replace(/id="/, `id="reference-${name}--`) : escape(value);
+    };
+    html += `<section id="reference-${name}">${marked.parse(text, { renderer, gfm: true })}</section>`;
+  }
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="source-book-sha256" content="${createHash('sha256').update(book).digest('hex')}">
@@ -124,6 +144,6 @@ if (import.meta.main) {
   const output = resolve(process.argv[2] ?? '.artifacts/react-developer-guide.html');
   await mkdir(dirname(output), { recursive: true });
   const source = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  await writeFile(output, await renderPrintGuide(resolve('packages/react'), source));
+  await writeFile(output, await renderPrintGuide(resolve('docs/react'), source));
   console.log(`Printable, offline book: ${output}`);
 }

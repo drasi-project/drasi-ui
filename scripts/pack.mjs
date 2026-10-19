@@ -5,12 +5,13 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { candidateDirectory, json, releasePackages, root } from './packages.mjs';
 import { validateBuildOutputs } from './build-outputs.mjs';
+import { spawnNpmSync } from './node-cli.mjs';
 
-const relativeDirectory = relative(root, candidateDirectory);
+const relativeDirectory = relative(root, candidateDirectory).replaceAll('\\', '/');
 assert(relativeDirectory.startsWith('.artifacts/'), 'Candidate output must be an explicit directory under .artifacts/');
 const outputs = await validateBuildOutputs(root, releasePackages);
 for (const item of outputs) {
-  const result = spawnSync('npm', ['pack', '--dry-run', '--ignore-scripts', '--json', '--workspace', item.directory],
+  const result = spawnNpmSync(['pack', '--dry-run', '--ignore-scripts', '--json', '--workspace', item.directory],
     { cwd: root, encoding: 'utf8' });
   if (result.error) throw result.error;
   assert.equal(result.status, 0, result.stderr);
@@ -32,7 +33,7 @@ assert.equal(status.status, 0, status.stderr);
 const packages = [];
 for (const item of releasePackages) {
   const manifest = await json(join(root, item.directory, 'package.json'));
-  const result = spawnSync('npm', ['pack', '--ignore-scripts', '--json', '--workspace', item.directory,
+  const result = spawnNpmSync(['pack', '--ignore-scripts', '--json', '--workspace', item.directory,
     '--pack-destination', candidateDirectory], { cwd: root, encoding: 'utf8' });
   if (result.error) throw result.error;
   assert.equal(result.status, 0, result.stderr);

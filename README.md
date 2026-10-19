@@ -5,7 +5,7 @@ Applications own their data sources, authentication, provisioning and business
 logic. A Drasi Server connection is an explicit optional integration, not a
 requirement for displaying rows or subscribing to an application-owned client.
 
-**Start here: [The React developer guide](packages/react/docs/developer-guide/README.md).**
+**Start here: [The React developer guide](docs/react/developer-guide/README.md).**
 Build a complete cold-storage screen, change your first reading without a backend,
 then connect the same row model to live queries, shared views, review dialogs,
 themes, and your application's connection lifecycle. The guide explains the
@@ -17,7 +17,7 @@ checkout or Rust build is needed for its first lesson.
 
 ## Start with rows you own
 
-The [first working screen](packages/react/docs/developer-guide/README.md#1-run-your-first-screen)
+The [first working screen](docs/react/developer-guide/README.md#1-run-your-first-screen)
 uses `DataTable` with supplied rows: no provider, query, network request,
 Tailwind configuration, or package-source scanning. Follow the same book into
 live data when you have an existing query to connect.

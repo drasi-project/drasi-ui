@@ -45,6 +45,43 @@ test('controlled sorting follows the literal sorting lesson and clears to input 
   expect((await stats(page)).opens).toBe(0);
 });
 
+test('the backend-free dialog removal can be cancelled, reset, and unmounted before its timer fires', async ({ page }) => {
+  await page.clock.install();
+  await page.addInitScript(() => {
+    const schedule = window.setTimeout.bind(window), cancel = window.clearTimeout.bind(window);
+    let scheduled: number | undefined;
+    window.setTimeout = (handler, timeout, ...args) => {
+      const id = schedule(handler, timeout, ...args);
+      if (timeout === 8000) scheduled = id;
+      return id;
+    };
+    window.clearTimeout = id => {
+      if (id === scheduled) {
+        document.documentElement.dataset.lessonTimerCancelled = 'yes';
+        scheduled = undefined;
+      }
+      cancel(id);
+    };
+  });
+  await page.goto('/fixture/fixture.html?lesson=review');
+  const probe = page.getByRole('row').filter({ hasText: 'probe-1001' });
+  const schedule = page.getByRole('button', { name: 'Remove probe-1001 in 8 seconds', exact: true });
+  for (const name of ['Cancel removal', 'Reset readings']) {
+    await schedule.click();
+    await expect(schedule).toBeDisabled();
+    await page.getByRole('button', { name, exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-lesson-timer-cancelled', 'yes');
+    await page.clock.fastForward(8100);
+    await expect(probe).toContainText('3.0');
+    await page.evaluate(() => { delete document.documentElement.dataset.lessonTimerCancelled; });
+  }
+  await schedule.click();
+  await page.getByRole('button', { name: 'Unmount lesson', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-lesson-timer-cancelled', 'yes');
+  await page.clock.fastForward(8100);
+  await expect(page.getByRole('table')).toHaveCount(0);
+});
+
 test('the book shares snapshots across cards/table, reprojects, and isolates retry and sparse deletes', async ({ page }) => {
   await page.goto('/fixture/fixture.html?lesson=failure');
   const north = page.getByRole('region', { name: 'North room', exact: true });

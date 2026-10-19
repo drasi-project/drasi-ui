@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { referenceDocuments } from '../../../scripts/documentation.mjs';
-import { guideAssets } from '../../../scripts/guide-assets.mjs';
 
 export { repositorySourceRef } from '../../../scripts/documentation.mjs';
 
@@ -13,6 +12,7 @@ export const documentationFiles = [
   'docs/migration.md', 'docs/testing.md',
   'docs/developer-guide/README.md', 'docs/reference/README.md',
   'docs/reference/migration.md', 'docs/reference/validation.md',
+  'docs/reference/installation.md',
   ...referenceDocuments.map(({ target }) => target.slice('packages/react/'.length)),
 ];
 
@@ -21,7 +21,7 @@ export async function loadDocumentation(packageRoot) {
     .filter(file => file.isFile())
     .map(file => relative(packageRoot, join(file.parentPath, file.name)).replaceAll('\\', '/')).sort();
   assert.deepEqual(guides, [
-    ...documentationFiles.filter(file => file.startsWith('docs/')), ...guideAssets.keys(),
+    ...documentationFiles.filter(file => file.startsWith('docs/')),
   ].sort(),
     'Every shipped guide must be included in the executable documentation contract');
   return Object.fromEntries(await Promise.all(documentationFiles.map(async file =>

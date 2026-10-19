@@ -35,6 +35,64 @@
         }
       ]
     },
+    "darwin-x64": {
+      "platform": "darwin/amd64",
+      "pluginSource": "294db7631f0c1b77ac18eac833c0320115b5ae3a",
+      "binary": "drasi-server-x86_64-apple-darwin",
+      "sha256": "315bed5d7e77c08ea2371bbd7fffae33507365f7fb2de3951564339385b30d11",
+      "plugins": [
+        {
+          "kind": "source/http",
+          "version": "0.2.13",
+          "digest": "eaacf01c4b90f0fbe8c98048397a1df731246f322d5e23354e33bef94a832b1a",
+          "filename": "libdrasi_source_http.dylib",
+          "sha256": "38144b7a6705bdd95ce3f7b84609f63abd15d05506d9afeeb2ab3acdd811b6ee"
+        },
+        {
+          "kind": "bootstrap/scriptfile",
+          "version": "0.2.15",
+          "digest": "439fc6f63f2dfb71ad5cfc3724ec9b64b9e076e27a8be3fcca908d0ea5287cbb",
+          "filename": "libdrasi_bootstrap_scriptfile.dylib",
+          "sha256": "48ee5a0c8337e1f69a425e90012e123ec4d535f9cdd727ee32549b00eb64e1a2"
+        },
+        {
+          "kind": "reaction/sse",
+          "version": "0.3.8",
+          "digest": "2f8df148ff4c4e1c3271c4a7f1d44ae225c7eed1f9efc2ad139b5af396029e36",
+          "filename": "libdrasi_reaction_sse.dylib",
+          "sha256": "9303a64bd11880463759dec4cfa222a973ecbcd8fc1e7d33c712ba9c7b373d27"
+        }
+      ]
+    },
+    "linux-arm64": {
+      "platform": "linux/arm64",
+      "pluginSource": "294db7631f0c1b77ac18eac833c0320115b5ae3a",
+      "binary": "drasi-server-aarch64-linux-gnu",
+      "sha256": "a95b2b19a8c7b193bcc3f22e71a3946ded8944551fd02f02d0e5862e9b079048",
+      "plugins": [
+        {
+          "kind": "source/http",
+          "version": "0.2.13",
+          "digest": "fb566b4b9672ab75eebcd0f3de7f7c1ee91b8ac3f9cd9e827e018b262f3ae680",
+          "filename": "libdrasi_source_http.so",
+          "sha256": "37bd5712eb1583ef59d2430d912d12866d70f783d19405d05ebfff9478866c9b"
+        },
+        {
+          "kind": "bootstrap/scriptfile",
+          "version": "0.2.15",
+          "digest": "2dd28a4dc8bf581675e2b86f3bb640ca1815ee27641fb0b8d274bddb988b49ca",
+          "filename": "libdrasi_bootstrap_scriptfile.so",
+          "sha256": "6f9a81b2c6a93cbcaba3f4d899115550dc96e1cef132120fe72b568b691776f3"
+        },
+        {
+          "kind": "reaction/sse",
+          "version": "0.3.8",
+          "digest": "fd9e4dc7b30c7178510382429aa2c507e70dddd7e528cf71ff33d1ceb67798e8",
+          "filename": "libdrasi_reaction_sse.so",
+          "sha256": "1d4ed83953f403409be51a68daf8aad42a68372598095f2f21329865cd1489ba"
+        }
+      ]
+    },
     "linux-x64": {
       "platform": "linux/amd64",
       "binary": "drasi-server-x86_64-linux-gnu",

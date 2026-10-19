@@ -67,16 +67,19 @@ try {
   await rm(directory, { recursive: true, force: true });
 }
 
-const guideDirectory = await realpath(await mkdtemp(join(tmpdir(), 'drasi-pnpm-guide-')));
+const guideRoot = await realpath(await mkdtemp(join(tmpdir(), 'drasi-pnpm-guide-')));
+const guideDirectory = join(guideRoot, 'starter');
 const guidePnpm = args => run(process.execPath, [cli, ...args], guideDirectory, {
   env: { COREPACK_ENABLE_NETWORK: '0' },
 });
 try {
   const guide = consumers.consumers.guide.directory;
   await copyConsumer(guide, guideDirectory);
+  await copyConsumer(join(consumers.consumers.guide.kitDirectory, 'artifacts'), join(guideRoot, 'artifacts'));
+  await copyConsumer(join(consumers.consumers.guide.kitDirectory, 'docs'), join(guideRoot, 'docs'));
   await copyFile(join(guide, 'package-lock.json'), join(guideDirectory, 'package-lock.json'));
   await writeFile(join(guideDirectory, 'pnpm-workspace.yaml'), `overrides:\n${Object.entries(tarballResolutions)
-    .map(([name, value]) => `  ${JSON.stringify(name)}: ${JSON.stringify(value)}`).join('\n')}\n`);
+    .map(([name, value]) => `  ${JSON.stringify(name)}: ${JSON.stringify(value.replace('file:./', 'file:../'))}`).join('\n')}\n`);
   guidePnpm(['import', '--registry=https://registry.npmjs.org']);
   guidePnpm(['install', '--frozen-lockfile', '--ignore-scripts', '--registry=https://registry.npmjs.org',
     '--store-dir', join(guideDirectory, '.store')]);
@@ -92,4 +95,4 @@ try {
   await copyFile(join(guideDirectory, 'pnpm-lock.yaml'), '.artifacts/pnpm-guide-lock.yaml');
   await writeFile('.artifacts/pnpm-proof.json', JSON.stringify(proof, null, 2) + '\n');
   console.log('The literal book also builds with pnpm, declared direct imports and no unused styles dependency.');
-} finally { await rm(guideDirectory, { recursive: true, force: true }); }
+} finally { await rm(guideRoot, { recursive: true, force: true }); }

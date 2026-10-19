@@ -20,23 +20,47 @@ publish npm packages, configure npm accounts, deploy Pages, or merge anything.
 `Packed consumers` now also exercises the pinned released backend, actual
 live/auth/notification/HMR/Next lessons, and canonical real examples.
 `Node 22 compatibility` builds both literal book applications and runs the
-released backend on the stated lower tested Node version. The four required
-check names are unchanged.
+released backend on Node 22 with its bundled npm 10, including the minimal
+source-build fallback. Main requires these six GitHub Actions contexts, bound
+to Actions app **15368**: **Quality**, **Node 22 compatibility**, **Packed
+consumers**, **Release policy**, **Backend / macOS Intel**, and **Backend /
+Linux arm64**. The four original checks and strict/up-to-date policy are
+retained; the maintainer added the two native checks after their jobs passed.
+Preserve DCO sign-offs and the DCO check alongside this policy.
+
+`Packed consumers` waits for both native jobs and `Learning builder / Windows`.
+It runs even when a prerequisite fails or is skipped, then explicitly fails its
+required check unless every prerequisite succeeded. This non-skippable
+preflight makes the Windows clean-source builder check a real qualification
+gate without weakening the six existing required contexts. The two native
+backend checks remain independently required as well. This implementation
+does not change protections or permissions itself.
+
+The clean-source checks run before ordinary workspace installation/builds.
+They use a separate clone with spaces in its path and no preexisting output
+parent, exercise the documented PowerShell commands, then verify the source-free
+starter's npm install, build, React identity and dev server. Native Windows
+qualification here applies to the source builder and learner app, not to the
+Drasi Server/plugin launcher.
 
 After its checks, CI runs `npm run preview:prepare`. This reads the already
 packed candidate set and identity-bound package, dependency, npm/pnpm,
 browser, and live-guide proofs; it does **not** rebuild archives. It emits
 `preview-download-candidate` containing all three exact tarballs,
 `release-set.json`, `preview.json`, `SHA256SUMS`, a standalone
-`verify-preview.mjs`, a self-contained printable `developer-guide.html`, and
-installation instructions. The print edition is derived from the exact
-tarball's book and figures using the already-locked Markdown renderer, rather
-than changing or rebuilding a package. Local preparation requires
+`verify-preview.mjs`, installation instructions, and
+`drasi-react-learning-<version>-<source-prefix>.tgz`. That separate kit contains
+the canonical book, figures, offline/print reference navigation, all three exact
+archives, a minimal locked Vite starter, complete checkpoints, an optional
+separately installed Next app, and explicit backend/auth helpers. Its
+`learning-kit.json` hashes every file and binds it to the exact source and
+package set. Local preparation requires
 a clean committed source and the same completed qualification evidence.
 
 After reviewed merge, let UI CI complete on protected `main`. Run **Preview
 downloads** with that successful main-push CI run ID. The workflow checks the
-exact source and all four required job results, downloads the previously
+exact source, all six required job results and the Windows learning-builder
+result, downloads the previously
 prepared files, verifies them again, and retains `github-preview-downloads`.
 It has only read permissions and **cannot publish a release or tag**.
 The authorized maintainer then attaches those unchanged files to a clearly
@@ -44,22 +68,30 @@ labeled GitHub prerelease. If main moved, qualify its new exact source first.
 
 Readers download the whole set from that actual release and run
 `node verify-preview.mjs` in the download directory. The standalone verifier
-checks SHA-256, npm integrity, archive inventories, and built exports without
+checks SHA-256, npm integrity, production archive allowlists, learning-kit
+contents and built exports without
 installing the monorepo. Checksums identify the files; readers should obtain
 both files and verifier from the official project release over HTTPS.
 
-The current illustrated React archive is about 900 KB, compared with 161 KB
-before this revision. Its documentation and lesson assets add about 0.83 MB
-to an installed copy. The exact closed-list accounting is in
-`tests/contracts/guide-usability-assets.json`; the 81 original non-Markdown
-public files and all runtime/CSS/declaration/map/dependency and existing
-consumer budgets remain unchanged. Capture provenance is in
+The production React archive is now about 135 KB; the illustrated ~900 KB
+archive is historical. No executable lesson helper, downloader, PNG, or print
+edition is permitted in a production archive, even inert ones. The historical
+accounting in `tests/contracts/guide-usability-assets.json` and
+`developer-guide-artifacts.json` remains immutable. The 81 production
+non-Markdown paths remain fixed; only React's manifest `files` field may differ.
+All runtime/CSS/declaration/map/dependency and existing consumer budgets remain
+unchanged. `learning-distribution.json` reduces the active React Markdown
+allowance to 6,790 bytes and retires the old full-book/illustrated allowances.
+The learning archive has its own inventory, byte size and checksums, not an
+exclusion from runtime accounting. Capture provenance is in
 `tests/contracts/guide-screenshots.json`. The older Markdown-only accounting
 remains immutable rather than treating PNGs or launchers as Markdown.
 
 Until those release assets exist, the book's source-build/tarball fallback is
-the current executable installation path. No placeholder preview URL is
-advertised.
+the current executable installation path. `node scripts/build-learning-kit.mjs`
+installs only the selected package builders, respects trusted registry/CA
+configuration, and never installs the optional Next application or workspace
+test tools. No placeholder preview URL is advertised.
 
 ## Identity and approval configuration
 

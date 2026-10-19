@@ -11,9 +11,13 @@ import { assertFrameworkIsolation, checkPackedPublicContract } from '../tests/co
 import { installedDependencyAccounting } from './dependency-accounting.mjs';
 import { measureEmittedAssets } from './metrics-policy.mjs';
 import { prepareGuideConsumer, prepareNextGuideConsumer } from './guide-consumer.mjs';
+import { createLearningKit, learningDirectory } from './learning-kit.mjs';
+import { guidePath } from '../tests/consumers/public-contract/developer-guide.mjs';
 
 const set = await json(join(candidateDirectory, 'release-set.json'));
 assert(await readFile(join(candidateDirectory, 'package-proof.json')), 'Validate candidates before installing consumers');
+await createLearningKit({ iteration: set.dirty });
+const learningBook = await readFile(join(learningDirectory, guidePath), 'utf8');
 const directory = await realpath(await mkdtemp(join(tmpdir(), 'drasi-ui-consumers-')));
 const runList = join(root, '.artifacts/consumer-runs.json');
 const runs = existsSync(runList) ? await json(runList) : [];
@@ -42,7 +46,7 @@ for (const major of [18, 19]) {
     await copyFile(join(root, 'tests/browser', file), join(app, 'table-fixture', file));
   }
   const report = await checkPackedPublicContract({
-    coreOnly, app, output: join(output, `react-${major}`), includeCore: major === 18,
+    coreOnly, app, output: join(output, `react-${major}`), includeCore: major === 18, learningBook,
   });
   const pinnedLock = await readFile(join(app, 'package-lock.json'));
   run('npm', ['run', 'build'], app);
@@ -78,11 +82,11 @@ run('npm', ['test'], example);
 run('npm', ['run', 'build'], example);
 proof.consumers.examples = { directory: example };
 proof.consumers.guide = await prepareGuideConsumer({
-  packageRoot: join(directory, 'react-18/node_modules/@drasi/react'),
+  kitRoot: learningDirectory,
   directory: join(directory, 'developer-guide'), set,
 });
 proof.consumers.guideNext = await prepareNextGuideConsumer({
-  packageRoot: join(directory, 'react-19/node_modules/@drasi/react'),
+  kitRoot: learningDirectory,
   directory: join(directory, 'developer-guide-next'), set,
 });
 await writeFile(join(root, '.artifacts/consumers.json'), JSON.stringify(proof, null, 2) + '\n');

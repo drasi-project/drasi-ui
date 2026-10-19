@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -55,4 +55,19 @@ test('partial, modified and stale-version outputs cannot reuse an old build inve
     name: '@drasi/react', version: '2.0.0', exports: './dist/index.js',
   }));
   await assert.rejects(validateBuildOutputs(root, packages), /Candidate preflight failed/);
+});
+
+test('nested build outputs use one portable slash-separated inventory key on every host', async context => {
+  const { root, packages } = await fixture(context);
+  await mkdir(join(root, 'core/dist/nested'));
+  await writeFile(join(root, 'core/dist/nested/entry.js'), 'export {};\n');
+  const manifest = JSON.parse(await readFile(join(root, 'core/package.json')));
+  manifest.exports['./nested'] = './dist/nested/entry.js';
+  await writeFile(join(root, 'core/package.json'), JSON.stringify(manifest));
+  await recordBuildOutputs(root, packages);
+  const outputs = await validateBuildOutputs(root, packages);
+  assert.equal(Object.keys(outputs[0].files).filter(path => path.includes('nested')).length, 1);
+  assert(outputs[0].files['dist/nested/entry.js']);
+  assert(outputs.every(output => !output.directory.includes('\\') &&
+    Object.keys(output.files).every(path => !path.includes('\\'))));
 });

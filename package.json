@@ -29,7 +29,7 @@
     "preview:prepare": "node scripts/prepare-preview.mjs",
     "changeset": "changeset",
     "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts --registry=https://registry.npmjs.org",
-    "release:prepare": "npm run build && npm run lint && npm run typecheck && npm run test:coverage && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs && npm run pack:candidates && npm run check:packages && npm run test:contracts && npm run audit:dependencies && npm run test:pnpm && npm run test:browser && npm run test:backend && npm run test:guide-live"
+    "release:prepare": "npm run build && npm run lint && npm run typecheck && npm run test:coverage && node --test tests/consumers/public-contract/*-check.mjs scripts/test/*.test.mjs && npm run pack:candidates && npm run check:packages && npm run test:contracts && npm run audit:dependencies && npm run test:pnpm && npm run test:browser && npm run test:backend && npm run test:guide-live && node scripts/test-live-guide.mjs --non-default-ports"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.3",

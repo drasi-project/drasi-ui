@@ -3,12 +3,17 @@ import assert from 'node:assert/strict';
 import { markdownFences, extractReadmeExamples, requiredGuideExamples } from './readme-examples.mjs';
 
 export const guidePath = 'docs/developer-guide/README.md';
+export const guideSource = 'docs/react/developer-guide/README.md';
 export const guideAssetLanguages = {
   'package.json': 'json',
   'tsconfig.json': 'json',
   'index.html': 'html',
   'vite.config.mjs': 'js',
   'cold-storage.css': 'css',
+  'vite-live.config.mjs': 'js',
+  'vite-auth.config.mjs': 'js',
+  'next-package.json': 'json',
+  'next-tsconfig.json': 'json',
   'identity.test.mjs': 'js',
 };
 

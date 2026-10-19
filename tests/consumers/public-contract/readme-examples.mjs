@@ -15,12 +15,12 @@ export const requiredReadmeExamples = [
 ];
 
 export const requiredGuideExamples = [
-  'readings.ts', 'cold-storage.tsx', 'cold-storage-main.tsx',
+  'readings.ts', 'cold-storage.tsx', 'main.tsx',
   'sorted-cold-storage.tsx', 'sorted-main.tsx', 'review-readings.tsx', 'review-main.tsx',
   'theme-scope.tsx', 'theme-main.tsx', 'reading-model.ts', 'live-cold-storage.tsx', 'live-main.tsx',
   'warm-queries.tsx', 'warm-main.tsx', 'cold-storage-dashboard.tsx', 'dashboard-main.tsx',
   'connection-notice.tsx', 'failure-lesson.tsx', 'failure-main.tsx', 'threshold-alerts.ts',
-  'notification-lesson.tsx', 'notification-main.tsx', 'fetch-event-source.ts',
+  'notification-lesson.tsx', 'notification-main.tsx', 'fetch-event-source.ts', 'session-auth.ts',
   'authenticated-cold-storage.tsx', 'authenticated-main.tsx',
   'cold-storage-client.tsx', 'next-cold-storage-page.tsx', 'next-layout.tsx',
   'cold-storage-capstone.tsx', 'capstone-main.tsx',
@@ -81,7 +81,7 @@ export function extractDocumentationExamples(documents) {
       examples.set(example.name, { ...example, source: file });
     }
   }
-  const missing = [...requiredReadmeExamples, ...requiredGuideExamples].filter(name => !examples.has(name));
+  const missing = requiredReadmeExamples.filter(name => !examples.has(name));
   assert.equal(missing.length, 0, `Missing marked documentation examples: ${missing.join(', ')}`);
   return [...examples.values()];
 }

@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "historicalEvidence": "tests/contracts/guide-usability-assets.json",
+  "referenceOnlyArchives": {
+    "@drasi/ui-core": 106317,
+    "@drasi/ui-styles": 7527,
+    "@drasi/react": 135037
+  },
+  "reason": "Active reference-only archive accounting: core +225, styles +179 and React +6790 above the retained pre-book baselines. The obsolete React +31948 full-book Markdown allowance and +740314 illustrated/helper allowance no longer apply. Historical records remain unchanged. All production runtime/declaration/CSS/map/dependency metrics and the 2% unexplained-growth bound are unchanged; learning assets are independently inventoried and hashed in learning-kit.json and preview.json."
+}

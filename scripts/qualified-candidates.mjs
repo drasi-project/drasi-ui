@@ -34,9 +34,19 @@ export async function qualifyCandidates(directory, evidence, expectedSource, run
   assert.deepEqual(live.pageErrors, []);
   const guide = await json(join(evidence, 'consumer-proofs/developer-guide/proof.json'));
   assert.equal(live.bookSha256, guide.bookSha256);
+  assert.equal(live.learningKitSha256, guide.learningKitSha256);
+  const alternate = await json(join(evidence, 'live-guide/non-default/proof.json'));
+  assert.equal(alternate.success, true);
+  assert.equal(alternate.iteration, false);
+  assert.deepEqual(alternate.artifacts, identities);
+  assert.deepEqual(alternate.pageErrors, []);
+  assert.equal(alternate.learningKitSha256, guide.learningKitSha256);
+  assert.deepEqual(alternate.ports, { restPort: 18080, ssePort: 18081, feedPort: 18082, authPort: 18083, vitePort: 15173 });
+  assert.deepEqual(live.ports, { restPort: 8080, ssePort: 8081, feedPort: 8082, authPort: 8083, vitePort: 5173 });
   return {
     source: set.source, runId: runId ?? null, releaseSetSha256: releaseSetHash(bytes), humanAcceptance: false,
     checks: ['quality', 'packages', 'npm-consumers', 'pnpm-consumer', 'browsers', 'documentation',
-      'released-backend', 'live-guide-auth-notifications-hmr-next', 'release-policy'],
+      'released-backend', 'live-guide-auth-notifications-hmr-next', 'non-default-ports', 'self-contained-learning-kit',
+      'release-policy'],
   };
 }
