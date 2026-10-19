@@ -16,7 +16,7 @@ assert.equal(run.status, 'completed');
 assert.equal(run.conclusion, 'success');
 const { jobs } = api(`actions/runs/${id}/jobs?filter=latest&per_page=100`);
 for (const name of ['Quality', 'Node 22 compatibility', 'Packed consumers', 'Release policy',
-  'Backend / macOS Intel', 'Backend / Linux arm64']) {
+  'Backend / macOS Intel', 'Backend / Linux arm64', 'Learning builder / Windows']) {
   const matches = jobs.filter(job => job.name === name);
   assert.equal(matches.length, 1, `Missing or ambiguous required job ${name}`);
   assert.equal(matches[0].conclusion, 'success', `${name} has not passed`);

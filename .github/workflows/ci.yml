@@ -52,14 +52,17 @@ jobs:
           cache: npm
       - name: Exercise Node 22 bundled npm 10
         run: node -e "if (!require('node:child_process').execFileSync('npm', ['--version'], {encoding:'utf8'}).startsWith('10.')) process.exit(1)"
+      - name: Exercise the documented builder from a source-only clone with no output parent
+        shell: pwsh
+        run: ./scripts/test-learning-builder.ps1
+        env:
+          DRASI_EXPECT_PLATFORM: linux
+          DRASI_BUILDER_PROOF: ${{ github.workspace }}/.artifacts/learning-builder-linux-proof.json
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/learning-builder-linux-npm
       - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
       - run: npm run build && npm run typecheck && npm run test:coverage
       - run: npm run pack:candidates && npm run check:packages
       - run: npm run test:book-apps && npm run test:backend
-      - name: Build the minimal source fallback without the workspace dependency cache
-        run: node scripts/build-learning-kit.mjs .artifacts/source-fallback
-        env:
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/learning-builder-npm
       - run: node --test scripts/test/launcher-entry.test.mjs scripts/test/preview.test.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
@@ -71,7 +74,34 @@ jobs:
             .artifacts/consumer-proofs/developer-guide/
             .artifacts/consumer-proofs/developer-guide-next/
             .artifacts/released-backend/run-*/
-            .artifacts/source-fallback/kit/learning-kit.json
+            .artifacts/learning-builder-linux-proof.json
+          if-no-files-found: error
+
+  learning-builder-windows:
+    name: Learning builder / Windows
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.20.0
+          package-manager-cache: false
+      - name: Run the actual PowerShell fresh-clone route in a path with spaces
+        shell: pwsh
+        run: ./scripts/test-learning-builder.ps1
+        env:
+          DRASI_EXPECT_PLATFORM: win32
+          DRASI_BUILDER_PROOF: ${{ github.workspace }}/.artifacts/learning-builder-windows-proof.json
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/learning-builder-windows-npm
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: learning-builder-windows-evidence
+          include-hidden-files: true
+          path: .artifacts/learning-builder-windows-proof.json
           if-no-files-found: error
 
   backend-platforms:
@@ -108,7 +138,8 @@ jobs:
 
   consumers:
     name: Packed consumers
-    needs: [quality, node22, release-policy, backend-platforms]
+    if: ${{ always() }}
+    needs: [quality, node22, release-policy, backend-platforms, learning-builder-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     container:
@@ -122,6 +153,19 @@ jobs:
         with:
           node-version: 24.19.0
           cache: npm
+      - name: Fail the required gate if any prerequisite failed or was skipped
+        env:
+          PREREQUISITES: ${{ toJSON(needs) }}
+        run: |
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            const prerequisites = JSON.parse(process.env.PREREQUISITES);
+            assert.deepEqual(Object.keys(prerequisites).sort(),
+              ["quality", "node22", "release-policy", "backend-platforms", "learning-builder-windows"].sort());
+            for (const [name, job] of Object.entries(prerequisites)) {
+              assert.equal(job.result, "success", `${name} must pass; observed ${job.result}`);
+            }
+          '
       - run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
       - run: npm run build && npm run pack:candidates && npm run check:packages
       - run: npm run test:contracts

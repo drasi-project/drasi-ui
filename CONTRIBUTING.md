@@ -81,6 +81,20 @@ The `--non-default-ports` run exercises the shared CLI/Vite/curl configuration.
 No package exports, runtime budgets, strict declaration settings or peer rules
 are relaxed to move learning assets out of the archive.
 
+`scripts/test-learning-builder.ps1` exercises the actual documented source
+builder in a source-only clone whose path contains spaces, before any workspace
+installation or build. It asserts that `.artifacts`, `node_modules` and package
+outputs are absent, runs the default builder and starter commands, and records
+installed-byte, single-React and development-server evidence. Node 22 CI runs
+this on Linux; `Learning builder / Windows` runs it in native Windows
+PowerShell. Neither test launches the separate Drasi backend.
+
+Build-tool subprocesses use Node-resolved JavaScript entrypoints through
+`scripts/node-cli.mjs`; do not spawn npm/tsup `.cmd` shims or concatenate a
+shell command to accommodate paths with spaces. Repository text is checked out
+with LF line endings so generated-document and artifact-byte checks remain
+consistent across hosts.
+
 ## Changes and review
 
 Keep code with its owner: core for shared non-rendering contracts/algorithms,

@@ -28,11 +28,20 @@ Linux arm64**. The four original checks and strict/up-to-date policy are
 retained; the maintainer added the two native checks after their jobs passed.
 Preserve DCO sign-offs and the DCO check alongside this policy.
 
-`Packed consumers` waits for both native jobs, and the preview promotion check
-requires both. The native checks must remain independently required: a skipped
-downstream job is not a non-skippable aggregate and is not a substitute for
-their successful results. This implementation does not change protections or
-permissions itself.
+`Packed consumers` waits for both native jobs and `Learning builder / Windows`.
+It runs even when a prerequisite fails or is skipped, then explicitly fails its
+required check unless every prerequisite succeeded. This non-skippable
+preflight makes the Windows clean-source builder check a real qualification
+gate without weakening the six existing required contexts. The two native
+backend checks remain independently required as well. This implementation
+does not change protections or permissions itself.
+
+The clean-source checks run before ordinary workspace installation/builds.
+They use a separate clone with spaces in its path and no preexisting output
+parent, exercise the documented PowerShell commands, then verify the source-free
+starter's npm install, build, React identity and dev server. Native Windows
+qualification here applies to the source builder and learner app, not to the
+Drasi Server/plugin launcher.
 
 After its checks, CI runs `npm run preview:prepare`. This reads the already
 packed candidate set and identity-bound package, dependency, npm/pnpm,
@@ -50,7 +59,8 @@ a clean committed source and the same completed qualification evidence.
 
 After reviewed merge, let UI CI complete on protected `main`. Run **Preview
 downloads** with that successful main-push CI run ID. The workflow checks the
-exact source and all six required job results, downloads the previously
+exact source, all six required job results and the Windows learning-builder
+result, downloads the previously
 prepared files, verifies them again, and retains `github-preview-downloads`.
 It has only read permissions and **cannot publish a release or tag**.
 The authorized maintainer then attaches those unchanged files to a clearly

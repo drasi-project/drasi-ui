@@ -1,9 +1,9 @@
-import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { buildInventory, recordBuildOutputs } from './build-outputs.mjs';
 import { releasePackages } from './packages.mjs';
 import assert from 'node:assert/strict';
+import { spawnNpmSync } from './node-cli.mjs';
 
 assert(process.argv.slice(2).every(arg => arg === '--packages-only'), 'Usage: build.mjs [--packages-only]');
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -23,7 +23,7 @@ for (const directory of ['core', 'styles', 'react']) {
       await copyFile(new URL('../tests/contracts/react-app.tsx', import.meta.url), new URL('react-app.tsx', generated));
     }
   }
-  const result = spawnSync('npm', ['run', 'build', '--workspace', `packages/${directory}`], {
+  const result = spawnNpmSync(['run', 'build', '--workspace', `packages/${directory}`], {
     cwd: root, stdio: 'inherit',
   });
   if (result.error) throw result.error;

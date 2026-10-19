@@ -1,6 +1,5 @@
 // Copyright 2026 The Drasi Authors. Licensed under the Apache License, Version 2.0.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -13,6 +12,7 @@ import { renderPrintGuide } from './print-guide.mjs';
 import { readArchive, verifyCandidateFiles, verifyLearningDirectory } from './verify-preview.mjs';
 import { defaultPorts, saveLessonPorts } from '../examples/react/scripts/lesson-config.mjs';
 import { markdownAnchors, relativeMarkdownLinks } from '../tests/consumers/public-contract/documentation-links.mjs';
+import { spawnNpmSync } from './node-cli.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export const learningDirectory = resolve(process.env.DRASI_LEARNING_KIT ?? '.artifacts/learning-kit');
@@ -41,7 +41,7 @@ export function npmEnvironment(directory = root) {
 }
 
 export function npmRun(args, directory, env = npmEnvironment()) {
-  const result = spawnSync('npm', args, { cwd: directory, encoding: 'utf8', env,
+  const result = spawnNpmSync(args, { cwd: directory, encoding: 'utf8', env,
     timeout: 600_000, maxBuffer: 16 * 1024 * 1024 });
   if (result.error) throw result.error;
   assert.equal(result.status, 0, `npm ${args.join(' ')} failed:\n${result.stdout}\n${result.stderr}`);
@@ -61,7 +61,7 @@ export async function validateLearningLinks(directory) {
     for (const link of relativeMarkdownLinks(body)) {
       const [path, fragment] = link.split('#');
       const target = path ? resolve(dirname(source), decodeURIComponent(path)) : source;
-      const local = relative(directory, target);
+      const local = relative(directory, target).replaceAll('\\', '/');
       assert(local !== '..' && !local.startsWith('../'), `Learning link escapes the kit: ${link}`);
       assert((await stat(target)).isFile(), `Learning link needs a bundled file: ${link}`);
       if (fragment) assert(markdownAnchors(await readFile(target, 'utf8')).has(decodeURIComponent(fragment)),

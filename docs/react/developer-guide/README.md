@@ -119,11 +119,17 @@ if ($LASTEXITCODE) { throw 'Clone failed' }
 Set-Location drasi-ui
 node scripts/build-learning-kit.mjs
 if ($LASTEXITCODE) { throw 'Learning kit build failed' }
+Set-Location .artifacts/learning-build/kit
 ```
 
 The builder refuses to overwrite an existing output. Use
 `node scripts/build-learning-kit.mjs .artifacts/another-learning-build` to repeat.
+It creates a missing output parent itself; no prior workspace build or
+`.artifacts` folder is required. Its Node-based tool invocations also support
+checkout paths containing spaces, including native Windows PowerShell.
 The kit can be moved anywhere: it needs no repository checkout to run.
+Building the kit on Windows is separate from running Drasi: Chapter 5 lists
+the supported backend environments.
 
 When GitHub downloads become available, download every asset from **one**
 approved prerelease, including `verify-preview.mjs`, `SHA256SUMS`, the versioned
